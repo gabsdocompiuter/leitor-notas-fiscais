@@ -1,7 +1,7 @@
 import re
 from urllib.parse import parse_qs, urlsplit
 
-from ..core.exceptions import ErroConsulta
+from ..core.exceptions import ErroQrCode
 
 
 def extrair_chave(url: str) -> str:
@@ -20,16 +20,16 @@ def extrair_chave(url: str) -> str:
             or endereco.password is not None
             or endereco.fragment
         ):
-            raise ErroConsulta("Informe uma URL HTTPS de QR Code da SEFAZ RS ou SVRS suportada.")
+            raise ErroQrCode("Informe uma URL HTTPS de QR Code da SEFAZ RS ou SVRS suportada.")
         parametros = parse_qs(endereco.query, keep_blank_values=True)
         valores = parametros.get("p", [])
         if len(valores) != 1:
-            raise ErroConsulta("O QR Code deve conter um único parâmetro p.")
+            raise ErroQrCode("O QR Code deve conter um único parâmetro p.")
         partes = valores[0].split("|")
         if len(partes) < 3 or not re.fullmatch(r"\d{44}", partes[0]):
-            raise ErroConsulta("O QR Code não contém uma chave de acesso de 44 dígitos.")
+            raise ErroQrCode("O QR Code não contém uma chave de acesso de 44 dígitos.")
         if partes[0][:2] != "43":
-            raise ErroConsulta("Somente notas do Rio Grande do Sul são suportadas nesta etapa.")
+            raise ErroQrCode("Somente notas do Rio Grande do Sul são suportadas nesta etapa.")
         return partes[0]
     except ValueError as erro:
-        raise ErroConsulta(f"URL de QR Code inválida: {erro}") from erro
+        raise ErroQrCode(f"URL de QR Code inválida: {erro}") from erro

@@ -9,5 +9,13 @@ class ErroConsulta(RuntimeError):
     """A consulta HTTP não pôde ser concluída."""
 
 
+class ErroQrCode(ErroConsulta):
+    """A URL recebida não representa um QR Code suportado."""
+
+
 class ErroPersistencia(RuntimeError):
     """Não foi possível gravar ou recuperar os dados no banco."""
+
+
+class NaoEncontrado(LookupError):
+    """O recurso solicitado não existe no banco."""

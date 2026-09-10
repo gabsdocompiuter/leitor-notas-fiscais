@@ -1,0 +1,1 @@
+"""Contratos OpenAPI da aplicação."""

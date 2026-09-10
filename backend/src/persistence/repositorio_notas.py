@@ -57,6 +57,23 @@ class RepositorioNotas:
             linha = conexao.execute("SELECT id FROM notas WHERE chave = ?", (chave,)).fetchone()
             return self._ler_nota(conexao, linha["id"]) if linha is not None else None
 
+    def listar(
+        self,
+        situacao: SituacaoNota | None = None,
+        limite: int = 100,
+        deslocamento: int = 0,
+    ) -> list[Nota]:
+        consulta = "SELECT id FROM notas"
+        parametros: list[object] = []
+        if situacao is not None:
+            consulta += " WHERE situacao = ?"
+            parametros.append(situacao.value)
+        consulta += " ORDER BY emissao DESC, id LIMIT ? OFFSET ?"
+        parametros.extend((limite, deslocamento))
+        with self.banco.conectar() as conexao:
+            linhas = conexao.execute(consulta, parametros).fetchall()
+            return [self._ler_nota(conexao, linha["id"]) for linha in linhas]
+
     def salvar(self, nota: Nota, leitura_id: UUID | None = None) -> Nota:
         """Insere atomicamente; uma chave existente retorna os dados já salvos."""
         with self.banco.conectar() as conexao:
