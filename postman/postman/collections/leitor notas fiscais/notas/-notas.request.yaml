@@ -1,5 +1,0 @@
-$kind: http-request
-name: /notas
-url: "{{8008}}/notas"
-method: GET
-order: 1789065006897

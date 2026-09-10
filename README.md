@@ -23,6 +23,8 @@ backend/
   CHANGELOG.md       # Histórico do backend
 frontend/
   README.md          # Escopo da futura interface Angular + Bootstrap
+postman/
+  postman/           # Collection local com as chamadas do backend
 ```
 
 ## Backend 0.2.0

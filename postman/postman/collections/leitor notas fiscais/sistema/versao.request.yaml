@@ -1,0 +1,6 @@
+$kind: http-request
+name: Versão
+description: Retorna a versão atual do backend.
+url: "{{baseUrl}}/version"
+method: GET
+order: 2000

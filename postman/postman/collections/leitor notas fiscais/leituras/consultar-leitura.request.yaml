@@ -1,0 +1,9 @@
+$kind: http-request
+name: Consultar leitura por chave
+description: Recupera a captura do QR Code, inclusive quando a consulta falhou.
+url: "{{baseUrl}}/leituras/:chave"
+method: GET
+pathVariables:
+  - key: chave
+    value: "{{chaveNfce}}"
+order: 2000

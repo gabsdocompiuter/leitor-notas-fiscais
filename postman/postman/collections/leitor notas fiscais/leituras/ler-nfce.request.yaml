@@ -1,0 +1,15 @@
+$kind: http-request
+name: Ler NFC-e
+description: Registra o QR Code, consulta a SEFAZ e salva a nota no SQLite.
+url: "{{baseUrl}}/leituras"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "url": "{{urlQrCode}}"
+    }
+order: 1000

@@ -4,7 +4,10 @@ As versões só são alteradas por solicitação explícita do usuário.
 
 ## Não lançado
 
-Nenhuma alteração pendente.
+### Adicionado
+
+- Workspace local do Postman organizado por sistema, leituras e notas, com
+  variáveis compartilhadas e todas as chamadas da API.
 
 ## 0.2.0 — 2026-09-10
 

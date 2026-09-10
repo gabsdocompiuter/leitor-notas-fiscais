@@ -1,0 +1,9 @@
+$kind: http-request
+name: Consultar nota por chave
+description: Recupera uma nota salva com estabelecimento e itens.
+url: "{{baseUrl}}/notas/:chave"
+method: GET
+pathVariables:
+  - key: chave
+    value: "{{chaveNfce}}"
+order: 2000
