@@ -1,0 +1,21 @@
+.venv/
+__pycache__/
+*.pyc
+nota.json
+pagina.html
+
+# Frontend Angular
+node_modules/
+.angular/
+dist/
+coverage/
+
+# Configuracao e dados locais
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite3
+*.db
+*-wal
+*-shm
