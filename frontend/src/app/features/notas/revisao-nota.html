@@ -1,0 +1,398 @@
+<div class="container page-section">
+  <a class="back-link" routerLink="/notas"
+    ><i class="bi bi-arrow-left me-2"></i>Voltar para notas</a
+  >
+
+  @if (erro()) {
+    <div class="alert alert-danger alert-dismissible mt-3" role="alert">
+      <i class="bi bi-exclamation-circle me-2"></i>{{ erro() }}
+      <button type="button" class="btn-close" aria-label="Fechar" (click)="erro.set(null)"></button>
+    </div>
+  }
+  @if (sucesso()) {
+    <div class="alert alert-success alert-dismissible mt-3" role="status">
+      <i class="bi bi-check-circle me-2"></i>{{ sucesso() }}
+      <button
+        type="button"
+        class="btn-close"
+        aria-label="Fechar"
+        (click)="sucesso.set(null)"
+      ></button>
+    </div>
+  }
+
+  @if (carregando()) {
+    <div class="d-flex justify-content-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Carregando nota</span>
+      </div>
+    </div>
+  } @else if (!nota()) {
+    <lnf-estado-vazio
+      titulo="Nota não encontrada"
+      mensagem="Não foi possível carregar esta nota fiscal."
+      icone="bi-receipt-x"
+      link="/notas"
+      acao="Voltar para notas"
+    />
+  } @else {
+    @let atual = nota()!;
+    <section class="note-header mt-4 mb-4">
+      <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+          <span class="eyebrow">{{
+            atual.situacao === 'importada' ? 'Nota importada' : 'Revisão da compra'
+          }}</span>
+          <h1 class="h2 mt-1 mb-1">{{ atual.estabelecimento.nome_exibicao }}</h1>
+          <p class="text-secondary mb-0">
+            {{ atual.emissao | date: 'dd/MM/yyyy, HH:mm' }} · NFC-e {{ atual.numero }}
+          </p>
+        </div>
+        <div class="total-box">
+          <span>Total pago</span>
+          <strong>{{
+            +atual.valor_a_pagar | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+          }}</strong>
+        </div>
+      </div>
+
+      <div class="progress-wrap mt-4">
+        <div class="d-flex justify-content-between small mb-2">
+          <span
+            >{{ atual.quantidade_itens - itensPendentes(atual) }} de
+            {{ atual.quantidade_itens }} itens revisados</span
+          >
+          <strong
+            >{{
+              atual.quantidade_itens
+                ? (
+                    ((atual.quantidade_itens - itensPendentes(atual)) / atual.quantidade_itens) *
+                    100
+                  ).toFixed(0)
+                : 0
+            }}%</strong
+          >
+        </div>
+        <div
+          class="progress"
+          role="progressbar"
+          aria-label="Progresso da revisão"
+          [attr.aria-valuenow]="atual.quantidade_itens - itensPendentes(atual)"
+          aria-valuemin="0"
+          [attr.aria-valuemax]="atual.quantidade_itens"
+        >
+          <div
+            class="progress-bar"
+            [style.width.%]="
+              atual.quantidade_itens
+                ? ((atual.quantidade_itens - itensPendentes(atual)) / atual.quantidade_itens) * 100
+                : 0
+            "
+          ></div>
+        </div>
+      </div>
+    </section>
+
+    @if (atual.situacao !== 'importada') {
+      <details class="catalog-card mb-4">
+        <summary><i class="bi bi-plus-circle me-2"></i>Cadastros rápidos</summary>
+        <div class="row g-4 pt-4">
+          <div class="col-12 col-md-6 col-xl-3">
+            <form [formGroup]="categoriaForm" (ngSubmit)="criarCategoria()">
+              <label class="form-label" for="nova-categoria">Nova categoria</label>
+              <div class="input-group">
+                <input
+                  id="nova-categoria"
+                  class="form-control"
+                  formControlName="nome"
+                  placeholder="Alimentação"
+                /><button
+                  class="btn btn-outline-primary"
+                  type="submit"
+                  [disabled]="categoriaForm.invalid || cadastroSalvando()"
+                >
+                  Criar
+                </button>
+              </div>
+            </form>
+          </div>
+          <div class="col-12 col-md-6 col-xl-3">
+            <form [formGroup]="marcaForm" (ngSubmit)="criarMarca()">
+              <label class="form-label" for="nova-marca">Nova marca</label>
+              <div class="input-group">
+                <input
+                  id="nova-marca"
+                  class="form-control"
+                  formControlName="nome"
+                  placeholder="Tirol"
+                /><button
+                  class="btn btn-outline-primary"
+                  type="submit"
+                  [disabled]="marcaForm.invalid || cadastroSalvando()"
+                >
+                  Criar
+                </button>
+              </div>
+            </form>
+          </div>
+          <div class="col-12 col-xl-6">
+            <form [formGroup]="produtoForm" (ngSubmit)="criarProduto()">
+              <label class="form-label">Novo produto</label>
+              <div class="row g-2">
+                <div class="col-12 col-sm-5">
+                  <input
+                    class="form-control"
+                    formControlName="nome"
+                    aria-label="Nome do produto"
+                    placeholder="Leite integral"
+                  />
+                </div>
+                <div class="col-7 col-sm-4">
+                  <select
+                    class="form-select"
+                    formControlName="categoria_id"
+                    aria-label="Categoria do produto"
+                  >
+                    <option value="">Categoria</option>
+                    @for (categoria of categorias(); track categoria.id) {
+                      <option [value]="categoria.id">{{ categoria.nome }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="col-5 col-sm-3">
+                  <div class="input-group">
+                    <select
+                      class="form-select"
+                      formControlName="unidade_base"
+                      aria-label="Unidade-base"
+                    >
+                      @for (unidade of unidades; track unidade.valor) {
+                        <option [value]="unidade.valor">{{ unidade.valor }}</option>
+                      }</select
+                    ><button
+                      class="btn btn-outline-primary"
+                      type="submit"
+                      [disabled]="produtoForm.invalid || cadastroSalvando()"
+                    >
+                      <i class="bi bi-plus-lg"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </details>
+    }
+
+    <div class="d-flex align-items-end justify-content-between gap-3 mb-3">
+      <div>
+        <span class="eyebrow">Itens da nota</span>
+        <h2 class="h4 mb-0">Revise a classificação</h2>
+      </div>
+      @if (atual.situacao !== 'importada' && itensPendentes(atual) > 0) {
+        <span class="pending-count"
+          ><i class="bi bi-exclamation-triangle me-1"></i
+          >{{ itensPendentes(atual) }} pendente(s)</span
+        >
+      }
+    </div>
+
+    <div class="d-grid gap-3">
+      @for (item of atual.itens; track item.id) {
+        @let formulario = formularioItem(item.id);
+        @if (formulario) {
+          <article
+            class="item-card"
+            [class.reviewed]="item.revisado"
+            [class.has-warning]="!item.revisado"
+          >
+            <div class="item-summary">
+              <div class="item-number">{{ item.numero }}</div>
+              <div class="min-width-0">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                  <h3 class="h6 mb-0">{{ item.descricao_original }}</h3>
+                  @if (item.revisado) {
+                    <span class="badge text-bg-success-subtle text-success-emphasis"
+                      ><i class="bi bi-check me-1"></i>Revisado</span
+                    >
+                  } @else {
+                    <span class="badge text-bg-warning-subtle text-warning-emphasis"
+                      ><i class="bi bi-exclamation-triangle me-1"></i>Requer atenção</span
+                    >
+                  }
+                </div>
+                <p class="text-secondary small mb-0 mt-1">
+                  {{ item.quantidade }} {{ item.unidade_original }} ×
+                  {{ +item.valor_unitario | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }} ·
+                  Total {{ +item.valor_total | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
+                </p>
+              </div>
+            </div>
+
+            @if (item.alertas.length > 0 && !item.revisado) {
+              <div class="item-alerts mt-3">
+                @for (alerta of item.alertas; track alerta) {
+                  <span><i class="bi bi-exclamation-circle me-1"></i>{{ alerta }}</span>
+                }
+              </div>
+            }
+
+            <form class="row g-3 mt-1" [formGroup]="formulario" (ngSubmit)="salvarItem(item)">
+              <div class="col-12 col-lg-6">
+                <label class="form-label" [for]="'produto-' + item.id">Produto</label>
+                <select
+                  class="form-select"
+                  [id]="'produto-' + item.id"
+                  formControlName="produto_id"
+                  [class.is-invalid]="
+                    formulario.get('produto_id')?.invalid && formulario.get('produto_id')?.touched
+                  "
+                  [attr.disabled]="atual.situacao === 'importada' ? true : null"
+                >
+                  <option value="">Selecione o produto</option>
+                  @for (produto of produtos(); track produto.id) {
+                    <option [value]="produto.id">
+                      {{ produto.nome }} · {{ produto.categoria.nome }}
+                    </option>
+                  }
+                </select>
+                <div class="invalid-feedback">Selecione um produto.</div>
+              </div>
+              <div class="col-12 col-lg-6">
+                <label class="form-label" [for]="'marca-' + item.id">Marca</label>
+                <select
+                  class="form-select"
+                  [id]="'marca-' + item.id"
+                  formControlName="marca_id"
+                  [attr.disabled]="atual.situacao === 'importada' ? true : null"
+                >
+                  <option [ngValue]="null">Sem marca</option>
+                  @for (marca of marcas(); track marca.id) {
+                    <option [value]="marca.id">{{ marca.nome }}</option>
+                  }
+                </select>
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label" [for]="'conteudo-' + item.id">Conteúdo</label>
+                <input
+                  class="form-control"
+                  [id]="'conteudo-' + item.id"
+                  type="number"
+                  min="0.0001"
+                  step="any"
+                  formControlName="conteudo_embalagem"
+                  placeholder="1,5"
+                  [attr.disabled]="atual.situacao === 'importada' ? true : null"
+                />
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label" [for]="'un-emb-' + item.id">Un. embalagem</label>
+                <select
+                  class="form-select"
+                  [id]="'un-emb-' + item.id"
+                  formControlName="unidade_embalagem"
+                  [attr.disabled]="atual.situacao === 'importada' ? true : null"
+                >
+                  <option [ngValue]="null">Não se aplica</option>
+                  @for (unidade of unidades; track unidade.valor) {
+                    <option [value]="unidade.valor">{{ unidade.valor }}</option>
+                  }
+                </select>
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label" [for]="'un-cor-' + item.id">Un. corrigida</label>
+                <select
+                  class="form-select"
+                  [id]="'un-cor-' + item.id"
+                  formControlName="unidade_corrigida"
+                  [attr.disabled]="atual.situacao === 'importada' ? true : null"
+                >
+                  @for (unidade of unidades; track unidade.valor) {
+                    <option [value]="unidade.valor">{{ unidade.valor }}</option>
+                  }
+                </select>
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label" [for]="'qtd-norm-' + item.id">Qtd. normalizada</label>
+                <input
+                  class="form-control"
+                  [id]="'qtd-norm-' + item.id"
+                  type="number"
+                  min="0.0001"
+                  step="any"
+                  formControlName="quantidade_normalizada"
+                  [attr.disabled]="atual.situacao === 'importada' ? true : null"
+                />
+              </div>
+              @if (formulario.hasError('embalagemIncompleta') && formulario.touched) {
+                <div class="col-12">
+                  <div class="form-text text-danger">
+                    Preencha conteúdo e unidade da embalagem juntos.
+                  </div>
+                </div>
+              }
+              <div class="col-12 d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    formControlName="marca_confirmada"
+                    [id]="'marca-ok-' + item.id"
+                    [attr.disabled]="atual.situacao === 'importada' ? true : null"
+                  />
+                  <label class="form-check-label" [for]="'marca-ok-' + item.id"
+                    >Marca conferida, inclusive quando o item não possui marca</label
+                  >
+                </div>
+                @if (atual.situacao !== 'importada') {
+                  <button
+                    class="btn btn-primary rounded-pill px-4"
+                    type="submit"
+                    [disabled]="itemSalvando() !== null"
+                  >
+                    @if (itemSalvando() === item.id) {
+                      <span class="spinner-border spinner-border-sm me-2"></span>Salvando...
+                    } @else {
+                      <i class="bi bi-check2 me-2"></i
+                      >{{ item.revisado ? 'Salvar ajustes' : 'Confirmar item' }}
+                    }
+                  </button>
+                }
+              </div>
+            </form>
+          </article>
+        }
+      }
+    </div>
+
+    @if (atual.situacao !== 'importada') {
+      <section class="import-bar mt-4">
+        <div>
+          <strong>{{
+            podeImportar(atual) ? 'Tudo pronto para importar' : 'A revisão ainda não terminou'
+          }}</strong>
+          <p class="small text-secondary mb-0">
+            {{
+              podeImportar(atual)
+                ? 'Após importar, a nota ficará disponível somente para consulta.'
+                : 'Confirme todos os itens para liberar a importação.'
+            }}
+          </p>
+        </div>
+        <button
+          class="btn btn-primary rounded-pill px-4"
+          type="button"
+          [disabled]="!podeImportar(atual) || importando()"
+          (click)="concluirImportacao()"
+        >
+          @if (importando()) {
+            <span class="spinner-border spinner-border-sm me-2"></span>Importando...
+          } @else {
+            <i class="bi bi-box-arrow-in-down me-2"></i>Concluir importação
+          }
+        </button>
+      </section>
+    }
+  }
+</div>

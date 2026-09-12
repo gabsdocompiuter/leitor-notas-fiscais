@@ -1,0 +1,129 @@
+<div class="container page-section">
+  <section class="hero-panel mb-4">
+    <div>
+      <span class="eyebrow">Organização doméstica</span>
+      <h1 class="display-6 mb-2">Suas compras em ordem</h1>
+      <p class="text-secondary mb-0">
+        Leia uma nota pelo celular e termine a revisão quando preferir.
+      </p>
+    </div>
+    <a class="scan-cta" routerLink="/ler" aria-label="Ler nova nota fiscal">
+      <i class="bi bi-plus-lg" aria-hidden="true"></i>
+      <span>Ler nota</span>
+    </a>
+  </section>
+
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+    <div>
+      <h2 class="h4 mb-1">Notas fiscais</h2>
+      <p class="text-secondary small mb-0">{{ notas().length }} nota(s) neste filtro</p>
+    </div>
+    <div class="filter-bar" role="group" aria-label="Filtrar notas por situação">
+      @for (
+        opcao of [
+          ['todas', 'Todas'],
+          ['lida', 'Lidas'],
+          ['em_revisao', 'Em revisão'],
+          ['importada', 'Importadas'],
+        ];
+        track opcao[0]
+      ) {
+        <button
+          type="button"
+          class="filter-button"
+          [class.active]="filtro() === opcao[0]"
+          (click)="selecionarFiltro($any(opcao[0]))"
+        >
+          {{ opcao[1] }}
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (erro()) {
+    <div
+      class="alert alert-danger d-flex align-items-center justify-content-between gap-3"
+      role="alert"
+    >
+      <span><i class="bi bi-exclamation-circle me-2"></i>{{ erro() }}</span>
+      <button class="btn btn-sm btn-outline-danger" type="button" (click)="carregar()">
+        Tentar novamente
+      </button>
+    </div>
+  }
+
+  @if (carregando()) {
+    <div class="row g-3" aria-label="Carregando notas">
+      @for (_ of [1, 2, 3]; track $index) {
+        <div class="col-12 col-lg-6">
+          <div class="note-card placeholder-glow">
+            <span class="placeholder col-8"></span><br /><span class="placeholder col-5"></span>
+          </div>
+        </div>
+      }
+    </div>
+  } @else if (!erro() && notas().length === 0) {
+    <div class="surface-card">
+      <lnf-estado-vazio
+        titulo="Nenhuma nota encontrada"
+        mensagem="Leia o QR Code de uma NFC-e para iniciar sua organização."
+        icone="bi-qr-code-scan"
+        link="/ler"
+        acao="Ler primeira nota"
+      />
+    </div>
+  } @else {
+    <div class="row g-3">
+      @for (nota of notas(); track nota.id) {
+        <div class="col-12 col-lg-6">
+          <article class="note-card h-100">
+            <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+              <div class="min-width-0">
+                <span class="store-icon"><i class="bi bi-shop"></i></span>
+                <h3 class="h5 text-truncate mt-3 mb-1">{{ nota.estabelecimento.nome_exibicao }}</h3>
+                <p class="text-secondary small mb-0">
+                  {{ nota.emissao | date: 'dd/MM/yyyy, HH:mm' }}
+                </p>
+              </div>
+              <span class="status-badge" [class]="'status-' + nota.situacao">{{
+                rotuloSituacao(nota.situacao)
+              }}</span>
+            </div>
+
+            <div class="note-metrics">
+              <div>
+                <span>Total</span
+                ><strong>{{
+                  +nota.valor_a_pagar | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+                }}</strong>
+              </div>
+              <div>
+                <span>Itens</span><strong>{{ nota.quantidade_itens }}</strong>
+              </div>
+              @if (nota.situacao !== 'importada') {
+                <div>
+                  <span>Pendentes</span><strong>{{ quantidadeItensPendentes(nota) }}</strong>
+                </div>
+              }
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between border-top pt-3 mt-3">
+              <span class="text-secondary small"
+                >NFC-e {{ nota.numero }} · Série {{ nota.serie }}</span
+              >
+              <a
+                class="btn btn-sm rounded-pill"
+                [class.btn-primary]="nota.situacao !== 'importada'"
+                [class.btn-outline-secondary]="nota.situacao === 'importada'"
+                [routerLink]="['/notas', nota.chave, 'revisao']"
+              >
+                {{ nota.situacao === 'importada' ? 'Visualizar' : 'Continuar' }}
+                <i class="bi bi-arrow-right ms-1"></i>
+              </a>
+            </div>
+          </article>
+        </div>
+      }
+    </div>
+  }
+</div>

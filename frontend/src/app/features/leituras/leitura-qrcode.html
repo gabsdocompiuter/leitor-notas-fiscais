@@ -1,0 +1,101 @@
+<div class="container page-section">
+  <div class="mb-4">
+    <a class="back-link" routerLink="/notas"
+      ><i class="bi bi-arrow-left me-2"></i>Voltar para notas</a
+    >
+    <span class="eyebrow d-block mt-4">Nova leitura</span>
+    <h1 class="h2 mt-1 mb-2">Aponte para o QR Code</h1>
+    <p class="text-secondary mb-0">Posicione o código da NFC-e dentro da área indicada.</p>
+  </div>
+
+  <div class="row g-4 justify-content-center">
+    <div class="col-12 col-lg-7">
+      <section class="scanner-card">
+        <div class="video-frame" [class.camera-off]="!cameraAtiva()">
+          <video
+            #video
+            muted
+            playsinline
+            aria-label="Imagem da câmera para leitura do QR Code"
+          ></video>
+          <div class="scan-guide" aria-hidden="true"><span></span></div>
+          @if (!cameraAtiva()) {
+            <div class="camera-placeholder text-center">
+              <i class="bi bi-camera"></i>
+              <p class="mb-3">A câmera será usada somente durante a leitura.</p>
+              <button
+                type="button"
+                class="btn btn-light rounded-pill px-4"
+                (click)="iniciarCamera()"
+                [disabled]="enviando()"
+              >
+                <i class="bi bi-play-fill me-1"></i>Abrir câmera
+              </button>
+            </div>
+          }
+        </div>
+
+        @if (cameraAtiva()) {
+          <button
+            type="button"
+            class="btn btn-outline-secondary rounded-pill mt-3"
+            (click)="pararCamera()"
+          >
+            <i class="bi bi-stop-circle me-2"></i>Parar câmera
+          </button>
+        }
+      </section>
+    </div>
+
+    <div class="col-12 col-lg-5">
+      @if (avisoHttps) {
+        <div class="alert alert-warning small" role="alert">
+          <i class="bi bi-shield-exclamation me-2"></i>A câmera requer HTTPS quando o sistema é
+          acessado por outro aparelho da rede.
+        </div>
+      }
+
+      @if (erro()) {
+        <div class="alert alert-danger" role="alert">
+          <i class="bi bi-exclamation-circle me-2"></i>{{ erro() }}
+        </div>
+      }
+
+      <section class="surface-card p-4">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <span class="alternative-icon"><i class="bi bi-link-45deg"></i></span>
+          <div>
+            <h2 class="h6 mb-0">Usar o link</h2>
+            <small class="text-secondary">Opção para computador ou testes</small>
+          </div>
+        </div>
+        <form (ngSubmit)="enviar()">
+          <label class="form-label" for="url-nota">Conteúdo do QR Code</label>
+          <textarea
+            id="url-nota"
+            class="form-control"
+            rows="5"
+            [formControl]="url"
+            [class.is-invalid]="url.invalid && url.touched"
+            placeholder="https://dfe-portal.svrs.rs.gov.br/Dfe/QrCodeNFce?p=..."
+          ></textarea>
+          @if (url.invalid && url.touched) {
+            <div class="invalid-feedback">Informe o link lido no QR Code.</div>
+          }
+          <button
+            class="btn btn-primary w-100 rounded-pill mt-3"
+            type="submit"
+            [disabled]="enviando()"
+          >
+            @if (enviando()) {
+              <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span
+              >Consultando SEFAZ...
+            } @else {
+              Consultar nota <i class="bi bi-arrow-right ms-2"></i>
+            }
+          </button>
+        </form>
+      </section>
+    </div>
+  </div>
+</div>

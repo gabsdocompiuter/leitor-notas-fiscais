@@ -1,0 +1,39 @@
+.app-header {
+  background: rgba(248, 250, 247, 0.92);
+  border-bottom: 1px solid rgba(31, 111, 95, 0.12);
+  backdrop-filter: blur(12px);
+}
+
+.brand {
+  color: var(--lnf-ink);
+}
+.brand strong {
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.brand small {
+  color: var(--bs-secondary-color);
+  font-size: 0.72rem;
+}
+
+.brand-mark {
+  display: grid;
+  width: 2.35rem;
+  height: 2.35rem;
+  place-items: center;
+  color: white;
+  background: var(--lnf-primary);
+  border-radius: 0.8rem;
+  box-shadow: 0 8px 22px rgba(31, 111, 95, 0.2);
+}
+
+.nav-link-custom {
+  color: var(--bs-secondary-color);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.nav-link-custom.active,
+.nav-link-custom:hover {
+  color: var(--lnf-primary);
+}
