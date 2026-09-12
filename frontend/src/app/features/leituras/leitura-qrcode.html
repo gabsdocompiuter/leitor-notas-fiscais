@@ -48,10 +48,10 @@
     </div>
 
     <div class="col-12 col-lg-5">
-      @if (avisoHttps) {
+      @if (origemInsegura) {
         <div class="alert alert-warning small" role="alert">
-          <i class="bi bi-shield-exclamation me-2"></i>A câmera requer HTTPS quando o sistema é
-          acessado por outro aparelho da rede.
+          <i class="bi bi-shield-exclamation me-2"></i>Este endereço ainda não foi reconhecido como
+          uma origem segura. Confira a configuração do Chrome e reinicie-o.
         </div>
       }
 

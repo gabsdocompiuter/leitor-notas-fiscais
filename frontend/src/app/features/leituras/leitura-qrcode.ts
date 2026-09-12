@@ -26,7 +26,7 @@ export class LeituraQrcode implements OnDestroy {
   readonly cameraAtiva = signal(false);
   readonly enviando = signal(false);
   readonly erro = signal<string | null>(null);
-  readonly avisoHttps = !window.isSecureContext && window.location.hostname !== 'localhost';
+  readonly origemInsegura = !window.isSecureContext && window.location.hostname !== 'localhost';
 
   async iniciarCamera(): Promise<void> {
     this.erro.set(null);

@@ -6,6 +6,7 @@ As versões só são alteradas por solicitação explícita do usuário.
 
 ### Adicionado
 
+- Container do backend para execução pelo Docker Compose da raiz.
 - Workspace local do Postman organizado por sistema, leituras e notas, com
   variáveis compartilhadas e todas as chamadas da API.
 - CRUD de categorias, marcas e produtos.

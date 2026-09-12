@@ -17,12 +17,15 @@ backend/
   CHANGELOG.md       # Histórico do backend
 frontend/
   src/               # Aplicação Angular
-  nginx/             # Proxy da API e exemplo para HTTPS local
-  Dockerfile         # Build Angular e servidor Nginx
+  Dockerfile         # Build Angular e servidor estático interno
   README.md          # Execução e arquitetura do frontend
   CHANGELOG.md       # Histórico do frontend
+nginx/
+  Dockerfile         # Gateway HTTP do projeto
+  default.conf.template
 postman/
   postman/           # Collection local com as chamadas do backend
+docker-compose.yml   # Orquestra frontend, backend e Nginx
 ```
 
 ## Backend 0.2.0
@@ -52,7 +55,27 @@ npm start
 
 Acesse `http://localhost:4200`. O proxy de desenvolvimento encaminha `/api` para o backend na porta 8008.
 
-Consulte os READMEs de cada aplicação para execução, testes e Docker.
+## Executar com Docker Compose
+
+Na raiz do projeto:
+
+```bash
+docker compose up --build -d
+```
+
+Acesse `http://localhost:8080`. Somente o container `nginx` publica uma porta no servidor. O Nginx encaminha `/` para o frontend e remove o prefixo `/api` antes de encaminhar as chamadas ao backend.
+
+O banco permanece em `backend/data/notas.sqlite3` por meio de um bind mount. Para escolher outra porta pública, copie `.env.example` para `.env` e altere `APP_PORT`.
+
+```bash
+docker compose ps
+docker compose logs -f
+docker compose down
+```
+
+No Android, cadastre exatamente `http://IP-DO-SERVIDOR:8080` como origem segura na [configuração experimental do Chrome](chrome://flags/#unsafely-treat-insecure-origin-as-secure) e reinicie o navegador. Se alterar `APP_PORT`, use a mesma porta nesse endereço.
+
+Consulte os READMEs de cada aplicação para execução e testes.
 
 ## Versionamento
 

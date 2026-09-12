@@ -6,4 +6,5 @@
 - Implementa leitura de QR Code pela câmera e envio ao FastAPI.
 - Lista notas por situação e permite retomar uma revisão.
 - Implementa revisão, cadastros rápidos e conclusão da importação.
-- Adiciona proxy de desenvolvimento, build Docker e proxy Nginx.
+- Adiciona proxy de desenvolvimento e container próprio para o build Angular.
+- Integra o frontend ao gateway Nginx separado na raiz do monorepo.

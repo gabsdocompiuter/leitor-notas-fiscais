@@ -27,7 +27,7 @@ Para acessar por outro dispositivo da rede:
 npm run start:network
 ```
 
-A leitura pela câmera exige uma origem segura no Android. `localhost` é aceito durante o desenvolvimento no próprio aparelho, mas um endereço como `http://192.168.0.10:4200` precisa ser publicado por HTTPS com um certificado confiável no celular.
+Para usar a câmera pelo Android via HTTP, cadastre exatamente a origem do servidor, incluindo a porta, como segura na [configuração experimental do Chrome](chrome://flags/#unsafely-treat-insecure-origin-as-secure) e reinicie o navegador.
 
 ## Funcionalidades
 
@@ -51,24 +51,15 @@ npm test
 npm run build
 ```
 
-## Docker e Nginx
+## Docker
 
-Crie a imagem:
+O container do frontend compila o Angular e publica os arquivos estáticos internamente na porta 8080. Ele não publica portas no host e não contém Nginx.
 
 ```bash
 docker build -t leitor-notas-fiscais-frontend ./frontend
 ```
 
-Por padrão, o Nginx encaminha `/api` para `backend:8008`. O host e a porta podem ser alterados pelas variáveis `BACKEND_HOST` e `BACKEND_PORT`.
-
-```bash
-docker run --rm -p 8080:80 \
-  -e BACKEND_HOST=host.docker.internal \
-  -e BACKEND_PORT=8008 \
-  leitor-notas-fiscais-frontend
-```
-
-O arquivo `nginx/https.conf.template.example` contém a configuração para HTTPS. Para usá-la, monte esse arquivo como `/etc/nginx/templates/default.conf.template` e monte o certificado e a chave em `/etc/nginx/certs/`. Em uma rede doméstica, ferramentas como `mkcert` podem gerar uma autoridade local; o certificado raiz também precisa ser instalado como confiável no Android.
+Use `docker compose up --build -d` na raiz do monorepo para iniciar frontend, backend e o gateway Nginx.
 
 ## Estrutura
 

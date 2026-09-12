@@ -19,7 +19,7 @@ python main.py
 No Windows, crie o ambiente com `py -m venv .venv`, ative-o com
 `.venv\Scripts\activate` e execute `python main.py`.
 
-A API escuta em todas as interfaces na porta 8000. Na própria máquina, abra:
+A API escuta em todas as interfaces na porta 8008. Na própria máquina, abra:
 
 - Swagger UI: `http://localhost:8008/docs`
 - ReDoc: `http://localhost:8008/redoc`
