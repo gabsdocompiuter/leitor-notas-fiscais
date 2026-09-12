@@ -93,98 +93,6 @@
       </div>
     </section>
 
-    @if (atual.situacao !== 'importada') {
-      <details class="catalog-card mb-4">
-        <summary><i class="bi bi-plus-circle me-2"></i>Cadastros rápidos</summary>
-        <div class="row g-4 pt-4">
-          <div class="col-12 col-md-6 col-xl-3">
-            <form [formGroup]="categoriaForm" (ngSubmit)="criarCategoria()">
-              <label class="form-label" for="nova-categoria">Nova categoria</label>
-              <div class="input-group">
-                <input
-                  id="nova-categoria"
-                  class="form-control"
-                  formControlName="nome"
-                  placeholder="Alimentação"
-                /><button
-                  class="btn btn-outline-primary"
-                  type="submit"
-                  [disabled]="categoriaForm.invalid || cadastroSalvando()"
-                >
-                  Criar
-                </button>
-              </div>
-            </form>
-          </div>
-          <div class="col-12 col-md-6 col-xl-3">
-            <form [formGroup]="marcaForm" (ngSubmit)="criarMarca()">
-              <label class="form-label" for="nova-marca">Nova marca</label>
-              <div class="input-group">
-                <input
-                  id="nova-marca"
-                  class="form-control"
-                  formControlName="nome"
-                  placeholder="Tirol"
-                /><button
-                  class="btn btn-outline-primary"
-                  type="submit"
-                  [disabled]="marcaForm.invalid || cadastroSalvando()"
-                >
-                  Criar
-                </button>
-              </div>
-            </form>
-          </div>
-          <div class="col-12 col-xl-6">
-            <form [formGroup]="produtoForm" (ngSubmit)="criarProduto()">
-              <label class="form-label">Novo produto</label>
-              <div class="row g-2">
-                <div class="col-12 col-sm-5">
-                  <input
-                    class="form-control"
-                    formControlName="nome"
-                    aria-label="Nome do produto"
-                    placeholder="Leite integral"
-                  />
-                </div>
-                <div class="col-7 col-sm-4">
-                  <select
-                    class="form-select"
-                    formControlName="categoria_id"
-                    aria-label="Categoria do produto"
-                  >
-                    <option value="">Categoria</option>
-                    @for (categoria of categorias(); track categoria.id) {
-                      <option [value]="categoria.id">{{ categoria.nome }}</option>
-                    }
-                  </select>
-                </div>
-                <div class="col-5 col-sm-3">
-                  <div class="input-group">
-                    <select
-                      class="form-select"
-                      formControlName="unidade_base"
-                      aria-label="Unidade-base"
-                    >
-                      @for (unidade of unidades; track unidade.valor) {
-                        <option [value]="unidade.valor">{{ unidade.valor }}</option>
-                      }</select
-                    ><button
-                      class="btn btn-outline-primary"
-                      type="submit"
-                      [disabled]="produtoForm.invalid || cadastroSalvando()"
-                    >
-                      <i class="bi bi-plus-lg"></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      </details>
-    }
-
     <div class="d-flex align-items-end justify-content-between gap-3 mb-3">
       <div>
         <span class="eyebrow">Itens da nota</span>
@@ -241,37 +149,38 @@
             <form class="row g-3 mt-1" [formGroup]="formulario" (ngSubmit)="salvarItem(item)">
               <div class="col-12 col-lg-6">
                 <label class="form-label" [for]="'produto-' + item.id">Produto</label>
-                <select
-                  class="form-select"
+                <button
+                  type="button"
+                  class="catalog-select"
                   [id]="'produto-' + item.id"
-                  formControlName="produto_id"
                   [class.is-invalid]="
                     formulario.get('produto_id')?.invalid && formulario.get('produto_id')?.touched
                   "
-                  [attr.disabled]="atual.situacao === 'importada' ? true : null"
+                  [disabled]="atual.situacao === 'importada'"
+                  (click)="abrirSeletor('produto', item)"
                 >
-                  <option value="">Selecione o produto</option>
-                  @for (produto of produtos(); track produto.id) {
-                    <option [value]="produto.id">
-                      {{ produto.nome }} · {{ produto.categoria.nome }}
-                    </option>
-                  }
-                </select>
+                  <span [class.placeholder-text]="!nomeProdutoSelecionado(item.id)">{{
+                    nomeProdutoSelecionado(item.id) ?? 'Pesquisar produto'
+                  }}</span>
+                  <i class="bi bi-search" aria-hidden="true"></i>
+                </button>
                 <div class="invalid-feedback">Selecione um produto.</div>
               </div>
               <div class="col-12 col-lg-6">
                 <label class="form-label" [for]="'marca-' + item.id">Marca</label>
-                <select
-                  class="form-select"
+                <button
+                  type="button"
+                  class="catalog-select"
                   [id]="'marca-' + item.id"
-                  formControlName="marca_id"
-                  [attr.disabled]="atual.situacao === 'importada' ? true : null"
+                  [disabled]="atual.situacao === 'importada'"
+                  (click)="abrirSeletor('marca', item)"
                 >
-                  <option [ngValue]="null">Sem marca</option>
-                  @for (marca of marcas(); track marca.id) {
-                    <option [value]="marca.id">{{ marca.nome }}</option>
-                  }
-                </select>
+                  <span
+                    [class.placeholder-text]="nomeMarcaSelecionada(item.id) === 'Selecionar marca'"
+                    >{{ nomeMarcaSelecionada(item.id) }}</span
+                  >
+                  <i class="bi bi-search" aria-hidden="true"></i>
+                </button>
               </div>
               <div class="col-6 col-md-3">
                 <label class="form-label" [for]="'conteudo-' + item.id">Conteúdo</label>
@@ -396,3 +305,220 @@
     }
   }
 </div>
+
+@if (modalAberto()) {
+  <div class="catalog-modal-backdrop" (mousedown)="fecharSeletor()">
+    <section
+      class="catalog-modal"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="'titulo-modal-catalogo'"
+      (mousedown)="$event.stopPropagation()"
+    >
+      <header class="catalog-modal-header">
+        <div>
+          <span class="eyebrow">Selecionar {{ tipoModal() }}</span>
+          <h2 class="h4 mb-0" id="titulo-modal-catalogo">{{ itemModal()?.descricao_original }}</h2>
+        </div>
+        <button
+          type="button"
+          class="btn-close"
+          aria-label="Fechar"
+          [disabled]="cadastroSalvando()"
+          (click)="fecharSeletor()"
+        ></button>
+      </header>
+
+      <div class="catalog-search">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input
+          #buscaModal
+          type="search"
+          class="form-control form-control-lg"
+          [value]="buscaCatalogo()"
+          [attr.maxlength]="tipoModal() === 'produto' ? 150 : 100"
+          (input)="atualizarBusca($event)"
+          [placeholder]="tipoModal() === 'produto' ? 'Pesquisar produto' : 'Pesquisar marca'"
+          [attr.aria-label]="tipoModal() === 'produto' ? 'Pesquisar produto' : 'Pesquisar marca'"
+        />
+      </div>
+
+      <div class="catalog-results" aria-live="polite">
+        @if (tipoModal() === 'produto') {
+          @for (produto of produtosFiltrados(); track produto.id) {
+            <button type="button" class="catalog-result" (click)="selecionarProduto(produto)">
+              <span class="result-icon"><i class="bi bi-basket"></i></span>
+              <span
+                ><strong>{{ produto.nome }}</strong
+                ><small>{{ produto.categoria.nome }} · {{ produto.unidade_base }}</small></span
+              >
+              <i class="bi bi-chevron-right ms-auto"></i>
+            </button>
+          } @empty {
+            <p class="empty-results"><i class="bi bi-search me-2"></i>Nenhum produto encontrado.</p>
+          }
+        } @else {
+          <button type="button" class="catalog-result" (click)="selecionarMarca(null)">
+            <span class="result-icon"><i class="bi bi-slash-circle"></i></span>
+            <span
+              ><strong>Sem marca</strong><small>Confirmar que o item não possui marca</small></span
+            >
+            <i class="bi bi-chevron-right ms-auto"></i>
+          </button>
+          @for (marca of marcasFiltradas(); track marca.id) {
+            <button type="button" class="catalog-result" (click)="selecionarMarca(marca)">
+              <span class="result-icon"><i class="bi bi-tag"></i></span>
+              <span
+                ><strong>{{ marca.nome }}</strong
+                ><small>Marca cadastrada</small></span
+              >
+              <i class="bi bi-chevron-right ms-auto"></i>
+            </button>
+          } @empty {
+            <p class="empty-results"><i class="bi bi-search me-2"></i>Nenhuma marca encontrada.</p>
+          }
+        }
+      </div>
+
+      <footer class="catalog-create">
+        @if (tipoModal() === 'produto') {
+          <form [formGroup]="novoProdutoForm" (ngSubmit)="criarProdutoNoModal()">
+            <p class="small text-secondary mb-2">
+              Não encontrou? Crie “<strong>{{ buscaCatalogo().trim() }}</strong
+              >”.
+            </p>
+            <div class="row g-2">
+              <div class="col-7">
+                <button
+                  type="button"
+                  class="catalog-select"
+                  aria-label="Categoria do novo produto"
+                  [class.is-invalid]="
+                    novoProdutoForm.controls.categoria_id.invalid &&
+                    novoProdutoForm.controls.categoria_id.touched
+                  "
+                  (click)="abrirSeletorCategoria()"
+                >
+                  <span [class.placeholder-text]="!nomeCategoriaSelecionada()">{{
+                    nomeCategoriaSelecionada() ?? 'Pesquisar categoria'
+                  }}</span>
+                  <i class="bi bi-search" aria-hidden="true"></i>
+                </button>
+                <div class="invalid-feedback">Selecione uma categoria.</div>
+              </div>
+              <div class="col-5">
+                <select
+                  class="form-select"
+                  formControlName="unidade_base"
+                  aria-label="Unidade-base do novo produto"
+                >
+                  @for (unidade of unidades; track unidade.valor) {
+                    <option [value]="unidade.valor">{{ unidade.valor }}</option>
+                  }
+                </select>
+              </div>
+              <div class="col-12">
+                <button
+                  class="btn btn-outline-primary w-100"
+                  type="submit"
+                  [disabled]="!buscaCatalogo().trim() || cadastroSalvando()"
+                >
+                  @if (cadastroSalvando()) {
+                    <span class="spinner-border spinner-border-sm me-2"></span>Criando...
+                  } @else {
+                    <i class="bi bi-plus-lg me-2"></i>Criar produto
+                  }
+                </button>
+              </div>
+            </div>
+          </form>
+        } @else {
+          <button
+            class="btn btn-outline-primary w-100"
+            type="button"
+            [disabled]="!buscaCatalogo().trim() || cadastroSalvando()"
+            (click)="criarMarcaNoModal()"
+          >
+            @if (cadastroSalvando()) {
+              <span class="spinner-border spinner-border-sm me-2"></span>Criando...
+            } @else {
+              <i class="bi bi-plus-lg me-2"></i>Criar “{{ buscaCatalogo().trim() }}”
+            }
+          </button>
+        }
+      </footer>
+    </section>
+  </div>
+}
+
+@if (modalCategoriaAberto()) {
+  <div class="catalog-modal-backdrop category-modal-layer" (mousedown)="fecharSeletorCategoria()">
+    <section
+      class="catalog-modal catalog-modal-secondary"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="titulo-modal-categoria"
+      (mousedown)="$event.stopPropagation()"
+    >
+      <header class="catalog-modal-header">
+        <div>
+          <span class="eyebrow">Categoria do novo produto</span>
+          <h2 class="h4 mb-0" id="titulo-modal-categoria">Selecionar categoria</h2>
+        </div>
+        <button
+          type="button"
+          class="btn-close"
+          aria-label="Fechar"
+          [disabled]="cadastroSalvando()"
+          (click)="fecharSeletorCategoria()"
+        ></button>
+      </header>
+
+      <div class="catalog-search">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input
+          #buscaCategoriaModal
+          type="search"
+          class="form-control form-control-lg"
+          [value]="buscaCategoria()"
+          maxlength="100"
+          placeholder="Pesquisar categoria"
+          aria-label="Pesquisar categoria"
+          (input)="atualizarBuscaCategoria($event)"
+        />
+      </div>
+
+      <div class="catalog-results" aria-live="polite">
+        @for (categoria of categoriasFiltradas(); track categoria.id) {
+          <button type="button" class="catalog-result" (click)="selecionarCategoria(categoria)">
+            <span class="result-icon"><i class="bi bi-folder"></i></span>
+            <span
+              ><strong>{{ categoria.nome }}</strong
+              ><small>Categoria cadastrada</small></span
+            >
+            <i class="bi bi-chevron-right ms-auto"></i>
+          </button>
+        } @empty {
+          <p class="empty-results">
+            <i class="bi bi-search me-2"></i>Nenhuma categoria encontrada.
+          </p>
+        }
+      </div>
+
+      <footer class="catalog-create">
+        <button
+          class="btn btn-outline-primary w-100"
+          type="button"
+          [disabled]="!buscaCategoria().trim() || cadastroSalvando()"
+          (click)="criarCategoriaNoModal()"
+        >
+          @if (cadastroSalvando()) {
+            <span class="spinner-border spinner-border-sm me-2"></span>Criando...
+          } @else {
+            <i class="bi bi-plus-lg me-2"></i>Criar “{{ buscaCategoria().trim() }}”
+          }
+        </button>
+      </footer>
+    </section>
+  </div>
+}

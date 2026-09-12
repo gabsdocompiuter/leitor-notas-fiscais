@@ -1,5 +1,5 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
@@ -23,6 +23,7 @@ import {
   UnidadeMedida,
 } from '../../core/models/api.models';
 import { mensagemErro } from '../../core/utils/erro-api';
+import { capitalizarIniciais, filtrarCatalogo } from '../../core/utils/catalogo.utils';
 import { quantidadeItensPendentes, todosItensRevisados } from '../../core/utils/nota.utils';
 import { EstadoVazio } from '../../shared/components/estado-vazio/estado-vazio';
 
@@ -53,6 +54,10 @@ export class RevisaoNota implements OnInit {
   private readonly chave = this.route.snapshot.paramMap.get('chave') ?? '';
   private readonly formularios = new Map<string, FormGroup>();
 
+  @ViewChild('buscaModal') private buscaModal?: ElementRef<HTMLInputElement>;
+  @ViewChild('buscaCategoriaModal')
+  private buscaCategoriaModal?: ElementRef<HTMLInputElement>;
+
   readonly unidades = UNIDADES;
   readonly nota = signal<Nota | null>(null);
   readonly produtos = signal<Produto[]>([]);
@@ -64,15 +69,26 @@ export class RevisaoNota implements OnInit {
   readonly itemSalvando = signal<string | null>(null);
   readonly importando = signal(false);
   readonly cadastroSalvando = signal(false);
-
-  readonly categoriaForm = this.fb.nonNullable.group({
-    nome: ['', [Validators.required, Validators.maxLength(100)]],
-  });
-  readonly marcaForm = this.fb.nonNullable.group({
-    nome: ['', [Validators.required, Validators.maxLength(100)]],
-  });
-  readonly produtoForm = this.fb.nonNullable.group({
-    nome: ['', [Validators.required, Validators.maxLength(150)]],
+  readonly modalAberto = signal(false);
+  readonly tipoModal = signal<'produto' | 'marca'>('produto');
+  readonly itemModal = signal<ItemNota | null>(null);
+  readonly buscaCatalogo = signal('');
+  readonly modalCategoriaAberto = signal(false);
+  readonly buscaCategoria = signal('');
+  readonly produtosFiltrados = computed(() =>
+    filtrarCatalogo(
+      this.produtos(),
+      this.buscaCatalogo(),
+      (produto) => `${produto.nome} ${produto.categoria.nome}`,
+    ),
+  );
+  readonly marcasFiltradas = computed(() =>
+    filtrarCatalogo(this.marcas(), this.buscaCatalogo(), (marca) => marca.nome),
+  );
+  readonly categoriasFiltradas = computed(() =>
+    filtrarCatalogo(this.categorias(), this.buscaCategoria(), (categoria) => categoria.nome),
+  );
+  readonly novoProdutoForm = this.fb.nonNullable.group({
     categoria_id: ['', Validators.required],
     unidade_base: ['UN' as UnidadeMedida, Validators.required],
   });
@@ -164,52 +180,155 @@ export class RevisaoNota implements OnInit {
     });
   }
 
-  criarCategoria(): void {
-    if (this.categoriaForm.invalid || this.cadastroSalvando()) return;
+  abrirSeletor(tipo: 'produto' | 'marca', item: ItemNota): void {
+    const formulario = this.formularios.get(item.id);
+    if (!formulario || this.nota()?.situacao === 'importada') return;
+
+    this.tipoModal.set(tipo);
+    this.itemModal.set(item);
+    this.buscaCatalogo.set(tipo === 'produto' ? capitalizarIniciais(item.descricao_original) : '');
+
+    if (tipo === 'produto') {
+      const produtoAtual = this.produtos().find(
+        (produto) => produto.id === formulario.get('produto_id')?.value,
+      );
+      this.novoProdutoForm.reset({
+        categoria_id: produtoAtual?.categoria.id ?? '',
+        unidade_base: produtoAtual?.unidade_base ?? 'UN',
+      });
+    }
+
+    this.modalAberto.set(true);
+    document.body.classList.add('modal-open');
+    setTimeout(() => {
+      this.buscaModal?.nativeElement.focus();
+      this.buscaModal?.nativeElement.select();
+    });
+  }
+
+  fecharSeletor(): void {
+    if (this.cadastroSalvando()) return;
+    this.modalCategoriaAberto.set(false);
+    this.modalAberto.set(false);
+    this.itemModal.set(null);
+    document.body.classList.remove('modal-open');
+  }
+
+  atualizarBusca(evento: Event): void {
+    this.buscaCatalogo.set((evento.target as HTMLInputElement).value);
+  }
+
+  abrirSeletorCategoria(): void {
+    const categoriaAtual = this.categorias().find(
+      (categoria) => categoria.id === this.novoProdutoForm.controls.categoria_id.value,
+    );
+    this.buscaCategoria.set(categoriaAtual?.nome ?? '');
+    this.modalCategoriaAberto.set(true);
+    setTimeout(() => {
+      this.buscaCategoriaModal?.nativeElement.focus();
+      this.buscaCategoriaModal?.nativeElement.select();
+    });
+  }
+
+  fecharSeletorCategoria(): void {
+    if (this.cadastroSalvando()) return;
+    this.modalCategoriaAberto.set(false);
+  }
+
+  atualizarBuscaCategoria(evento: Event): void {
+    this.buscaCategoria.set((evento.target as HTMLInputElement).value);
+  }
+
+  selecionarCategoria(categoria: Categoria): void {
+    this.novoProdutoForm.patchValue({ categoria_id: categoria.id });
+    this.modalCategoriaAberto.set(false);
+  }
+
+  criarCategoriaNoModal(): void {
+    const nome = this.buscaCategoria().trim();
+    if (!nome || nome.length > 100 || this.cadastroSalvando()) return;
     this.cadastroSalvando.set(true);
-    this.api.criarCategoria(this.categoriaForm.getRawValue().nome.trim()).subscribe({
+    this.api.criarCategoria(nome).subscribe({
       next: (categoria) => {
         this.categorias.update((atuais) =>
           [...atuais, categoria].sort((a, b) => a.nome.localeCompare(b.nome)),
         );
-        this.categoriaForm.reset();
-        this.produtoForm.patchValue({ categoria_id: categoria.id });
         this.cadastroSalvando.set(false);
+        this.selecionarCategoria(categoria);
       },
       error: (erro) => this.tratarErroCadastro(erro),
     });
   }
 
-  criarMarca(): void {
-    if (this.marcaForm.invalid || this.cadastroSalvando()) return;
+  selecionarProduto(produto: Produto): void {
+    const item = this.itemModal();
+    if (!item) return;
+    this.formularios.get(item.id)?.patchValue({ produto_id: produto.id });
+    this.fecharSeletor();
+  }
+
+  selecionarMarca(marca: Marca | null): void {
+    const item = this.itemModal();
+    if (!item) return;
+    this.formularios.get(item.id)?.patchValue({
+      marca_id: marca?.id ?? null,
+      marca_confirmada: true,
+    });
+    this.fecharSeletor();
+  }
+
+  criarMarcaNoModal(): void {
+    const nome = this.buscaCatalogo().trim();
+    if (!nome || nome.length > 100 || this.cadastroSalvando()) return;
     this.cadastroSalvando.set(true);
-    this.api.criarMarca(this.marcaForm.getRawValue().nome.trim()).subscribe({
+    this.api.criarMarca(nome).subscribe({
       next: (marca) => {
         this.marcas.update((atuais) =>
           [...atuais, marca].sort((a, b) => a.nome.localeCompare(b.nome)),
         );
-        this.marcaForm.reset();
         this.cadastroSalvando.set(false);
+        this.selecionarMarca(marca);
       },
       error: (erro) => this.tratarErroCadastro(erro),
     });
   }
 
-  criarProduto(): void {
-    this.produtoForm.markAllAsTouched();
-    if (this.produtoForm.invalid || this.cadastroSalvando()) return;
+  criarProdutoNoModal(): void {
+    const nome = this.buscaCatalogo().trim();
+    this.novoProdutoForm.markAllAsTouched();
+    if (!nome || nome.length > 150 || this.novoProdutoForm.invalid || this.cadastroSalvando()) {
+      return;
+    }
+
     this.cadastroSalvando.set(true);
-    const valor = this.produtoForm.getRawValue();
-    this.api.criarProduto({ ...valor, nome: valor.nome.trim() }).subscribe({
+    this.api.criarProduto({ nome, ...this.novoProdutoForm.getRawValue() }).subscribe({
       next: (produto) => {
         this.produtos.update((atuais) =>
           [...atuais, produto].sort((a, b) => a.nome.localeCompare(b.nome)),
         );
-        this.produtoForm.reset({ nome: '', categoria_id: '', unidade_base: 'UN' });
         this.cadastroSalvando.set(false);
+        this.selecionarProduto(produto);
       },
       error: (erro) => this.tratarErroCadastro(erro),
     });
+  }
+
+  nomeProdutoSelecionado(itemId: string): string | null {
+    const id = this.formularios.get(itemId)?.get('produto_id')?.value;
+    return this.produtos().find((produto) => produto.id === id)?.nome ?? null;
+  }
+
+  nomeMarcaSelecionada(itemId: string): string {
+    const formulario = this.formularios.get(itemId);
+    const id = formulario?.get('marca_id')?.value;
+    const marca = this.marcas().find((item) => item.id === id);
+    if (marca) return marca.nome;
+    return formulario?.get('marca_confirmada')?.value ? 'Sem marca' : 'Selecionar marca';
+  }
+
+  nomeCategoriaSelecionada(): string | null {
+    const id = this.novoProdutoForm.controls.categoria_id.value;
+    return this.categorias().find((categoria) => categoria.id === id)?.nome ?? null;
   }
 
   itensPendentes(nota: Nota): number {

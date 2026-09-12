@@ -1,5 +1,13 @@
 # Changelog
 
+## Não lançado
+
+- Substitui os selects de produto e marca por modais com busca instantânea e criação.
+- Inicia a busca de produto com a descrição original do item da nota.
+- Centraliza os modais no espaço visível do celular durante o uso do teclado.
+- Formata a busca inicial do produto e adiciona busca e criação de categorias em modal.
+- Abre a busca de marca vazia, mantendo a descrição fiscal apenas no título.
+
 ## 0.1.0 - 2026-09-12
 
 - Cria a aplicação Angular 21 com Bootstrap e layout responsivo.
