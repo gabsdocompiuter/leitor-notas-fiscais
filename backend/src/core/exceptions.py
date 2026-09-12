@@ -19,3 +19,11 @@ class ErroPersistencia(RuntimeError):
 
 class NaoEncontrado(LookupError):
     """O recurso solicitado não existe no banco."""
+
+
+class DadosInvalidos(ValueError):
+    """Os dados recebidos não atendem às regras da aplicação."""
+
+
+class Conflito(RuntimeError):
+    """O estado atual do recurso impede a operação."""

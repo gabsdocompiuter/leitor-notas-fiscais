@@ -7,6 +7,8 @@ from ..core.exceptions import (
     ErroPersistencia,
     ErroQrCode,
     NaoEncontrado,
+    Conflito,
+    DadosInvalidos,
 )
 
 
@@ -15,6 +17,14 @@ def _resposta(status: int, codigo: str, mensagem: str) -> JSONResponse:
 
 
 def registrar_tratadores(app: FastAPI) -> None:
+    @app.exception_handler(DadosInvalidos)
+    async def tratar_dados_invalidos(_: Request, erro: DadosInvalidos) -> JSONResponse:
+        return _resposta(422, "dados_invalidos", str(erro))
+
+    @app.exception_handler(Conflito)
+    async def tratar_conflito(_: Request, erro: Conflito) -> JSONResponse:
+        return _resposta(409, "conflito", str(erro))
+
     @app.exception_handler(NaoEncontrado)
     async def tratar_nao_encontrado(_: Request, erro: NaoEncontrado) -> JSONResponse:
         return _resposta(404, "nao_encontrado", str(erro))

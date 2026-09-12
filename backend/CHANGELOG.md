@@ -8,6 +8,19 @@ As versões só são alteradas por solicitação explícita do usuário.
 
 - Workspace local do Postman organizado por sistema, leituras e notas, com
   variáveis compartilhadas e todas as chamadas da API.
+- CRUD de categorias, marcas e produtos.
+- Revisão de itens com produto, marca confirmada, apresentação, unidade corrigida
+  e quantidade normalizada.
+- Associações reutilizáveis por estabelecimento e código interno do item.
+- Classificação automática por associação específica ou descrição original
+  normalizada sem conflitos.
+- Confirmação da importação somente quando todos os itens estiverem revisados.
+- Migração da estrutura SQLite 1 para 2 sem apagar notas existentes.
+
+### Alterado
+
+- Notas importadas e seus cadastros relacionados não podem mais ser alterados.
+- O workspace Postman agora inclui os catálogos, a revisão e a importação.
 
 ## 0.2.0 — 2026-09-10
 

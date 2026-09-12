@@ -1,0 +1,17 @@
+$kind: http-request
+name: Alterar categoria
+url: "{{baseUrl}}/categorias/:categoriaId"
+method: PATCH
+pathVariables:
+  - key: categoriaId
+    value: "{{categoriaId}}"
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nome": "Alimentação"
+    }
+order: 4000

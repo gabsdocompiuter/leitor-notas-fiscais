@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from decimal import Decimal
 from uuid import UUID, uuid4
 
 from .apresentacao_produto import ApresentacaoProduto
@@ -16,3 +17,4 @@ class AssociacaoProduto:
     apresentacao: ApresentacaoProduto
     descricao_original: str | None = None
     unidade_corrigida: UnidadeMedida | None = None
+    fator_normalizacao: Decimal | None = None

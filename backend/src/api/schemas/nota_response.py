@@ -23,6 +23,7 @@ class NotaResponse(BaseModel):
     itens: list[ItemResponse]
     url_origem: str
     situacao: SituacaoNota
+    importada_em: datetime | None
 
     @classmethod
     def from_entity(cls, nota: Nota) -> "NotaResponse":
@@ -40,4 +41,5 @@ class NotaResponse(BaseModel):
             itens=[ItemResponse.from_entity(item) for item in nota.itens],
             url_origem=nota.url_origem,
             situacao=nota.situacao,
+            importada_em=nota.importada_em,
         )

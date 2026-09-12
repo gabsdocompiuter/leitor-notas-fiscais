@@ -1,0 +1,14 @@
+$kind: http-request
+name: Criar marca
+url: "{{baseUrl}}/marcas"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nome": "Tirol"
+    }
+order: 2000

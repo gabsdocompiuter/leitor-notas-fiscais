@@ -1,0 +1,12 @@
+$kind: http-request
+name: Listar produtos
+url: "{{baseUrl}}/produtos"
+method: GET
+queryParams:
+  - key: busca
+    value: leite
+    disabled: true
+  - key: categoria_id
+    value: "{{categoriaId}}"
+    disabled: true
+order: 1000

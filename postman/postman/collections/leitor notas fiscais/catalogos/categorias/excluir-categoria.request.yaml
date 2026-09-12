@@ -1,0 +1,8 @@
+$kind: http-request
+name: Excluir categoria
+url: "{{baseUrl}}/categorias/:categoriaId"
+method: DELETE
+pathVariables:
+  - key: categoriaId
+    value: "{{categoriaId}}"
+order: 5000

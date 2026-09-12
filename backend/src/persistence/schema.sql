@@ -9,20 +9,24 @@ CREATE TABLE IF NOT EXISTS estabelecimentos (
 
 CREATE TABLE IF NOT EXISTS categorias (
     id TEXT PRIMARY KEY NOT NULL,
-    nome TEXT NOT NULL
+    nome TEXT NOT NULL COLLATE NOCASE UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS marcas (
     id TEXT PRIMARY KEY NOT NULL,
-    nome TEXT NOT NULL
+    nome TEXT NOT NULL COLLATE NOCASE UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS produtos (
     id TEXT PRIMARY KEY NOT NULL,
     nome TEXT NOT NULL,
     categoria_id TEXT NOT NULL REFERENCES categorias(id),
-    unidade_base TEXT NOT NULL CHECK (unidade_base IN ('UN', 'KG', 'G', 'L', 'ML'))
+    unidade_base TEXT NOT NULL CHECK (unidade_base IN ('UN', 'KG', 'G', 'L', 'ML')),
+    UNIQUE(nome, categoria_id, unidade_base)
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_produtos_identidade
+    ON produtos(nome COLLATE NOCASE, categoria_id, unidade_base);
 
 CREATE TABLE IF NOT EXISTS apresentacoes_produto (
     id TEXT PRIMARY KEY NOT NULL,
@@ -45,7 +49,8 @@ CREATE TABLE IF NOT EXISTS notas (
     desconto TEXT NOT NULL,
     valor_a_pagar TEXT NOT NULL,
     url_origem TEXT NOT NULL,
-    situacao TEXT NOT NULL CHECK (situacao IN ('lida', 'em_revisao', 'importada'))
+    situacao TEXT NOT NULL CHECK (situacao IN ('lida', 'em_revisao', 'importada')),
+    importada_em TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_notas_emissao ON notas(emissao);
@@ -77,5 +82,20 @@ CREATE TABLE IF NOT EXISTS leituras (
     criada_em TEXT NOT NULL
 );
 
-PRAGMA user_version = 1;
+CREATE TABLE IF NOT EXISTS associacoes_produto (
+    id TEXT PRIMARY KEY NOT NULL,
+    estabelecimento_id TEXT NOT NULL REFERENCES estabelecimentos(id),
+    codigo_item TEXT NOT NULL,
+    descricao_original TEXT NOT NULL,
+    descricao_normalizada TEXT NOT NULL,
+    apresentacao_id TEXT NOT NULL REFERENCES apresentacoes_produto(id),
+    unidade_corrigida TEXT NOT NULL CHECK (unidade_corrigida IN ('UN', 'KG', 'G', 'L', 'ML')),
+    fator_normalizacao TEXT NOT NULL,
+    UNIQUE(estabelecimento_id, codigo_item)
+);
+
+CREATE INDEX IF NOT EXISTS idx_associacoes_descricao
+    ON associacoes_produto(descricao_normalizada);
+
+PRAGMA user_version = 2;
 COMMIT;

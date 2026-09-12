@@ -1,0 +1,9 @@
+$kind: http-request
+name: Concluir importação
+description: "Importa a nota somente quando todos os itens estiverem revisados."
+url: "{{baseUrl}}/notas/:chave/importacao"
+method: POST
+pathVariables:
+  - key: chave
+    value: "{{chaveNfce}}"
+order: 4000

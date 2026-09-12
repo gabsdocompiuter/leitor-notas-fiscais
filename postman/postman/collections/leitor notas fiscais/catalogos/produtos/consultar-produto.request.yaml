@@ -1,0 +1,8 @@
+$kind: http-request
+name: Consultar produto
+url: "{{baseUrl}}/produtos/:produtoId"
+method: GET
+pathVariables:
+  - key: produtoId
+    value: "{{produtoId}}"
+order: 3000

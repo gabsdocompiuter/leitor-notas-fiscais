@@ -1,0 +1,9 @@
+$kind: http-request
+name: Listar marcas
+url: "{{baseUrl}}/marcas"
+method: GET
+queryParams:
+  - key: busca
+    value: tirol
+    disabled: true
+order: 1000

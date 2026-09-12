@@ -1,0 +1,26 @@
+$kind: http-request
+name: Revisar item
+description: "Confirma produto, marca, unidade e quantidade normalizada do item."
+url: "{{baseUrl}}/notas/:chave/itens/:itemId"
+method: PATCH
+pathVariables:
+  - key: chave
+    value: "{{chaveNfce}}"
+  - key: itemId
+    value: "{{itemId}}"
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "produto_id": "{{produtoId}}",
+      "marca_id": null,
+      "marca_confirmada": true,
+      "conteudo_embalagem": null,
+      "unidade_embalagem": null,
+      "unidade_corrigida": "UN",
+      "quantidade_normalizada": "1"
+    }
+order: 3000

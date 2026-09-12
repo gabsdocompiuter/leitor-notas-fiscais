@@ -109,11 +109,13 @@ class RepositorioNotas:
         loja_id = conexao.execute("SELECT id FROM estabelecimentos WHERE cnpj = ?", (loja.cnpj,)).fetchone()["id"]
         conexao.execute(
             """INSERT INTO notas (id, chave, numero, serie, estabelecimento_id, emissao,
-                quantidade_itens, valor_total, desconto, valor_a_pagar, url_origem, situacao)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                quantidade_itens, valor_total, desconto, valor_a_pagar, url_origem, situacao,
+                importada_em)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (str(nota.id), nota.chave, nota.numero, nota.serie, loja_id, nota.emissao.isoformat(),
              nota.quantidade_itens, str(nota.valor_total), str(nota.desconto), str(nota.valor_a_pagar),
-             nota.url_origem, nota.situacao.value),
+             nota.url_origem, nota.situacao.value,
+             nota.importada_em.isoformat() if nota.importada_em else None),
         )
         for item in nota.itens:
             if item.apresentacao is not None:
@@ -181,6 +183,11 @@ class RepositorioNotas:
             valor_total=Decimal(linha["valor_total"]), desconto=Decimal(linha["desconto"]),
             valor_a_pagar=Decimal(linha["valor_a_pagar"]), itens=itens, url_origem=linha["url_origem"],
             situacao=SituacaoNota(linha["situacao"]),
+            importada_em=(
+                datetime.fromisoformat(linha["importada_em"])
+                if linha["importada_em"] is not None
+                else None
+            ),
         )
 
     def _ler_apresentacao(self, conexao: sqlite3.Connection, apresentacao_id: str) -> ApresentacaoProduto:

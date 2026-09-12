@@ -1,0 +1,14 @@
+$kind: http-request
+name: Criar categoria
+url: "{{baseUrl}}/categorias"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nome": "Alimentação"
+    }
+order: 2000

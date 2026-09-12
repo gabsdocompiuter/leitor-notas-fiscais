@@ -1,0 +1,8 @@
+$kind: http-request
+name: Consultar marca
+url: "{{baseUrl}}/marcas/:marcaId"
+method: GET
+pathVariables:
+  - key: marcaId
+    value: "{{marcaId}}"
+order: 3000

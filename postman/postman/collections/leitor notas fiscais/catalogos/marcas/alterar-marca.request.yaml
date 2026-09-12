@@ -1,0 +1,17 @@
+$kind: http-request
+name: Alterar marca
+url: "{{baseUrl}}/marcas/:marcaId"
+method: PATCH
+pathVariables:
+  - key: marcaId
+    value: "{{marcaId}}"
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nome": "Tirol"
+    }
+order: 4000

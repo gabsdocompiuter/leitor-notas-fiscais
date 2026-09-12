@@ -32,5 +32,10 @@ class BancoSQLite:
             if versao == 0:
                 schema = Path(__file__).with_name("schema.sql").read_text(encoding="utf-8")
                 conexao.executescript(schema)
-            elif versao != 1:
+            elif versao == 1:
+                migracao = Path(__file__).with_name("migration_1_to_2.sql").read_text(
+                    encoding="utf-8"
+                )
+                conexao.executescript(migracao)
+            elif versao != 2:
                 raise ErroPersistencia(f"Versão de estrutura SQLite não suportada: {versao}.")

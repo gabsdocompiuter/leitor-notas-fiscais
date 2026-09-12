@@ -1,0 +1,8 @@
+$kind: http-request
+name: Consultar categoria
+url: "{{baseUrl}}/categorias/:categoriaId"
+method: GET
+pathVariables:
+  - key: categoriaId
+    value: "{{categoriaId}}"
+order: 3000

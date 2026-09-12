@@ -23,3 +23,4 @@ class Nota:
     itens: list[Item]
     url_origem: str
     situacao: SituacaoNota = SituacaoNota.LIDA
+    importada_em: datetime | None = None

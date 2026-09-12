@@ -1,0 +1,16 @@
+$kind: http-request
+name: Criar produto
+url: "{{baseUrl}}/produtos"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nome": "Leite integral",
+      "categoria_id": "{{categoriaId}}",
+      "unidade_base": "L"
+    }
+order: 2000

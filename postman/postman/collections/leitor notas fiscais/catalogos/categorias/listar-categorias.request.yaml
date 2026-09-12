@@ -1,0 +1,9 @@
+$kind: http-request
+name: Listar categorias
+url: "{{baseUrl}}/categorias"
+method: GET
+queryParams:
+  - key: busca
+    value: alimentação
+    disabled: true
+order: 1000

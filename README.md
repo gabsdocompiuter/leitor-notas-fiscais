@@ -38,10 +38,10 @@ python -m pip install -r requirements.txt
 python main.py
 ```
 
-A documentação Swagger fica em `http://localhost:8000/docs`. A API recebe a
+A documentação Swagger fica em `http://localhost:8008/docs`. A API recebe a
 URL do QR Code, consulta a NFC-e do RS, valida os dados e persiste a leitura no
-SQLite. A nota continua como `lida` até que a futura tela de revisão confirme a
-importação.
+SQLite. Também oferece catálogos, revisão dos itens, classificação automática e
+confirmação da importação.
 
 O arquivo padrão do banco é `backend/data/notas.sqlite3`. Consulte o
 [README do backend](backend/README.md) para endpoints, execução no Windows,

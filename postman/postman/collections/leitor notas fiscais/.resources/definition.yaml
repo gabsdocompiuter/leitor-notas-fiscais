@@ -1,5 +1,9 @@
 $kind: collection
 variables:
-  baseUrl: http://localhost:8000
+  baseUrl: http://localhost:8008
   chaveNfce: "43260907718633007868650080002005971056148317"
   urlQrCode: "https://dfe-portal.svrs.rs.gov.br/Dfe/QrCodeNFce?p=43260907718633007868650080002005971056148317|3|1"
+  categoriaId: ""
+  marcaId: ""
+  produtoId: ""
+  itemId: ""
