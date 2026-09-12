@@ -73,10 +73,14 @@ docker compose logs -f
 docker compose down
 ```
 
-No Android, cadastre exatamente `http://IP-DO-SERVIDOR:8080` como origem segura na [configuração experimental do Chrome](chrome://flags/#unsafely-treat-insecure-origin-as-secure) e reinicie o navegador. Se alterar `APP_PORT`, use a mesma porta nesse endereço.
+No Android, cadastre exatamente `http://IP-DO-SERVIDOR:8080` como origem segura na configuração experimental do Chrome e reinicie o navegador. Se alterar `APP_PORT`, use a mesma porta nesse endereço.
 
 Consulte os READMEs de cada aplicação para execução e testes.
 
 ## Versionamento
 
 Backend e frontend têm versões independentes. A versão do backend é definida em `backend/src/core/version.py` e exposta por `/version`. A versão do frontend está em `frontend/package.json`. Os incrementos dependem de solicitação explícita do usuário.
+
+## Licença
+
+Este projeto é distribuído sob a [WTFPL, versão 2](LICENSE).

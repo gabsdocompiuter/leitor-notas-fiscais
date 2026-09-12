@@ -10,6 +10,7 @@
     "test": "ng test --watch=false"
   },
   "private": true,
+  "license": "WTFPL",
   "engines": {
     "node": ">=20.19.0 <21"
   },
