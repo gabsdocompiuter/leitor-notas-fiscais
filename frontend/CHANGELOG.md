@@ -10,6 +10,8 @@
 - Adiciona ao produto a opção de não solicitar marca e exige a marca nos demais casos.
 - Remove da revisão a confirmação de marca e os campos de conteúdo da embalagem.
 - Remove o campo e o envio de marca quando o produto estiver configurado para não solicitá-la.
+- Mantém o resumo da importação no fim da lista, sem sobrepor os itens durante a revisão.
+- Remove a camada de composição residual da barra de importação no Chrome para Android.
 
 ## 0.1.0 - 2026-09-12
 

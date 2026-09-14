@@ -128,19 +128,18 @@
   font-size: 0.75rem;
 }
 .import-bar {
-  position: sticky;
-  bottom: 1rem;
-  z-index: 10;
+  position: static;
+  z-index: auto;
+  inset: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
   padding: 1rem 1.25rem;
-  background: rgba(255, 255, 255, 0.95);
+  background: white;
   border: 1px solid var(--lnf-border);
   border-radius: 1rem;
   box-shadow: 0 12px 35px rgba(25, 50, 44, 0.14);
-  backdrop-filter: blur(12px);
 }
 
 .catalog-modal-backdrop {
