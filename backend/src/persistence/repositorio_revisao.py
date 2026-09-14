@@ -7,7 +7,6 @@ from ..core.exceptions import Conflito, DadosInvalidos, NaoEncontrado
 from ..core.normalizacao import decimal_texto, normalizar_nome
 from ..models.nota import Nota
 from ..models.situacao_nota import SituacaoNota
-from ..models.unidade_medida import UnidadeMedida
 from .banco_sqlite import BancoSQLite
 from .repositorio_notas import RepositorioNotas
 
@@ -24,8 +23,8 @@ class RepositorioRevisao:
         item_id: UUID,
         produto_id: UUID,
         marca_id: UUID | None,
-        unidade_corrigida: UnidadeMedida,
-        quantidade_normalizada: Decimal,
+        variacao_id: UUID | None,
+        quantidade_confirmada: Decimal,
     ) -> Nota:
         with self.banco.conectar() as conexao:
             conexao.execute("BEGIN IMMEDIATE")
@@ -43,35 +42,22 @@ class RepositorioRevisao:
             ).fetchone()
             if item is None:
                 raise NaoEncontrado("Item não encontrado nessa nota.")
-            produto = conexao.execute(
-                "SELECT id, nao_solicitar_marca FROM produtos WHERE id = ?",
-                (str(produto_id),),
-            ).fetchone()
-            if produto is None:
-                raise NaoEncontrado("Produto não encontrado.")
-            if not produto["nao_solicitar_marca"] and marca_id is None:
-                raise DadosInvalidos("A marca é obrigatória para o produto selecionado.")
-            if marca_id is not None and conexao.execute(
-                "SELECT id FROM marcas WHERE id = ?", (str(marca_id),)
-            ).fetchone() is None:
-                raise NaoEncontrado("Marca não encontrada.")
 
+            produto, variacao = self._validar_classificacao(
+                conexao, produto_id, marca_id, variacao_id, quantidade_confirmada
+            )
             apresentacao_id = self._obter_ou_criar_apresentacao(
-                conexao,
-                produto_id,
-                marca_id,
+                conexao, produto_id, marca_id
             )
             conexao.execute(
-                """
-                UPDATE itens
-                SET apresentacao_id = ?, unidade_corrigida = ?,
-                    quantidade_normalizada = ?, revisado = 1
-                WHERE id = ?
-                """,
+                """UPDATE itens
+                   SET apresentacao_id = ?, variacao_id = ?,
+                       quantidade_confirmada = ?, revisado = 1
+                   WHERE id = ?""",
                 (
                     apresentacao_id,
-                    unidade_corrigida.value,
-                    decimal_texto(quantidade_normalizada),
+                    variacao["id"] if variacao else None,
+                    decimal_texto(quantidade_confirmada),
                     str(item_id),
                 ),
             )
@@ -79,14 +65,14 @@ class RepositorioRevisao:
                 "UPDATE notas SET situacao = 'em_revisao' WHERE id = ?", (nota["id"],)
             )
 
-            fator = quantidade_normalizada / Decimal(item["quantidade"])
+            fator = quantidade_confirmada / Decimal(item["quantidade"])
             self._salvar_associacao(
                 conexao,
                 nota["estabelecimento_id"],
                 item["codigo"],
                 item["descricao_original"],
                 apresentacao_id,
-                unidade_corrigida,
+                variacao["id"] if variacao else None,
                 fator,
             )
         return self._obter_nota(chave)
@@ -108,46 +94,34 @@ class RepositorioRevisao:
                 (nota["id"],),
             ).fetchall()
             for item in itens:
-                associacao = conexao.execute(
-                    """
-                    SELECT ap.apresentacao_id, ap.unidade_corrigida, ap.fator_normalizacao
-                    FROM associacoes_produto ap
-                    JOIN apresentacoes_produto a ON a.id = ap.apresentacao_id
-                    JOIN produtos p ON p.id = a.produto_id
-                    WHERE estabelecimento_id = ? AND codigo_item = ?
-                      AND (p.nao_solicitar_marca = 1 OR a.marca_id IS NOT NULL)
-                    """,
-                    (nota["estabelecimento_id"], item["codigo"]),
-                ).fetchone()
-                if associacao is None:
-                    candidatas = conexao.execute(
-                        """
-                        SELECT DISTINCT ap.apresentacao_id, ap.unidade_corrigida,
-                               ap.fator_normalizacao
-                        FROM associacoes_produto ap
-                        JOIN apresentacoes_produto a ON a.id = ap.apresentacao_id
-                        JOIN produtos p ON p.id = a.produto_id
-                        WHERE descricao_normalizada = ?
-                          AND (p.nao_solicitar_marca = 1 OR a.marca_id IS NOT NULL)
-                        """,
-                        (normalizar_nome(item["descricao_original"]),),
-                    ).fetchall()
-                    associacao = candidatas[0] if len(candidatas) == 1 else None
+                associacao = self._buscar_associacao(
+                    conexao,
+                    nota["estabelecimento_id"],
+                    item["codigo"],
+                    item["descricao_original"],
+                )
                 if associacao is None:
                     continue
-                quantidade = Decimal(item["quantidade"]) * Decimal(
-                    associacao["fator_normalizacao"]
+                quantidade_original = Decimal(item["quantidade"])
+                quantidade = quantidade_original * Decimal(
+                    associacao["fator_conversao"]
                 )
+                if (
+                    associacao["tratar_apenas_como_unidades"]
+                    or associacao["contem_variacoes"]
+                ) and (
+                    quantidade_original != quantidade_original.to_integral_value()
+                    or quantidade != quantidade.to_integral_value()
+                ):
+                    continue
                 conexao.execute(
-                    """
-                    UPDATE itens
-                    SET apresentacao_id = ?, unidade_corrigida = ?,
-                        quantidade_normalizada = ?, revisado = 1
-                    WHERE id = ?
-                    """,
+                    """UPDATE itens
+                       SET apresentacao_id = ?, variacao_id = ?,
+                           quantidade_confirmada = ?, revisado = 1
+                       WHERE id = ?""",
                     (
                         associacao["apresentacao_id"],
-                        associacao["unidade_corrigida"],
+                        associacao["variacao_id"],
                         decimal_texto(quantidade),
                         item["id"],
                     ),
@@ -171,26 +145,18 @@ class RepositorioRevisao:
                 return self._obter_nota(chave)
 
             itens = conexao.execute(
-                """
-                SELECT i.revisado, i.apresentacao_id, i.unidade_corrigida,
-                       i.quantidade_normalizada, a.marca_id, p.nao_solicitar_marca
-                FROM itens i
-                LEFT JOIN apresentacoes_produto a ON a.id = i.apresentacao_id
-                LEFT JOIN produtos p ON p.id = a.produto_id
-                WHERE i.nota_id = ?
-                """,
+                """SELECT i.revisado, i.apresentacao_id, i.variacao_id,
+                          i.quantidade_confirmada, a.marca_id, a.produto_id,
+                          p.nao_solicitar_marca, p.tratar_apenas_como_unidades,
+                          p.contem_variacoes, v.produto_id AS variacao_produto_id
+                   FROM itens i
+                   LEFT JOIN apresentacoes_produto a ON a.id = i.apresentacao_id
+                   LEFT JOIN produtos p ON p.id = a.produto_id
+                   LEFT JOIN variacoes_produto v ON v.id = i.variacao_id
+                   WHERE i.nota_id = ?""",
                 (nota["id"],),
             ).fetchall()
-            incompletos = [
-                item
-                for item in itens
-                if not item["revisado"]
-                or item["apresentacao_id"] is None
-                or item["unidade_corrigida"] is None
-                or item["quantidade_normalizada"] is None
-                or Decimal(item["quantidade_normalizada"]) <= 0
-                or (not item["nao_solicitar_marca"] and item["marca_id"] is None)
-            ]
+            incompletos = [item for item in itens if not self._item_completo(item)]
             if not itens or incompletos:
                 raise Conflito(
                     f"A nota possui {len(incompletos)} item(ns) que ainda precisam de revisão."
@@ -203,33 +169,113 @@ class RepositorioRevisao:
         return self._obter_nota(chave)
 
     @staticmethod
-    def _obter_ou_criar_apresentacao(
+    def _validar_classificacao(
         conexao: sqlite3.Connection,
         produto_id: UUID,
         marca_id: UUID | None,
+        variacao_id: UUID | None,
+        quantidade: Decimal,
+    ) -> tuple[sqlite3.Row, sqlite3.Row | None]:
+        if quantidade <= 0:
+            raise DadosInvalidos("A quantidade confirmada deve ser maior que zero.")
+        produto = conexao.execute(
+            "SELECT * FROM produtos WHERE id = ?", (str(produto_id),)
+        ).fetchone()
+        if produto is None:
+            raise NaoEncontrado("Produto não encontrado.")
+        if not produto["nao_solicitar_marca"] and marca_id is None:
+            raise DadosInvalidos("A marca é obrigatória para o produto selecionado.")
+        if marca_id is not None and conexao.execute(
+            "SELECT id FROM marcas WHERE id = ?", (str(marca_id),)
+        ).fetchone() is None:
+            raise NaoEncontrado("Marca não encontrada.")
+
+        variacao = None
+        if produto["contem_variacoes"]:
+            if variacao_id is None:
+                raise DadosInvalidos("A variação é obrigatória para o produto selecionado.")
+            variacao = conexao.execute(
+                "SELECT * FROM variacoes_produto WHERE id = ? AND produto_id = ?",
+                (str(variacao_id), str(produto_id)),
+            ).fetchone()
+            if variacao is None:
+                raise DadosInvalidos("A variação não pertence ao produto selecionado.")
+        elif variacao_id is not None:
+            raise DadosInvalidos("O produto selecionado não possui variações.")
+
+        if (produto["tratar_apenas_como_unidades"] or produto["contem_variacoes"]) and (
+            quantidade != quantidade.to_integral_value()
+        ):
+            raise DadosInvalidos("A quantidade deve ser um número inteiro para esse produto.")
+        return produto, variacao
+
+    @staticmethod
+    def _item_completo(item: sqlite3.Row) -> bool:
+        if (
+            not item["revisado"]
+            or item["apresentacao_id"] is None
+            or item["quantidade_confirmada"] is None
+            or Decimal(item["quantidade_confirmada"]) <= 0
+            or (not item["nao_solicitar_marca"] and item["marca_id"] is None)
+        ):
+            return False
+        inteiro = item["tratar_apenas_como_unidades"] or item["contem_variacoes"]
+        quantidade = Decimal(item["quantidade_confirmada"])
+        if inteiro and quantidade != quantidade.to_integral_value():
+            return False
+        if item["contem_variacoes"]:
+            return (
+                item["variacao_id"] is not None
+                and item["variacao_produto_id"] == item["produto_id"]
+            )
+        return item["variacao_id"] is None
+
+    @staticmethod
+    def _buscar_associacao(
+        conexao: sqlite3.Connection,
+        estabelecimento_id: str,
+        codigo_item: str,
+        descricao_original: str,
+    ) -> sqlite3.Row | None:
+        selecao = """SELECT ap.apresentacao_id, ap.variacao_id, ap.fator_conversao,
+                            p.tratar_apenas_como_unidades, p.contem_variacoes
+                     FROM associacoes_produto ap
+                     JOIN apresentacoes_produto a ON a.id = ap.apresentacao_id
+                     JOIN produtos p ON p.id = a.produto_id
+                     LEFT JOIN variacoes_produto v ON v.id = ap.variacao_id
+                     WHERE {filtro}
+                       AND (p.nao_solicitar_marca = 1 OR a.marca_id IS NOT NULL)
+                       AND ((p.contem_variacoes = 1 AND v.produto_id = p.id)
+                            OR (p.contem_variacoes = 0 AND ap.variacao_id IS NULL))"""
+        associacao = conexao.execute(
+            selecao.format(filtro="ap.estabelecimento_id = ? AND ap.codigo_item = ?"),
+            (estabelecimento_id, codigo_item),
+        ).fetchone()
+        if associacao:
+            return associacao
+        candidatas = conexao.execute(
+            selecao.format(filtro="ap.descricao_normalizada = ?"),
+            (normalizar_nome(descricao_original),),
+        ).fetchall()
+        return candidatas[0] if len(candidatas) == 1 else None
+
+    @staticmethod
+    def _obter_ou_criar_apresentacao(
+        conexao: sqlite3.Connection, produto_id: UUID, marca_id: UUID | None
     ) -> str:
         marca = str(marca_id) if marca_id else None
         existente = conexao.execute(
-            """
-            SELECT id FROM apresentacoes_produto
-            WHERE produto_id = ?
-              AND ((marca_id = ?) OR (marca_id IS NULL AND ? IS NULL))
-            """,
+            """SELECT id FROM apresentacoes_produto
+               WHERE produto_id = ?
+                 AND ((marca_id = ?) OR (marca_id IS NULL AND ? IS NULL))""",
             (str(produto_id), marca, marca),
         ).fetchone()
         if existente:
             return existente["id"]
         apresentacao_id = str(uuid4())
         conexao.execute(
-            """
-            INSERT INTO apresentacoes_produto (id, produto_id, marca_id)
-            VALUES (?, ?, ?)
-            """,
-            (
-                apresentacao_id,
-                str(produto_id),
-                marca,
-            ),
+            "INSERT INTO apresentacoes_produto (id, produto_id, marca_id) VALUES (?, ?, ?)",
+            (apresentacao_id, str(produto_id), marca),
         )
         return apresentacao_id
 
@@ -240,31 +286,23 @@ class RepositorioRevisao:
         codigo_item: str,
         descricao_original: str,
         apresentacao_id: str,
-        unidade_corrigida: UnidadeMedida,
+        variacao_id: str | None,
         fator: Decimal,
     ) -> None:
         conexao.execute(
-            """
-            INSERT INTO associacoes_produto
-                (id, estabelecimento_id, codigo_item, descricao_original,
-                 descricao_normalizada, apresentacao_id, unidade_corrigida,
-                 fator_normalizacao)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(estabelecimento_id, codigo_item) DO UPDATE SET
-                descricao_original = excluded.descricao_original,
-                descricao_normalizada = excluded.descricao_normalizada,
-                apresentacao_id = excluded.apresentacao_id,
-                unidade_corrigida = excluded.unidade_corrigida,
-                fator_normalizacao = excluded.fator_normalizacao
-            """,
+            """INSERT INTO associacoes_produto
+                   (id, estabelecimento_id, codigo_item, descricao_original,
+                    descricao_normalizada, apresentacao_id, variacao_id, fator_conversao)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(estabelecimento_id, codigo_item) DO UPDATE SET
+                   descricao_original = excluded.descricao_original,
+                   descricao_normalizada = excluded.descricao_normalizada,
+                   apresentacao_id = excluded.apresentacao_id,
+                   variacao_id = excluded.variacao_id,
+                   fator_conversao = excluded.fator_conversao""",
             (
-                str(uuid4()),
-                estabelecimento_id,
-                codigo_item,
-                descricao_original,
-                normalizar_nome(descricao_original),
-                apresentacao_id,
-                unidade_corrigida.value,
+                str(uuid4()), estabelecimento_id, codigo_item, descricao_original,
+                normalizar_nome(descricao_original), apresentacao_id, variacao_id,
                 decimal_texto(fator),
             ),
         )

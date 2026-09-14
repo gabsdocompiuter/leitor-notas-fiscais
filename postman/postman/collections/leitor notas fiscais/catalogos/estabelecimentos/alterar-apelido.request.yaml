@@ -1,0 +1,17 @@
+$kind: http-request
+name: Alterar apelido
+url: "{{baseUrl}}/estabelecimentos/:estabelecimentoId"
+method: PATCH
+pathVariables:
+  - key: estabelecimentoId
+    value: "{{estabelecimentoId}}"
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "apelido": "Mercado perto de casa"
+    }
+order: 2000

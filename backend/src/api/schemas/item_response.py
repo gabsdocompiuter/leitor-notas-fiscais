@@ -3,8 +3,8 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from ...models.item import Item
-from ...models.unidade_medida import UnidadeMedida
 from .apresentacao_produto_response import ApresentacaoProdutoResponse
+from .variacao_produto_response import VariacaoProdutoResponse
 
 
 class ItemResponse(BaseModel):
@@ -18,8 +18,8 @@ class ItemResponse(BaseModel):
     valor_total: str
     alertas: list[str]
     apresentacao: ApresentacaoProdutoResponse | None
-    unidade_corrigida: UnidadeMedida | None
-    quantidade_normalizada: str | None
+    variacao: VariacaoProdutoResponse | None
+    quantidade_confirmada: str | None
     revisado: bool
 
     @classmethod
@@ -39,10 +39,12 @@ class ItemResponse(BaseModel):
                 if item.apresentacao
                 else None
             ),
-            unidade_corrigida=item.unidade_corrigida,
-            quantidade_normalizada=(
-                str(item.quantidade_normalizada)
-                if item.quantidade_normalizada is not None
+            variacao=(
+                VariacaoProdutoResponse.from_entity(item.variacao) if item.variacao else None
+            ),
+            quantidade_confirmada=(
+                str(item.quantidade_confirmada)
+                if item.quantidade_confirmada is not None
                 else None
             ),
             revisado=item.revisado,

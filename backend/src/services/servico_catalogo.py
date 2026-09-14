@@ -1,11 +1,14 @@
+from decimal import Decimal
 from uuid import UUID
 
 from ..core.exceptions import DadosInvalidos
 from ..core.normalizacao import limpar_nome
 from ..models.categoria import Categoria
+from ..models.estabelecimento import Estabelecimento
 from ..models.marca import Marca
 from ..models.produto import Produto
 from ..models.unidade_medida import UnidadeMedida
+from ..models.variacao_produto import VariacaoProduto
 from ..persistence.repositorio_catalogo import RepositorioCatalogo
 
 
@@ -64,12 +67,24 @@ class ServicoCatalogo:
         self,
         nome: str,
         categoria_id: UUID,
-        unidade_base: UnidadeMedida,
         nao_solicitar_marca: bool,
+        tratar_apenas_como_unidades: bool,
+        contem_variacoes: bool,
+        unidade_medida: UnidadeMedida | None,
     ) -> Produto:
+        self._validar_tipo_produto(
+            tratar_apenas_como_unidades, contem_variacoes, unidade_medida
+        )
         categoria = self.repositorio.obter_categoria(categoria_id)
         return self.repositorio.criar_produto(
-            Produto(self._nome(nome), categoria, unidade_base, nao_solicitar_marca)
+            Produto(
+                self._nome(nome),
+                categoria,
+                nao_solicitar_marca,
+                tratar_apenas_como_unidades,
+                contem_variacoes,
+                unidade_medida,
+            )
         )
 
     def atualizar_produto(
@@ -77,12 +92,91 @@ class ServicoCatalogo:
         produto_id: UUID,
         nome: str,
         categoria_id: UUID,
-        unidade_base: UnidadeMedida,
         nao_solicitar_marca: bool,
+        tratar_apenas_como_unidades: bool,
+        contem_variacoes: bool,
+        unidade_medida: UnidadeMedida | None,
     ) -> Produto:
+        self._validar_tipo_produto(
+            tratar_apenas_como_unidades, contem_variacoes, unidade_medida
+        )
         return self.repositorio.atualizar_produto(
-            produto_id, self._nome(nome), categoria_id, unidade_base, nao_solicitar_marca
+            produto_id,
+            self._nome(nome),
+            categoria_id,
+            nao_solicitar_marca,
+            tratar_apenas_como_unidades,
+            contem_variacoes,
+            unidade_medida,
         )
 
     def excluir_produto(self, produto_id: UUID) -> None:
         self.repositorio.excluir_produto(produto_id)
+
+    def listar_variacoes(self, produto_id: UUID) -> list[VariacaoProduto]:
+        return self.repositorio.listar_variacoes(produto_id)
+
+    def obter_variacao(self, variacao_id: UUID) -> VariacaoProduto:
+        return self.repositorio.obter_variacao(variacao_id)
+
+    def criar_variacao(
+        self,
+        produto_id: UUID,
+        quantidade: Decimal,
+        unidade_medida: UnidadeMedida,
+        descricao: str | None,
+    ) -> VariacaoProduto:
+        produto = self.repositorio.obter_produto(produto_id)
+        return self.repositorio.salvar_variacao(
+            VariacaoProduto(
+                produto,
+                quantidade,
+                unidade_medida,
+                self._descricao_opcional(descricao),
+            )
+        )
+
+    def atualizar_variacao(
+        self,
+        variacao_id: UUID,
+        quantidade: Decimal,
+        unidade_medida: UnidadeMedida,
+        descricao: str | None,
+    ) -> VariacaoProduto:
+        return self.repositorio.atualizar_variacao(
+            variacao_id,
+            quantidade,
+            unidade_medida,
+            self._descricao_opcional(descricao),
+        )
+
+    def listar_estabelecimentos(self, busca: str | None = None) -> list[Estabelecimento]:
+        return self.repositorio.listar_estabelecimentos(
+            limpar_nome(busca) if busca else None
+        )
+
+    def atualizar_apelido_estabelecimento(
+        self, estabelecimento_id: UUID, apelido: str | None
+    ) -> Estabelecimento:
+        return self.repositorio.atualizar_apelido_estabelecimento(
+            estabelecimento_id, self._descricao_opcional(apelido)
+        )
+
+    @staticmethod
+    def _descricao_opcional(valor: str | None) -> str | None:
+        descricao = limpar_nome(valor) if valor else ""
+        return descricao or None
+
+    @staticmethod
+    def _validar_tipo_produto(
+        tratar_apenas_como_unidades: bool,
+        contem_variacoes: bool,
+        unidade_medida: UnidadeMedida | None,
+    ) -> None:
+        if tratar_apenas_como_unidades:
+            if contem_variacoes or unidade_medida is not None:
+                raise DadosInvalidos(
+                    "Produtos tratados como unidades não aceitam variações ou unidade de medida."
+                )
+        elif unidade_medida is None:
+            raise DadosInvalidos("A unidade de medida é obrigatória para este produto.")

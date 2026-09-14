@@ -1,8 +1,0 @@
-$kind: http-request
-name: Excluir marca
-url: "{{baseUrl}}/marcas/:marcaId"
-method: DELETE
-pathVariables:
-  - key: marcaId
-    value: "{{marcaId}}"
-order: 5000

@@ -11,8 +11,10 @@ class ProdutoResponse(BaseModel):
     id: UUID
     nome: str
     categoria: CategoriaResponse
-    unidade_base: UnidadeMedida
     nao_solicitar_marca: bool
+    tratar_apenas_como_unidades: bool
+    contem_variacoes: bool
+    unidade_medida: UnidadeMedida | None
 
     @classmethod
     def from_entity(cls, produto: Produto) -> "ProdutoResponse":
@@ -20,6 +22,8 @@ class ProdutoResponse(BaseModel):
             id=produto.id,
             nome=produto.nome,
             categoria=CategoriaResponse.from_entity(produto.categoria),
-            unidade_base=produto.unidade_base,
             nao_solicitar_marca=produto.nao_solicitar_marca,
+            tratar_apenas_como_unidades=produto.tratar_apenas_como_unidades,
+            contem_variacoes=produto.contem_variacoes,
+            unidade_medida=produto.unidade_medida,
         )

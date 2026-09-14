@@ -1,0 +1,8 @@
+$kind: http-request
+name: Listar variações do produto
+url: "{{baseUrl}}/produtos/:produtoId/variacoes"
+method: GET
+pathVariables:
+  - key: produtoId
+    value: "{{produtoId}}"
+order: 1000

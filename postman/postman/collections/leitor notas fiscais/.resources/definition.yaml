@@ -6,4 +6,6 @@ variables:
   categoriaId: ""
   marcaId: ""
   produtoId: ""
+  variacaoId: ""
+  estabelecimentoId: ""
   itemId: ""

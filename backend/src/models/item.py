@@ -3,7 +3,7 @@ from decimal import Decimal
 from uuid import UUID, uuid4
 
 from .apresentacao_produto import ApresentacaoProduto
-from .unidade_medida import UnidadeMedida
+from .variacao_produto import VariacaoProduto
 
 
 @dataclass
@@ -18,6 +18,6 @@ class Item:
     valor_total: Decimal
     alertas: list[str]
     apresentacao: ApresentacaoProduto | None = None
-    unidade_corrigida: UnidadeMedida | None = None
-    quantidade_normalizada: Decimal | None = None
+    variacao: VariacaoProduto | None = None
+    quantidade_confirmada: Decimal | None = None
     revisado: bool = False

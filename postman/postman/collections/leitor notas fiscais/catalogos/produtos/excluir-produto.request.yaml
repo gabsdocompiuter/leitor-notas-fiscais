@@ -1,8 +1,0 @@
-$kind: http-request
-name: Excluir produto
-url: "{{baseUrl}}/produtos/:produtoId"
-method: DELETE
-pathVariables:
-  - key: produtoId
-    value: "{{produtoId}}"
-order: 5000

@@ -34,7 +34,8 @@ Para usar a câmera pelo Android via HTTP, cadastre exatamente a origem do servi
 - Lista e filtro de notas lidas, em revisão e importadas.
 - Leitura do QR Code pela câmera com `@zxing/browser`.
 - Campo alternativo para colar o conteúdo do QR Code.
-- Revisão de produto, marca quando exigida, unidade e quantidade normalizada.
+- Revisão de produto, marca quando exigida, quantidade e variação de peso ou volume.
+- Cadastros de categorias, marcas, produtos, variações e apelidos de estabelecimentos.
 - Cadastros rápidos de categorias, marcas e produtos.
 - Alertas e progresso da revisão.
 - Importação liberada somente depois da revisão de todos os itens.

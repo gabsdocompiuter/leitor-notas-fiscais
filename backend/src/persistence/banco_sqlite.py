@@ -43,5 +43,11 @@ class BancoSQLite:
                     encoding="utf-8"
                 )
                 conexao.executescript(migracao)
-            elif versao not in (0, 3):
+                versao = 3
+            if versao == 3:
+                migracao = Path(__file__).with_name("migration_3_to_4.sql").read_text(
+                    encoding="utf-8"
+                )
+                conexao.executescript(migracao)
+            elif versao not in (0, 4):
                 raise ErroPersistencia(f"Versão de estrutura SQLite não suportada: {versao}.")

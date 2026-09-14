@@ -14,7 +14,18 @@ from ..services.servico_catalogo import ServicoCatalogo
 from ..services.servico_leitura_notas import ServicoLeituraNotas
 from ..services.servico_revisao_notas import ServicoRevisaoNotas
 from .exception_handlers import registrar_tratadores
-from .routers import categorias, health, leituras, marcas, notas, produtos, versao
+from .routers import (
+    categorias,
+    estabelecimentos,
+    health,
+    leituras,
+    marcas,
+    notas,
+    produtos,
+    unidades_medida,
+    variacoes,
+    versao,
+)
 
 
 def criar_app(
@@ -60,4 +71,7 @@ def criar_app(
     app.include_router(categorias.router)
     app.include_router(marcas.router)
     app.include_router(produtos.router)
+    app.include_router(variacoes.router)
+    app.include_router(estabelecimentos.router)
+    app.include_router(unidades_medida.router)
     return app

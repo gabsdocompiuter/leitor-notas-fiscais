@@ -1,0 +1,5 @@
+$kind: http-request
+name: Listar unidades de medida
+url: "{{baseUrl}}/unidades-medida"
+method: GET
+order: 1000

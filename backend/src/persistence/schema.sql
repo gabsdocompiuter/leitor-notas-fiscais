@@ -21,13 +21,28 @@ CREATE TABLE IF NOT EXISTS produtos (
     id TEXT PRIMARY KEY NOT NULL,
     nome TEXT NOT NULL,
     categoria_id TEXT NOT NULL REFERENCES categorias(id),
-    unidade_base TEXT NOT NULL CHECK (unidade_base IN ('UN', 'KG', 'G', 'L', 'ML')),
     nao_solicitar_marca INTEGER NOT NULL DEFAULT 0 CHECK (nao_solicitar_marca IN (0, 1)),
-    UNIQUE(nome, categoria_id, unidade_base)
+    tratar_apenas_como_unidades INTEGER NOT NULL DEFAULT 0 CHECK (tratar_apenas_como_unidades IN (0, 1)),
+    contem_variacoes INTEGER NOT NULL DEFAULT 0 CHECK (contem_variacoes IN (0, 1)),
+    unidade_medida TEXT CHECK (unidade_medida IN ('KG', 'G', 'L', 'ML')),
+    CHECK (
+        (tratar_apenas_como_unidades = 1 AND contem_variacoes = 0 AND unidade_medida IS NULL)
+        OR (tratar_apenas_como_unidades = 0 AND unidade_medida IS NOT NULL)
+    ),
+    UNIQUE(nome, categoria_id)
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_produtos_identidade
-    ON produtos(nome COLLATE NOCASE, categoria_id, unidade_base);
+    ON produtos(nome COLLATE NOCASE, categoria_id);
+
+CREATE TABLE IF NOT EXISTS variacoes_produto (
+    id TEXT PRIMARY KEY NOT NULL,
+    produto_id TEXT NOT NULL REFERENCES produtos(id),
+    quantidade TEXT NOT NULL,
+    unidade_medida TEXT NOT NULL CHECK (unidade_medida IN ('KG', 'G', 'L', 'ML')),
+    descricao TEXT,
+    UNIQUE(produto_id, quantidade, unidade_medida)
+);
 
 CREATE TABLE IF NOT EXISTS apresentacoes_produto (
     id TEXT PRIMARY KEY NOT NULL,
@@ -65,8 +80,8 @@ CREATE TABLE IF NOT EXISTS itens (
     valor_total TEXT NOT NULL,
     alertas TEXT NOT NULL,
     apresentacao_id TEXT REFERENCES apresentacoes_produto(id),
-    unidade_corrigida TEXT CHECK (unidade_corrigida IN ('UN', 'KG', 'G', 'L', 'ML')),
-    quantidade_normalizada TEXT,
+    variacao_id TEXT REFERENCES variacoes_produto(id),
+    quantidade_confirmada TEXT,
     revisado INTEGER NOT NULL CHECK (revisado IN (0, 1)),
     UNIQUE(nota_id, numero)
 );
@@ -87,13 +102,13 @@ CREATE TABLE IF NOT EXISTS associacoes_produto (
     descricao_original TEXT NOT NULL,
     descricao_normalizada TEXT NOT NULL,
     apresentacao_id TEXT NOT NULL REFERENCES apresentacoes_produto(id),
-    unidade_corrigida TEXT NOT NULL CHECK (unidade_corrigida IN ('UN', 'KG', 'G', 'L', 'ML')),
-    fator_normalizacao TEXT NOT NULL,
+    variacao_id TEXT REFERENCES variacoes_produto(id),
+    fator_conversao TEXT NOT NULL,
     UNIQUE(estabelecimento_id, codigo_item)
 );
 
 CREATE INDEX IF NOT EXISTS idx_associacoes_descricao
     ON associacoes_produto(descricao_normalizada);
 
-PRAGMA user_version = 3;
+PRAGMA user_version = 4;
 COMMIT;

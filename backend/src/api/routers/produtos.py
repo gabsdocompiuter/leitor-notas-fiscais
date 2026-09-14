@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Query, status
 
 from ...services.servico_catalogo import ServicoCatalogo
 from ..dependencies import obter_servico_catalogo
@@ -38,8 +38,10 @@ def criar_produto(entrada: ProdutoRequest, servico: Servico) -> ProdutoResponse:
         servico.criar_produto(
             entrada.nome,
             entrada.categoria_id,
-            entrada.unidade_base,
             entrada.nao_solicitar_marca,
+            entrada.tratar_apenas_como_unidades,
+            entrada.contem_variacoes,
+            entrada.unidade_medida,
         )
     )
 
@@ -68,18 +70,9 @@ def atualizar_produto(
             produto_id,
             entrada.nome,
             entrada.categoria_id,
-            entrada.unidade_base,
             entrada.nao_solicitar_marca,
+            entrada.tratar_apenas_como_unidades,
+            entrada.contem_variacoes,
+            entrada.unidade_medida,
         )
     )
-
-
-@router.delete(
-    "/{produto_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    responses={404: {"model": ErroResponse}, 409: {"model": ErroResponse}},
-    summary="Excluir produto",
-)
-def excluir_produto(produto_id: UUID, servico: Servico) -> Response:
-    servico.excluir_produto(produto_id)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)

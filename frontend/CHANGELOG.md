@@ -2,6 +2,12 @@
 
 ## Não lançado
 
+- Adiciona tipos de produto por unidade, a granel e com variações de peso ou volume.
+- Ajusta a revisão para confirmar quantidade inteira ou decimal e selecionar variações em modal.
+- Converte automaticamente KG/G e L/ML na sugestão de quantidade a granel.
+- Adiciona o menu Cadastros com telas de categorias, marcas, produtos, variações e estabelecimentos, sem exclusão.
+- Permite criar uma variação diretamente no modal de pesquisa durante a revisão.
+
 - Substitui os selects de produto e marca por modais com busca instantânea e criação.
 - Inicia a busca de produto com a descrição original do item da nota.
 - Centraliza os modais no espaço visível do celular durante o uso do teclado.

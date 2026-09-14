@@ -10,280 +10,159 @@ from src.api.app import criar_app
 from src.persistence.banco_sqlite import BancoSQLite
 from tests.test_leitura import HTML, URL_TESTE
 
-
 CHAVE = "43260907718633007868650080002005971056148317"
-
-
-def url_da_chave(chave: str) -> str:
-    return f"https://dfe-portal.svrs.rs.gov.br/Dfe/QrCodeNFce?p={chave}|3|1"
-
-
-def html_com_chave(chave: str) -> str:
-    chave_formatada = " ".join(chave[indice : indice + 4] for indice in range(0, 44, 4))
-    original = " ".join(CHAVE[indice : indice + 4] for indice in range(0, 44, 4))
-    return HTML.replace(original, chave_formatada)
 
 
 class CatalogoRevisaoApiTests(unittest.TestCase):
     def setUp(self):
         self.temporario = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporario.cleanup)
-        caminho = Path(self.temporario.name) / "notas.sqlite3"
-        self.app = criar_app(caminho, lambda _: HTML.encode("utf-8"))
+        self.app = criar_app(
+            Path(self.temporario.name) / "notas.sqlite3",
+            lambda _: HTML.encode("utf-8"),
+        )
         self.cliente = TestClient(self.app)
         self.addCleanup(self.cliente.close)
+        self.categoria = self.cliente.post(
+            "/categorias", json={"nome": "Alimentação"}
+        ).json()
+        self.marca = self.cliente.post("/marcas", json={"nome": "Rodeio"}).json()
 
-    def criar_catalogo(self):
-        categoria = self.cliente.post(
-            "/categorias", json={"nome": "  Alimentação  "}
-        )
-        self.assertEqual(categoria.status_code, 201)
-        marca = self.cliente.post("/marcas", json={"nome": "Rodeio"})
-        self.assertEqual(marca.status_code, 201)
-        pao = self.cliente.post(
-            "/produtos",
-            json={
-                "nome": "Pão",
-                "categoria_id": categoria.json()["id"],
-                "unidade_base": "KG",
-                "nao_solicitar_marca": True,
-            },
-        )
-        queijo = self.cliente.post(
-            "/produtos",
-            json={
-                "nome": "Queijo muçarela",
-                "categoria_id": categoria.json()["id"],
-                "unidade_base": "KG",
-                "nao_solicitar_marca": False,
-            },
-        )
-        self.assertEqual(pao.status_code, 201)
-        self.assertEqual(queijo.status_code, 201)
-        return categoria.json(), marca.json(), pao.json(), queijo.json()
+    def produto(self, nome="Produto", **opcoes):
+        dados = {
+            "nome": nome,
+            "categoria_id": self.categoria["id"],
+            "nao_solicitar_marca": False,
+            "tratar_apenas_como_unidades": False,
+            "contem_variacoes": False,
+            "unidade_medida": "KG",
+        }
+        dados.update(opcoes)
+        resposta = self.cliente.post("/produtos", json=dados)
+        self.assertEqual(resposta.status_code, 201, resposta.text)
+        return resposta.json()
 
-    def ler_nota(self):
-        resposta = self.cliente.post("/leituras", json={"url": URL_TESTE})
-        self.assertEqual(resposta.status_code, 200)
-        return resposta.json()["nota"]
+    def ler(self):
+        return self.cliente.post("/leituras", json={"url": URL_TESTE}).json()["nota"]
 
-    def revisar(
-        self,
-        item_id: str,
-        produto_id: str,
-        quantidade_normalizada: str,
-        marca_id: str | None = None,
-        unidade_corrigida: str = "UN",
-    ):
+    def revisar(self, item, produto, quantidade, marca=True, variacao_id=None):
         return self.cliente.patch(
-            f"/notas/{CHAVE}/itens/{item_id}",
+            f"/notas/{CHAVE}/itens/{item['id']}",
             json={
-                "produto_id": produto_id,
-                "marca_id": marca_id,
-                "unidade_corrigida": unidade_corrigida,
-                "quantidade_normalizada": quantidade_normalizada,
+                "produto_id": produto["id"],
+                "marca_id": self.marca["id"] if marca else None,
+                "variacao_id": variacao_id,
+                "quantidade_confirmada": quantidade,
             },
         )
 
-    def test_crud_dos_catalogos_e_busca(self):
-        categoria, marca, pao, _ = self.criar_catalogo()
-        self.assertEqual(categoria["nome"], "Alimentação")
+    def test_catalogos_possuem_busca_inclusao_edicao_sem_exclusao(self):
+        produto = self.produto("Pão", nao_solicitar_marca=True)
         self.assertEqual(
-            [item["id"] for item in self.cliente.get("/categorias?busca=menta").json()],
-            [categoria["id"]],
+            self.cliente.get("/produtos", params={"busca": "pão"}).json()[0]["id"],
+            produto["id"],
         )
-        self.assertEqual(
-            [item["id"] for item in self.cliente.get("/produtos?busca=pão").json()],
-            [pao["id"]],
-        )
-        self.assertTrue(pao["nao_solicitar_marca"])
         alterada = self.cliente.patch(
-            f"/marcas/{marca['id']}", json={"nome": "Rodeio Alimentos"}
+            f"/marcas/{self.marca['id']}", json={"nome": "Rodeio Alimentos"}
         )
         self.assertEqual(alterada.status_code, 200)
+        self.assertEqual(self.cliente.delete(f"/marcas/{self.marca['id']}").status_code, 405)
+        unidades = self.cliente.get("/unidades-medida").json()
+        self.assertEqual([item["codigo"] for item in unidades], ["KG", "G", "L", "ML"])
+
+    def test_quantidade_inteira_para_unidades_e_variacoes(self):
+        nota = self.ler()
+        unidade = self.produto(
+            "Ovos", tratar_apenas_como_unidades=True, unidade_medida=None
+        )
+        self.assertEqual(self.revisar(nota["itens"][0], unidade, "1.5").status_code, 422)
+        self.assertEqual(self.revisar(nota["itens"][0], unidade, 2).status_code, 200)
+
+        variado = self.produto("Requeijão", contem_variacoes=True, unidade_medida="G")
+        peso = self.cliente.post(
+            f"/produtos/{variado['id']}/variacoes",
+            json={"quantidade": "180", "unidade_medida": "G", "descricao": None},
+        )
+        volume = self.cliente.post(
+            f"/produtos/{variado['id']}/variacoes",
+            json={"quantidade": "200", "unidade_medida": "ML", "descricao": "Copo 200 ml"},
+        )
+        self.assertEqual(peso.status_code, 201)
+        self.assertEqual(volume.status_code, 201)
+        sem_variacao = self.revisar(nota["itens"][1], variado, 1)
+        self.assertEqual(sem_variacao.status_code, 422)
+        revisada = self.revisar(
+            nota["itens"][1], variado, 1, variacao_id=peso.json()["id"]
+        )
+        self.assertEqual(revisada.status_code, 200)
+        self.assertEqual(revisada.json()["itens"][1]["variacao"]["nome_exibicao"], "180 G")
+
+    def test_importacao_exige_revisao_de_todos_os_itens(self):
+        nota = self.ler()
+        produto = self.produto("Alimento", nao_solicitar_marca=True)
         self.assertEqual(
-            self.cliente.get(f"/marcas/{marca['id']}").json()["nome"],
-            "Rodeio Alimentos",
+            self.revisar(nota["itens"][0], produto, "0.15", marca=False).status_code,
+            200,
         )
-        produto = self.cliente.patch(
-            f"/produtos/{pao['id']}",
-            json={
-                "nome": "Pão francês",
-                "categoria_id": categoria["id"],
-                "unidade_base": "KG",
-                "nao_solicitar_marca": True,
-            },
+        self.assertEqual(self.cliente.post(f"/notas/{CHAVE}/importacao").status_code, 409)
+        self.assertEqual(
+            self.revisar(nota["itens"][1], produto, "0.6", marca=False).status_code,
+            200,
         )
-        self.assertEqual(produto.status_code, 200)
-        temporaria = self.cliente.post("/marcas", json={"nome": "Temporária"}).json()
-        self.assertEqual(self.cliente.delete(f"/marcas/{temporaria['id']}").status_code, 204)
-        self.assertEqual(self.cliente.get(f"/marcas/{temporaria['id']}").status_code, 404)
-        self.assertEqual(self.cliente.delete(f"/categorias/{categoria['id']}").status_code, 409)
-
-    def test_importacao_exige_todos_os_itens_e_depois_e_imutavel(self):
-        nota = self.ler_nota()
-        categoria, marca, pao, queijo = self.criar_catalogo()
-
-        primeira = self.revisar(
-            nota["itens"][0]["id"], pao["id"], "0.15", unidade_corrigida="KG"
-        )
-        self.assertEqual(primeira.status_code, 200)
-        self.assertEqual(primeira.json()["situacao"], "em_revisao")
-        bloqueada = self.cliente.post(f"/notas/{CHAVE}/importacao")
-        self.assertEqual(bloqueada.status_code, 409)
-        self.assertIn("1 item", bloqueada.json()["mensagem"])
-
-        segunda = self.revisar(
-            nota["itens"][1]["id"],
-            queijo["id"],
-            "0.600",
-            marca["id"],
-        )
-        self.assertEqual(segunda.status_code, 200)
         importada = self.cliente.post(f"/notas/{CHAVE}/importacao")
         self.assertEqual(importada.status_code, 200)
         self.assertEqual(importada.json()["situacao"], "importada")
-        self.assertIsNotNone(importada.json()["importada_em"])
 
-        repetida = self.cliente.post(f"/notas/{CHAVE}/importacao")
-        self.assertEqual(repetida.json()["importada_em"], importada.json()["importada_em"])
-        self.assertEqual(
-            self.revisar(
-                nota["itens"][0]["id"], pao["id"], "0.15", unidade_corrigida="KG"
-            ).status_code,
-            409,
+    def test_estabelecimento_altera_apenas_apelido(self):
+        loja = self.ler()["estabelecimento"]
+        alterada = self.cliente.patch(
+            f"/estabelecimentos/{loja['id']}", json={"apelido": "Mercado perto"}
         )
-        self.assertEqual(
-            self.cliente.patch(
-                f"/categorias/{categoria['id']}", json={"nome": "Comida"}
-            ).status_code,
-            409,
-        )
-
-    def test_marca_e_obrigatoria_conforme_configuracao_do_produto(self):
-        nota = self.ler_nota()
-        _, marca, pao, queijo = self.criar_catalogo()
-
-        sem_marca_permitida = self.revisar(
-            nota["itens"][0]["id"], pao["id"], "0.15", unidade_corrigida="KG"
-        )
-        self.assertEqual(sem_marca_permitida.status_code, 200)
-        apresentacao = sem_marca_permitida.json()["itens"][0]["apresentacao"]
-        self.assertIsNone(apresentacao["marca"])
-        self.assertNotIn("marca_confirmada", apresentacao)
-        self.assertNotIn("conteudo_embalagem", apresentacao)
-        self.assertNotIn("unidade_embalagem", apresentacao)
-
-        marca_obrigatoria = self.revisar(
-            nota["itens"][1]["id"], queijo["id"], "0.600"
-        )
-        self.assertEqual(marca_obrigatoria.status_code, 422)
-        self.assertIn("marca é obrigatória", marca_obrigatoria.json()["mensagem"])
-
-        com_marca = self.revisar(
-            nota["itens"][1]["id"], queijo["id"], "0.600", marca["id"]
-        )
-        self.assertEqual(com_marca.status_code, 200)
-
-    def test_classificacao_automatica_por_codigo_e_por_descricao(self):
-        nota = self.ler_nota()
-        _, _, pao, _ = self.criar_catalogo()
-        resposta = self.revisar(
-            nota["itens"][0]["id"], pao["id"], "0.15", unidade_corrigida="KG"
-        )
-        self.assertEqual(resposta.status_code, 200)
-
-        chave_mesma_loja = "43260807718633007868650080002005971056148317"
-        html_codigo = (
-            html_com_chave(chave_mesma_loja)
-            .replace("PAO kg", "OUTRO NOME")
-            .replace("<strong>Qtde.:</strong>0,15", "<strong>Qtde.:</strong>0,30")
-            .replace('<span class="valor">10,48', '<span class="valor">20,97')
-            .replace("<span>38,28</span>", "<span>48,77</span>")
-            .replace("<span>35,68</span>", "<span>46,17</span>")
-        )
-        self.app.state.servico_leitura_notas.consultar = lambda _: html_codigo.encode("utf-8")
-        classificada_codigo = self.cliente.post(
-            "/leituras", json={"url": url_da_chave(chave_mesma_loja)}
-        ).json()["nota"]
-        self.assertTrue(classificada_codigo["itens"][0]["revisado"])
-        self.assertEqual(
-            classificada_codigo["itens"][0]["apresentacao"]["produto"]["id"], pao["id"]
-        )
-        self.assertEqual(classificada_codigo["itens"][0]["quantidade_normalizada"], "0.3")
-        self.assertFalse(classificada_codigo["itens"][1]["revisado"])
-
-        chave_outro_local = "43260707718633007868650080002005971056148317"
-        html_nome = (
-            html_com_chave(chave_outro_local)
-            .replace("00.000.000/0001-00", "11.111.111/0001-11")
-            .replace("(Código: 10)", "(Código: 99)")
-            .replace("PAO kg", "  pao   KG ")
-        )
-        self.app.state.servico_leitura_notas.consultar = lambda _: html_nome.encode("utf-8")
-        classificada_nome = self.cliente.post(
-            "/leituras", json={"url": url_da_chave(chave_outro_local)}
-        ).json()["nota"]
-        self.assertTrue(classificada_nome["itens"][0]["revisado"])
-        self.assertEqual(
-            classificada_nome["itens"][0]["apresentacao"]["produto"]["id"], pao["id"]
-        )
+        self.assertEqual(alterada.status_code, 200)
+        self.assertEqual(alterada.json()["nome_exibicao"], "Mercado perto")
+        self.assertEqual(alterada.json()["razao_social"], loja["razao_social"])
 
 
 class MigracaoTests(unittest.TestCase):
-    def test_migracao_preserva_dados_da_estrutura_1(self):
+    def test_migracao_preserva_apenas_notas_lidas_e_catalogos(self):
         with tempfile.TemporaryDirectory() as temporario:
-            caminho = Path(temporario) / "v1.sqlite3"
+            caminho = Path(temporario) / "v3.sqlite3"
             with closing(sqlite3.connect(caminho)) as conexao:
                 conexao.executescript(
                     """
-                    CREATE TABLE estabelecimentos (id TEXT PRIMARY KEY);
-                    CREATE TABLE categorias (id TEXT PRIMARY KEY, nome TEXT NOT NULL);
-                    CREATE TABLE marcas (id TEXT PRIMARY KEY, nome TEXT NOT NULL);
-                    CREATE TABLE produtos (
-                        id TEXT PRIMARY KEY, nome TEXT NOT NULL,
-                        categoria_id TEXT NOT NULL, unidade_base TEXT NOT NULL
-                    );
-                    CREATE TABLE apresentacoes_produto (
-                        id TEXT PRIMARY KEY, produto_id TEXT NOT NULL, marca_id TEXT,
-                        conteudo_embalagem TEXT, unidade_embalagem TEXT,
-                        marca_confirmada INTEGER NOT NULL
-                    );
-                    CREATE TABLE notas (
-                        id TEXT PRIMARY KEY, chave TEXT NOT NULL, situacao TEXT NOT NULL
-                    );
-                    INSERT INTO notas VALUES ('nota-1', 'chave-existente', 'lida');
-                    INSERT INTO categorias VALUES ('categoria-1', 'Alimentação');
-                    INSERT INTO produtos VALUES ('produto-1', 'Pão', 'categoria-1', 'KG');
-                    INSERT INTO apresentacoes_produto
-                    VALUES ('apresentacao-1', 'produto-1', NULL, NULL, NULL, 1);
-                    PRAGMA user_version = 1;
+                    CREATE TABLE estabelecimentos (id TEXT PRIMARY KEY, cnpj TEXT, razao_social TEXT, apelido TEXT);
+                    CREATE TABLE categorias (id TEXT PRIMARY KEY, nome TEXT);
+                    CREATE TABLE marcas (id TEXT PRIMARY KEY, nome TEXT);
+                    CREATE TABLE produtos (id TEXT PRIMARY KEY, nome TEXT, categoria_id TEXT, unidade_base TEXT, nao_solicitar_marca INTEGER);
+                    CREATE TABLE apresentacoes_produto (id TEXT PRIMARY KEY, produto_id TEXT, marca_id TEXT);
+                    CREATE TABLE notas (id TEXT PRIMARY KEY, chave TEXT, numero TEXT, serie TEXT, estabelecimento_id TEXT, emissao TEXT, quantidade_itens INTEGER, valor_total TEXT, desconto TEXT, valor_a_pagar TEXT, url_origem TEXT, situacao TEXT, importada_em TEXT);
+                    CREATE TABLE itens (id TEXT PRIMARY KEY, nota_id TEXT, numero INTEGER, codigo TEXT, descricao_original TEXT, quantidade TEXT, unidade_original TEXT, valor_unitario TEXT, valor_total TEXT, alertas TEXT, apresentacao_id TEXT, unidade_corrigida TEXT, quantidade_normalizada TEXT, revisado INTEGER);
+                    CREATE TABLE leituras (id TEXT PRIMARY KEY, chave TEXT, url TEXT, nota_id TEXT, erro_consulta TEXT, criada_em TEXT);
+                    CREATE TABLE associacoes_produto (id TEXT PRIMARY KEY, estabelecimento_id TEXT, codigo_item TEXT, descricao_original TEXT, descricao_normalizada TEXT, apresentacao_id TEXT, unidade_corrigida TEXT, fator_normalizacao TEXT, UNIQUE(estabelecimento_id, codigo_item));
+                    INSERT INTO estabelecimentos VALUES ('e', '1', 'Loja', NULL);
+                    INSERT INTO categorias VALUES ('c', 'Alimentação');
+                    INSERT INTO produtos VALUES ('p-un', 'Ovos', 'c', 'UN', 1);
+                    INSERT INTO produtos VALUES ('p-kg', 'Arroz', 'c', 'KG', 0);
+                    INSERT INTO notas VALUES ('n1', 'lida', '1', '1', 'e', '2026-01-01', 1, '1', '0', '1', 'url', 'lida', NULL);
+                    INSERT INTO notas VALUES ('n2', 'revisao', '2', '1', 'e', '2026-01-01', 1, '1', '0', '1', 'url', 'em_revisao', NULL);
+                    INSERT INTO notas VALUES ('n3', 'importada', '3', '1', 'e', '2026-01-01', 1, '1', '0', '1', 'url', 'importada', '2026-01-02');
+                    INSERT INTO itens VALUES ('i1', 'n1', 1, '1', 'Item', '1', 'UN', '1', '1', '[]', NULL, NULL, NULL, 0);
+                    INSERT INTO itens VALUES ('i2', 'n2', 1, '1', 'Item', '1', 'UN', '1', '1', '[]', NULL, NULL, NULL, 0);
+                    INSERT INTO itens VALUES ('i3', 'n3', 1, '1', 'Item', '1', 'UN', '1', '1', '[]', NULL, NULL, NULL, 0);
+                    INSERT INTO leituras VALUES ('l1', 'lida', 'url', 'n1', NULL, '2026-01-01');
+                    INSERT INTO leituras VALUES ('l2', 'revisao', 'url', 'n2', NULL, '2026-01-01');
+                    INSERT INTO leituras VALUES ('l3', 'importada', 'url', 'n3', NULL, '2026-01-01');
+                    PRAGMA user_version = 3;
                     """
                 )
-                conexao.commit()
             BancoSQLite(caminho).inicializar()
             with closing(sqlite3.connect(caminho)) as conexao:
-                self.assertEqual(conexao.execute("PRAGMA user_version").fetchone()[0], 3)
-                self.assertEqual(
-                    conexao.execute("SELECT chave FROM notas").fetchone()[0],
-                    "chave-existente",
-                )
-                colunas = [linha[1] for linha in conexao.execute("PRAGMA table_info(notas)")]
-                self.assertIn("importada_em", colunas)
-                self.assertIsNotNone(
-                    conexao.execute(
-                        "SELECT name FROM sqlite_master WHERE name = 'associacoes_produto'"
-                    ).fetchone()
-                )
-                produto = conexao.execute(
-                    "SELECT nao_solicitar_marca FROM produtos WHERE id = 'produto-1'"
-                ).fetchone()
-                self.assertEqual(produto[0], 1)
-                colunas_apresentacao = [
-                    linha[1]
-                    for linha in conexao.execute("PRAGMA table_info(apresentacoes_produto)")
-                ]
-                self.assertEqual(colunas_apresentacao, ["id", "produto_id", "marca_id"])
+                self.assertEqual(conexao.execute("PRAGMA user_version").fetchone()[0], 4)
+                self.assertEqual(conexao.execute("SELECT chave FROM notas").fetchall(), [("lida",)])
+                self.assertEqual(conexao.execute("SELECT nota_id FROM leituras").fetchall(), [("n1",)])
+                self.assertEqual(conexao.execute("SELECT revisado, quantidade_confirmada FROM itens").fetchone(), (0, None))
+                produtos = conexao.execute("SELECT id, tratar_apenas_como_unidades, unidade_medida FROM produtos ORDER BY id").fetchall()
+                self.assertEqual(produtos, [("p-kg", 0, "KG"), ("p-un", 1, None)])
 
 
 if __name__ == "__main__":

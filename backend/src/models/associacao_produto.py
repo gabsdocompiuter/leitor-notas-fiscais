@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 
 from .apresentacao_produto import ApresentacaoProduto
 from .estabelecimento import Estabelecimento
-from .unidade_medida import UnidadeMedida
+from .variacao_produto import VariacaoProduto
 
 
 @dataclass
@@ -16,5 +16,5 @@ class AssociacaoProduto:
     codigo_item: str
     apresentacao: ApresentacaoProduto
     descricao_original: str | None = None
-    unidade_corrigida: UnidadeMedida | None = None
-    fator_normalizacao: Decimal | None = None
+    variacao: VariacaoProduto | None = None
+    fator_conversao: Decimal | None = None

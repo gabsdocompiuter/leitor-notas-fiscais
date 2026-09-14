@@ -1,11 +1,14 @@
 import sqlite3
+from decimal import Decimal
 from uuid import UUID
 
 from ..core.exceptions import Conflito, NaoEncontrado
 from ..models.categoria import Categoria
+from ..models.estabelecimento import Estabelecimento
 from ..models.marca import Marca
 from ..models.produto import Produto
 from ..models.unidade_medida import UnidadeMedida
+from ..models.variacao_produto import VariacaoProduto
 from .banco_sqlite import BancoSQLite
 
 
@@ -181,22 +184,25 @@ class RepositorioCatalogo:
                 """
                 SELECT p.*, c.nome AS categoria_nome
                 FROM produtos p JOIN categorias c ON c.id = p.categoria_id
-                WHERE p.nome = ? COLLATE NOCASE AND p.categoria_id = ? AND p.unidade_base = ?
+                WHERE p.nome = ? COLLATE NOCASE AND p.categoria_id = ?
                 """,
-                (produto.nome, str(produto.categoria.id), produto.unidade_base.value),
+                (produto.nome, str(produto.categoria.id)),
             ).fetchone()
             if existente:
                 return self._produto(existente)
             conexao.execute(
                 """INSERT INTO produtos
-                    (id, nome, categoria_id, unidade_base, nao_solicitar_marca)
-                    VALUES (?, ?, ?, ?, ?)""",
+                    (id, nome, categoria_id, nao_solicitar_marca,
+                     tratar_apenas_como_unidades, contem_variacoes, unidade_medida)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)""",
                 (
                     str(produto.id),
                     produto.nome,
                     str(produto.categoria.id),
-                    produto.unidade_base.value,
                     int(produto.nao_solicitar_marca),
+                    int(produto.tratar_apenas_como_unidades),
+                    int(produto.contem_variacoes),
+                    produto.unidade_medida.value if produto.unidade_medida else None,
                 ),
             )
         return self.obter_produto(produto.id)
@@ -206,8 +212,10 @@ class RepositorioCatalogo:
         produto_id: UUID,
         nome: str,
         categoria_id: UUID,
-        unidade_base: UnidadeMedida,
         nao_solicitar_marca: bool,
+        tratar_apenas_como_unidades: bool,
+        contem_variacoes: bool,
+        unidade_medida: UnidadeMedida | None,
     ) -> Produto:
         with self.banco.conectar() as conexao:
             self._exigir_nao_importada(conexao, "produto", produto_id)
@@ -218,21 +226,24 @@ class RepositorioCatalogo:
             duplicado = conexao.execute(
                 """
                 SELECT id FROM produtos
-                WHERE nome = ? COLLATE NOCASE AND categoria_id = ? AND unidade_base = ? AND id <> ?
+                WHERE nome = ? COLLATE NOCASE AND categoria_id = ? AND id <> ?
                 """,
-                (nome, str(categoria_id), unidade_base.value, str(produto_id)),
+                (nome, str(categoria_id), str(produto_id)),
             ).fetchone()
             if duplicado:
                 raise Conflito("Já existe esse produto na categoria e unidade informadas.")
             alteracao = conexao.execute(
                 """UPDATE produtos
-                   SET nome = ?, categoria_id = ?, unidade_base = ?, nao_solicitar_marca = ?
+                   SET nome = ?, categoria_id = ?, nao_solicitar_marca = ?,
+                       tratar_apenas_como_unidades = ?, contem_variacoes = ?, unidade_medida = ?
                    WHERE id = ?""",
                 (
                     nome,
                     str(categoria_id),
-                    unidade_base.value,
                     int(nao_solicitar_marca),
+                    int(tratar_apenas_como_unidades),
+                    int(contem_variacoes),
+                    unidade_medida.value if unidade_medida else None,
                     str(produto_id),
                 ),
             )
@@ -268,8 +279,149 @@ class RepositorioCatalogo:
             id=UUID(linha["id"]),
             nome=linha["nome"],
             categoria=Categoria(id=UUID(linha["categoria_id"]), nome=linha["categoria_nome"]),
-            unidade_base=UnidadeMedida(linha["unidade_base"]),
             nao_solicitar_marca=bool(linha["nao_solicitar_marca"]),
+            tratar_apenas_como_unidades=bool(linha["tratar_apenas_como_unidades"]),
+            contem_variacoes=bool(linha["contem_variacoes"]),
+            unidade_medida=(
+                UnidadeMedida(linha["unidade_medida"])
+                if linha["unidade_medida"]
+                else None
+            ),
+        )
+
+    def listar_variacoes(self, produto_id: UUID) -> list[VariacaoProduto]:
+        produto = self.obter_produto(produto_id)
+        with self.banco.conectar() as conexao:
+            linhas = conexao.execute(
+                """SELECT * FROM variacoes_produto
+                   WHERE produto_id = ?
+                   ORDER BY CAST(quantidade AS REAL), unidade_medida, descricao""",
+                (str(produto_id),),
+            ).fetchall()
+        return [self._variacao(linha, produto) for linha in linhas]
+
+    def obter_variacao(self, variacao_id: UUID) -> VariacaoProduto:
+        with self.banco.conectar() as conexao:
+            linha = conexao.execute(
+                "SELECT * FROM variacoes_produto WHERE id = ?", (str(variacao_id),)
+            ).fetchone()
+        if linha is None:
+            raise NaoEncontrado("Variação não encontrada.")
+        return self._variacao(linha, self.obter_produto(UUID(linha["produto_id"])))
+
+    def salvar_variacao(self, variacao: VariacaoProduto) -> VariacaoProduto:
+        if not variacao.produto.contem_variacoes:
+            raise Conflito("O produto não está configurado para possuir variações.")
+        with self.banco.conectar() as conexao:
+            existente = conexao.execute(
+                """SELECT id FROM variacoes_produto
+                   WHERE produto_id = ? AND quantidade = ? AND unidade_medida = ?""",
+                (
+                    str(variacao.produto.id),
+                    str(variacao.quantidade),
+                    variacao.unidade_medida.value,
+                ),
+            ).fetchone()
+            if existente:
+                return self.obter_variacao(UUID(existente["id"]))
+            conexao.execute(
+                """INSERT INTO variacoes_produto
+                   (id, produto_id, quantidade, unidade_medida, descricao)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (
+                    str(variacao.id),
+                    str(variacao.produto.id),
+                    str(variacao.quantidade),
+                    variacao.unidade_medida.value,
+                    variacao.descricao,
+                ),
+            )
+        return variacao
+
+    def atualizar_variacao(
+        self,
+        variacao_id: UUID,
+        quantidade: Decimal,
+        unidade_medida: UnidadeMedida,
+        descricao: str | None,
+    ) -> VariacaoProduto:
+        atual = self.obter_variacao(variacao_id)
+        with self.banco.conectar() as conexao:
+            if conexao.execute(
+                """SELECT 1 FROM itens i
+                   JOIN notas n ON n.id = i.nota_id
+                   WHERE n.situacao = 'importada' AND i.variacao_id = ? LIMIT 1""",
+                (str(variacao_id),),
+            ).fetchone():
+                raise Conflito(
+                    "A variação pertence a uma nota importada e não pode ser alterada."
+                )
+            duplicada = conexao.execute(
+                """SELECT id FROM variacoes_produto
+                   WHERE produto_id = ? AND quantidade = ?
+                     AND unidade_medida = ? AND id <> ?""",
+                (
+                    str(atual.produto.id), str(quantidade), unidade_medida.value,
+                    str(variacao_id),
+                ),
+            ).fetchone()
+            if duplicada:
+                raise Conflito("Já existe essa variação para o produto.")
+            conexao.execute(
+                """UPDATE variacoes_produto
+                   SET quantidade = ?, unidade_medida = ?, descricao = ? WHERE id = ?""",
+                (str(quantidade), unidade_medida.value, descricao, str(variacao_id)),
+            )
+        return VariacaoProduto(
+            id=variacao_id,
+            produto=atual.produto,
+            quantidade=quantidade,
+            unidade_medida=unidade_medida,
+            descricao=descricao,
+        )
+
+    def listar_estabelecimentos(self, busca: str | None = None) -> list[Estabelecimento]:
+        consulta = "SELECT * FROM estabelecimentos"
+        parametros: tuple[object, ...] = ()
+        if busca:
+            consulta += " WHERE razao_social LIKE ? COLLATE NOCASE OR apelido LIKE ? COLLATE NOCASE"
+            parametros = (f"%{busca}%", f"%{busca}%")
+        consulta += " ORDER BY COALESCE(apelido, razao_social) COLLATE NOCASE"
+        with self.banco.conectar() as conexao:
+            return [self._estabelecimento(linha) for linha in conexao.execute(consulta, parametros)]
+
+    def atualizar_apelido_estabelecimento(
+        self, estabelecimento_id: UUID, apelido: str | None
+    ) -> Estabelecimento:
+        with self.banco.conectar() as conexao:
+            alteracao = conexao.execute(
+                "UPDATE estabelecimentos SET apelido = ? WHERE id = ?",
+                (apelido, str(estabelecimento_id)),
+            )
+            if alteracao.rowcount != 1:
+                raise NaoEncontrado("Estabelecimento não encontrado.")
+            linha = conexao.execute(
+                "SELECT * FROM estabelecimentos WHERE id = ?", (str(estabelecimento_id),)
+            ).fetchone()
+        return self._estabelecimento(linha)
+
+    @staticmethod
+    def _variacao(linha: sqlite3.Row, produto: Produto) -> VariacaoProduto:
+        return VariacaoProduto(
+            id=UUID(linha["id"]),
+            produto=produto,
+            quantidade=Decimal(linha["quantidade"]),
+            unidade_medida=UnidadeMedida(linha["unidade_medida"]),
+            descricao=linha["descricao"],
+        )
+
+    @staticmethod
+    def _estabelecimento(linha: sqlite3.Row) -> Estabelecimento:
+        return Estabelecimento(
+            id=UUID(linha["id"]),
+            cnpj=linha["cnpj"],
+            razao_social=linha["razao_social"],
+            apelido=linha["apelido"],
         )
 
     @staticmethod

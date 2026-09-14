@@ -12,5 +12,7 @@ class Produto:
     id: UUID = field(default_factory=uuid4, kw_only=True)
     nome: str
     categoria: Categoria
-    unidade_base: UnidadeMedida
     nao_solicitar_marca: bool = False
+    tratar_apenas_como_unidades: bool = False
+    contem_variacoes: bool = False
+    unidade_medida: UnidadeMedida | None = None

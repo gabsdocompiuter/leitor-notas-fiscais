@@ -1,0 +1,19 @@
+$kind: http-request
+name: Alterar variação
+url: "{{baseUrl}}/variacoes/:variacaoId"
+method: PATCH
+pathVariables:
+  - key: variacaoId
+    value: "{{variacaoId}}"
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "quantidade": "400",
+      "unidade_medida": "G",
+      "descricao": "Pote 400 g"
+    }
+order: 3000

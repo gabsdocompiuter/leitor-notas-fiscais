@@ -1,0 +1,5 @@
+$kind: http-request
+name: Listar estabelecimentos
+url: "{{baseUrl}}/estabelecimentos"
+method: GET
+order: 1000

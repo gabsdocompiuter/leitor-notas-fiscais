@@ -1,0 +1,19 @@
+$kind: http-request
+name: Criar variação
+url: "{{baseUrl}}/produtos/:produtoId/variacoes"
+method: POST
+pathVariables:
+  - key: produtoId
+    value: "{{produtoId}}"
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "quantidade": "180",
+      "unidade_medida": "G",
+      "descricao": null
+    }
+order: 2000

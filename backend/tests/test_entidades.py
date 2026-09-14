@@ -33,18 +33,17 @@ class EntidadesTests(unittest.TestCase):
         nota = extrair_nota(HTML, URL_TESTE)
         item = nota.itens[0]
         original = (item.descricao_original, item.quantidade, item.unidade_original, item.valor_total)
-        produto = Produto("Pão", Categoria("Alimentação"), UnidadeMedida.QUILOGRAMA)
+        produto = Produto("Pão", Categoria("Alimentação"), unidade_medida=UnidadeMedida.QUILOGRAMA)
         item.apresentacao = ApresentacaoProduto(produto)
-        item.unidade_corrigida = UnidadeMedida.QUILOGRAMA
-        item.quantidade_normalizada = Decimal("0.15")
+        item.quantidade_confirmada = Decimal("0.15")
         item.revisado = True
         self.assertEqual(original, (item.descricao_original, item.quantidade, item.unidade_original, item.valor_total))
         self.assertEqual(nota.situacao, SituacaoNota.LIDA)
 
     def test_marcas_compartilham_produto_mas_variantes_nao(self):
         categoria = Categoria("Alimentação")
-        integral = Produto("Leite integral", categoria, UnidadeMedida.LITRO)
-        desnatado = Produto("Leite desnatado", categoria, UnidadeMedida.LITRO)
+        integral = Produto("Leite integral", categoria, unidade_medida=UnidadeMedida.LITRO)
+        desnatado = Produto("Leite desnatado", categoria, unidade_medida=UnidadeMedida.LITRO)
         tirol = ApresentacaoProduto(integral, Marca("Tirol"))
         dalia = ApresentacaoProduto(integral, Marca("Dália"))
         self.assertEqual(tirol.produto.id, dalia.produto.id)
@@ -52,7 +51,7 @@ class EntidadesTests(unittest.TestCase):
         self.assertNotEqual(tirol.id, dalia.id)
 
     def test_mesmo_codigo_pode_pertencer_a_estabelecimentos_diferentes(self):
-        produto = Produto("Queijo", Categoria("Alimentação"), UnidadeMedida.QUILOGRAMA)
+        produto = Produto("Queijo", Categoria("Alimentação"), unidade_medida=UnidadeMedida.QUILOGRAMA)
         apresentacao = ApresentacaoProduto(produto)
         a = AssociacaoProduto(Estabelecimento("00000000000100", "Loja A"), "20", apresentacao)
         b = AssociacaoProduto(Estabelecimento("00000000000200", "Loja B"), "20", apresentacao)

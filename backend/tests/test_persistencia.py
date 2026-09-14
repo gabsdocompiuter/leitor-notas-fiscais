@@ -54,8 +54,7 @@ class PersistenciaTests(unittest.TestCase):
     def test_reconsulta_nao_duplica_nem_apaga_apelido_ou_revisao(self):
         nota = self.nova_nota()
         nota.estabelecimento.apelido = "Mercado da esquina"
-        nota.itens[0].unidade_corrigida = UnidadeMedida.QUILOGRAMA
-        nota.itens[0].quantidade_normalizada = Decimal("0.15")
+        nota.itens[0].quantidade_confirmada = Decimal("0.15")
         nota.itens[0].revisado = True
         nota.situacao = SituacaoNota.EM_REVISAO
         primeira = self.repo.salvar(nota)
@@ -97,9 +96,9 @@ class PersistenciaTests(unittest.TestCase):
 
     def test_persiste_grafo_da_classificacao_quando_presente(self):
         nota = self.nova_nota()
-        produto = Produto("Queijo muçarela", Categoria("Alimentação"), UnidadeMedida.QUILOGRAMA)
+        produto = Produto("Queijo muçarela", Categoria("Alimentação"), unidade_medida=UnidadeMedida.QUILOGRAMA)
         nota.itens[1].apresentacao = ApresentacaoProduto(produto, Marca("Rodeio"))
-        nota.itens[1].quantidade_normalizada = Decimal("0.600")
+        nota.itens[1].quantidade_confirmada = Decimal("0.600")
         self.assertEqual(asdict(nota), asdict(self.repo.salvar(nota)))
 
     def test_registro_de_erro_e_retentativa_preservam_captura(self):

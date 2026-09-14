@@ -35,8 +35,8 @@ function criarNota(revisoes: boolean[]): Nota {
       valor_total: '10.00',
       alertas: [],
       apresentacao: null,
-      unidade_corrigida: null,
-      quantidade_normalizada: null,
+      variacao: null,
+      quantidade_confirmada: null,
       revisado,
     })),
   };

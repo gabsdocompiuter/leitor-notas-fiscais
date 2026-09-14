@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Query, status
 
 from ...services.servico_catalogo import ServicoCatalogo
 from ..dependencies import obter_servico_catalogo
@@ -52,14 +52,3 @@ def atualizar_marca(
     marca_id: UUID, entrada: MarcaRequest, servico: Servico
 ) -> MarcaResponse:
     return MarcaResponse.from_entity(servico.atualizar_marca(marca_id, entrada.nome))
-
-
-@router.delete(
-    "/{marca_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    responses={404: {"model": ErroResponse}, 409: {"model": ErroResponse}},
-    summary="Excluir marca",
-)
-def excluir_marca(marca_id: UUID, servico: Servico) -> Response:
-    servico.excluir_marca(marca_id)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)

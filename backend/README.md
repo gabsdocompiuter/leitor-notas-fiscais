@@ -45,11 +45,16 @@ uvicorn main:app --host 0.0.0.0 --port 8008 --reload
 | `PATCH` | `/notas/{chave}/itens/{item_id}` | Revisa e classifica um item |
 | `POST` | `/notas/{chave}/importacao` | Importa uma nota totalmente revisada |
 | `GET/POST` | `/categorias` | Lista ou cria categorias |
-| `GET/PATCH/DELETE` | `/categorias/{id}` | Consulta, altera ou exclui uma categoria |
+| `GET/PATCH` | `/categorias/{id}` | Consulta ou altera uma categoria |
 | `GET/POST` | `/marcas` | Lista ou cria marcas |
-| `GET/PATCH/DELETE` | `/marcas/{id}` | Consulta, altera ou exclui uma marca |
+| `GET/PATCH` | `/marcas/{id}` | Consulta ou altera uma marca |
 | `GET/POST` | `/produtos` | Lista ou cria produtos |
-| `GET/PATCH/DELETE` | `/produtos/{id}` | Consulta, altera ou exclui um produto |
+| `GET/PATCH` | `/produtos/{id}` | Consulta ou altera um produto |
+| `GET` | `/unidades-medida` | Lista unidades de peso e volume com descrição |
+| `GET/POST` | `/produtos/{id}/variacoes` | Lista ou cria variações de peso ou volume |
+| `PATCH` | `/variacoes/{id}` | Altera uma variação |
+| `GET` | `/estabelecimentos` | Lista e pesquisa estabelecimentos |
+| `PATCH` | `/estabelecimentos/{id}` | Altera somente o apelido do estabelecimento |
 
 Exemplo de leitura:
 
@@ -69,12 +74,14 @@ a precisão. Datas usam ISO 8601 e identificadores usam UUID.
 
 ## Revisão, associações e importação
 
-Revisar um item exige produto, unidade corrigida e quantidade normalizada. A
-marca também é obrigatória, exceto quando o produto estiver cadastrado com
-`nao_solicitar_marca=true`.
+Revisar um item exige produto e quantidade confirmada. A marca também é
+obrigatória, exceto quando o produto estiver cadastrado com
+`nao_solicitar_marca=true`. Produtos tratados somente como unidades exigem uma
+quantidade inteira. Produtos com variações também exigem quantidade inteira e
+uma variação do próprio produto. Produtos a granel aceitam quantidade decimal.
 
 A primeira revisão cria uma associação com o código interno do produto naquele
-estabelecimento e guarda o fator usado na normalização da quantidade. Novas notas
+estabelecimento e guarda o fator usado na conversão da quantidade. Novas notas
 aplicam essa classificação automaticamente. Quando não houver associação por
 estabelecimento e código, a descrição original é comparada ignorando diferenças
 de maiúsculas, minúsculas e espaços. Descrições com classificações conflitantes
@@ -90,14 +97,15 @@ O banco padrão fica em `backend/data/notas.sqlite3`, independentemente da pasta
 de onde o processo foi iniciado. A pasta é criada automaticamente.
 
 As tabelas são `leituras`, `estabelecimentos`, `notas`, `itens`, `categorias`,
-`marcas`, `produtos`, `apresentacoes_produto` e `associacoes_produto`. A gravação de cada nota é
+`marcas`, `produtos`, `variacoes_produto`, `apresentacoes_produto` e
+`associacoes_produto`. A gravação de cada nota é
 transacional, com chaves estrangeiras habilitadas. Notas são únicas por chave e
 estabelecimentos por CNPJ.
 
-`PRAGMA user_version=3` identifica a estrutura atual. Ao abrir bancos das
-estruturas anteriores, o backend aplica as migrações em sequência sem apagar as
-notas existentes. A migração 2 para 3 move a decisão de não usar marca para o
-produto e remove os antigos campos de confirmação e embalagem.
+`PRAGMA user_version=4` identifica a estrutura atual. Ao migrar da estrutura 3,
+o backend mantém os catálogos, estabelecimentos e somente as notas ainda na
+situação `lida`. Revisões e importações anteriores são removidas para permitir a
+adoção segura do novo modelo de quantidades e variações.
 
 ## CLI preservada
 

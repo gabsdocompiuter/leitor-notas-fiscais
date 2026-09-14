@@ -6,6 +6,11 @@ As versões só são alteradas por solicitação explícita do usuário.
 
 ### Adicionado
 
+- Modos de produto por unidade, a granel ou por variações de peso e volume.
+- Cadastro de variações e catálogo descritivo de unidades de medida.
+- Consulta e edição do apelido dos estabelecimentos.
+- Migração SQLite da estrutura 3 para 4, mantendo apenas notas na situação `lida`.
+
 - Flag `nao_solicitar_marca` no cadastro de produtos.
 - Migração da estrutura SQLite 2 para 3, preservando os dados existentes.
 
@@ -22,6 +27,10 @@ As versões só são alteradas por solicitação explícita do usuário.
 - Migração da estrutura SQLite 1 para 2 sem apagar notas existentes.
 
 ### Alterado
+
+- A revisão passa a confirmar somente a quantidade e, quando aplicável, a variação.
+- Produtos por unidade e com variações exigem quantidades inteiras.
+- As rotas de exclusão dos cadastros foram removidas.
 
 - A marca passa a ser obrigatória conforme a configuração do produto.
 - Remove confirmação de marca, conteúdo e unidade da embalagem dos itens.
