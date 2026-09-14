@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS produtos (
     nome TEXT NOT NULL,
     categoria_id TEXT NOT NULL REFERENCES categorias(id),
     unidade_base TEXT NOT NULL CHECK (unidade_base IN ('UN', 'KG', 'G', 'L', 'ML')),
+    nao_solicitar_marca INTEGER NOT NULL DEFAULT 0 CHECK (nao_solicitar_marca IN (0, 1)),
     UNIQUE(nome, categoria_id, unidade_base)
 );
 
@@ -31,10 +32,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_produtos_identidade
 CREATE TABLE IF NOT EXISTS apresentacoes_produto (
     id TEXT PRIMARY KEY NOT NULL,
     produto_id TEXT NOT NULL REFERENCES produtos(id),
-    marca_id TEXT REFERENCES marcas(id),
-    conteudo_embalagem TEXT,
-    unidade_embalagem TEXT CHECK (unidade_embalagem IN ('UN', 'KG', 'G', 'L', 'ML')),
-    marca_confirmada INTEGER NOT NULL CHECK (marca_confirmada IN (0, 1))
+    marca_id TEXT REFERENCES marcas(id)
 );
 
 CREATE TABLE IF NOT EXISTS notas (
@@ -97,5 +95,5 @@ CREATE TABLE IF NOT EXISTS associacoes_produto (
 CREATE INDEX IF NOT EXISTS idx_associacoes_descricao
     ON associacoes_produto(descricao_normalizada);
 
-PRAGMA user_version = 2;
+PRAGMA user_version = 3;
 COMMIT;

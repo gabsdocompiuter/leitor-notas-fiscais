@@ -1,14 +1,6 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, ElementRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
-import {
-  AbstractControl,
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  ValidationErrors,
-  ValidatorFn,
-  Validators,
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 
@@ -34,12 +26,6 @@ const UNIDADES: { valor: UnidadeMedida; rotulo: string }[] = [
   { valor: 'L', rotulo: 'Litro (L)' },
   { valor: 'ML', rotulo: 'Mililitro (ML)' },
 ];
-
-const embalagemCompleta: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
-  const conteudo = control.get('conteudo_embalagem')?.value;
-  const unidade = control.get('unidade_embalagem')?.value;
-  return Boolean(conteudo) === Boolean(unidade) ? null : { embalagemIncompleta: true };
-};
 
 @Component({
   selector: 'lnf-revisao-nota',
@@ -91,6 +77,7 @@ export class RevisaoNota implements OnInit {
   readonly novoProdutoForm = this.fb.nonNullable.group({
     categoria_id: ['', Validators.required],
     unidade_base: ['UN' as UnidadeMedida, Validators.required],
+    nao_solicitar_marca: [false],
   });
 
   ngOnInit(): void {
@@ -136,13 +123,12 @@ export class RevisaoNota implements OnInit {
     const valor = formulario.getRawValue();
     const revisao: RevisaoItem = {
       produto_id: valor.produto_id,
-      marca_id: valor.marca_id || null,
-      marca_confirmada: valor.marca_confirmada,
-      conteudo_embalagem: valor.conteudo_embalagem || null,
-      unidade_embalagem: valor.unidade_embalagem || null,
       unidade_corrigida: valor.unidade_corrigida,
       quantidade_normalizada: valor.quantidade_normalizada,
     };
+    if (this.deveSolicitarMarca(item.id)) {
+      revisao.marca_id = valor.marca_id;
+    }
 
     this.itemSalvando.set(item.id);
     this.erro.set(null);
@@ -195,6 +181,7 @@ export class RevisaoNota implements OnInit {
       this.novoProdutoForm.reset({
         categoria_id: produtoAtual?.categoria.id ?? '',
         unidade_base: produtoAtual?.unidade_base ?? 'UN',
+        nao_solicitar_marca: produtoAtual?.nao_solicitar_marca ?? false,
       });
     }
 
@@ -263,16 +250,20 @@ export class RevisaoNota implements OnInit {
   selecionarProduto(produto: Produto): void {
     const item = this.itemModal();
     if (!item) return;
-    this.formularios.get(item.id)?.patchValue({ produto_id: produto.id });
+    const formulario = this.formularios.get(item.id);
+    if (!formulario) return;
+    const mudouProduto = formulario.get('produto_id')?.value !== produto.id;
+    const marcaAtual = mudouProduto ? null : formulario.get('marca_id')?.value;
+    formulario.patchValue({ produto_id: produto.id });
+    this.atualizarCampoMarca(formulario, produto, marcaAtual);
     this.fecharSeletor();
   }
 
-  selecionarMarca(marca: Marca | null): void {
+  selecionarMarca(marca: Marca): void {
     const item = this.itemModal();
     if (!item) return;
     this.formularios.get(item.id)?.patchValue({
-      marca_id: marca?.id ?? null,
-      marca_confirmada: true,
+      marca_id: marca.id,
     });
     this.fecharSeletor();
   }
@@ -314,16 +305,24 @@ export class RevisaoNota implements OnInit {
   }
 
   nomeProdutoSelecionado(itemId: string): string | null {
+    return this.produtoSelecionado(itemId)?.nome ?? null;
+  }
+
+  produtoSelecionado(itemId: string): Produto | null {
     const id = this.formularios.get(itemId)?.get('produto_id')?.value;
-    return this.produtos().find((produto) => produto.id === id)?.nome ?? null;
+    return this.produtos().find((produto) => produto.id === id) ?? null;
+  }
+
+  deveSolicitarMarca(itemId: string): boolean {
+    const produto = this.produtoSelecionado(itemId);
+    return produto !== null && !produto.nao_solicitar_marca;
   }
 
   nomeMarcaSelecionada(itemId: string): string {
     const formulario = this.formularios.get(itemId);
     const id = formulario?.get('marca_id')?.value;
     const marca = this.marcas().find((item) => item.id === id);
-    if (marca) return marca.nome;
-    return formulario?.get('marca_confirmada')?.value ? 'Sem marca' : 'Selecionar marca';
+    return marca?.nome ?? 'Selecionar marca';
   }
 
   nomeCategoriaSelecionada(): string | null {
@@ -343,35 +342,21 @@ export class RevisaoNota implements OnInit {
     this.formularios.clear();
     nota.itens.forEach((item) => {
       const unidadeOriginal = this.unidadeValida(item.unidade_original);
-      this.formularios.set(
-        item.id,
-        this.fb.group(
-          {
-            produto_id: [item.apresentacao?.produto.id ?? '', Validators.required],
-            marca_id: [item.apresentacao?.marca?.id ?? (null as string | null)],
-            marca_confirmada: [
-              item.apresentacao?.marca_confirmada ?? false,
-              Validators.requiredTrue,
-            ],
-            conteudo_embalagem: [
-              this.numeroOuNulo(item.apresentacao?.conteudo_embalagem),
-              Validators.min(0.0001),
-            ],
-            unidade_embalagem: [
-              item.apresentacao?.unidade_embalagem ?? (null as UnidadeMedida | null),
-            ],
-            unidade_corrigida: [
-              item.unidade_corrigida ?? unidadeOriginal ?? ('UN' as UnidadeMedida),
-              Validators.required,
-            ],
-            quantidade_normalizada: [
-              this.numeroOuNulo(item.quantidade_normalizada) ?? Number(item.quantidade),
-              [Validators.required, Validators.min(0.0001)],
-            ],
-          },
-          { validators: embalagemCompleta },
-        ),
-      );
+      const produto = item.apresentacao?.produto ?? null;
+      const formulario = this.fb.group({
+        produto_id: [produto?.id ?? '', Validators.required],
+        marca_id: [item.apresentacao?.marca?.id ?? (null as string | null)],
+        unidade_corrigida: [
+          item.unidade_corrigida ?? unidadeOriginal ?? ('UN' as UnidadeMedida),
+          Validators.required,
+        ],
+        quantidade_normalizada: [
+          this.numeroOuNulo(item.quantidade_normalizada) ?? Number(item.quantidade),
+          [Validators.required, Validators.min(0.0001)],
+        ],
+      });
+      this.atualizarCampoMarca(formulario, produto, item.apresentacao?.marca?.id ?? null);
+      this.formularios.set(item.id, formulario);
     });
   }
 
@@ -384,6 +369,27 @@ export class RevisaoNota implements OnInit {
     if (valor === null || valor === undefined || valor === '') return null;
     const numero = Number(valor);
     return Number.isFinite(numero) ? numero : null;
+  }
+
+  private atualizarCampoMarca(
+    formulario: FormGroup,
+    produto: Produto | null,
+    marcaId: string | null,
+  ): void {
+    if (produto?.nao_solicitar_marca) {
+      formulario.removeControl('marca_id');
+      return;
+    }
+
+    const marca = formulario.get('marca_id');
+    if (marca) {
+      marca.setValue(marcaId, { emitEvent: false });
+      marca.setValidators(Validators.required);
+      marca.updateValueAndValidity({ emitEvent: false });
+      return;
+    }
+
+    formulario.addControl('marca_id', this.fb.control(marcaId, Validators.required));
   }
 
   private tratarErroCadastro(erro: unknown): void {

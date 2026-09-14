@@ -69,10 +69,9 @@ a precisão. Datas usam ISO 8601 e identificadores usam UUID.
 
 ## Revisão, associações e importação
 
-Revisar um item exige produto, unidade corrigida, quantidade normalizada e uma
-decisão explícita sobre a marca. `marca_confirmada=true` com `marca_id=null`
-registra que o item não possui uma marca identificada. Conteúdo e unidade da
-embalagem são opcionais, mas devem ser enviados juntos.
+Revisar um item exige produto, unidade corrigida e quantidade normalizada. A
+marca também é obrigatória, exceto quando o produto estiver cadastrado com
+`nao_solicitar_marca=true`.
 
 A primeira revisão cria uma associação com o código interno do produto naquele
 estabelecimento e guarda o fator usado na normalização da quantidade. Novas notas
@@ -95,9 +94,10 @@ As tabelas são `leituras`, `estabelecimentos`, `notas`, `itens`, `categorias`,
 transacional, com chaves estrangeiras habilitadas. Notas são únicas por chave e
 estabelecimentos por CNPJ.
 
-`PRAGMA user_version=2` identifica a estrutura atual. Ao abrir um banco da
-estrutura 1, o backend adiciona as associações e o momento da importação sem
-apagar as notas existentes.
+`PRAGMA user_version=3` identifica a estrutura atual. Ao abrir bancos das
+estruturas anteriores, o backend aplica as migrações em sequência sem apagar as
+notas existentes. A migração 2 para 3 move a decisão de não usar marca para o
+produto e remove os antigos campos de confirmação e embalagem.
 
 ## CLI preservada
 

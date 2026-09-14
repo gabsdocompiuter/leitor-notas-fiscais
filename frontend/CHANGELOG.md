@@ -7,6 +7,9 @@
 - Centraliza os modais no espaço visível do celular durante o uso do teclado.
 - Formata a busca inicial do produto e adiciona busca e criação de categorias em modal.
 - Abre a busca de marca vazia, mantendo a descrição fiscal apenas no título.
+- Adiciona ao produto a opção de não solicitar marca e exige a marca nos demais casos.
+- Remove da revisão a confirmação de marca e os campos de conteúdo da embalagem.
+- Remove o campo e o envio de marca quando o produto estiver configurado para não solicitá-la.
 
 ## 0.1.0 - 2026-09-12
 

@@ -21,15 +21,13 @@ export interface Produto {
   nome: string;
   categoria: Categoria;
   unidade_base: UnidadeMedida;
+  nao_solicitar_marca: boolean;
 }
 
 export interface ApresentacaoProduto {
   id: string;
   produto: Produto;
   marca: Marca | null;
-  conteudo_embalagem: string | null;
-  unidade_embalagem: UnidadeMedida | null;
-  marca_confirmada: boolean;
 }
 
 export interface ItemNota {
@@ -83,10 +81,7 @@ export interface Leitura {
 
 export interface RevisaoItem {
   produto_id: string;
-  marca_id: string | null;
-  marca_confirmada: boolean;
-  conteudo_embalagem: number | null;
-  unidade_embalagem: UnidadeMedida | null;
+  marca_id?: string | null;
   unidade_corrigida: UnidadeMedida;
   quantidade_normalizada: number;
 }
@@ -95,4 +90,5 @@ export interface ProdutoRequest {
   nome: string;
   categoria_id: string;
   unidade_base: UnidadeMedida;
+  nao_solicitar_marca: boolean;
 }

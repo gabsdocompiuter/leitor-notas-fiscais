@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import UUID, uuid4
 
-from ..core.exceptions import Conflito, NaoEncontrado
+from ..core.exceptions import Conflito, DadosInvalidos, NaoEncontrado
 from ..core.normalizacao import decimal_texto, normalizar_nome
 from ..models.nota import Nota
 from ..models.situacao_nota import SituacaoNota
@@ -24,9 +24,6 @@ class RepositorioRevisao:
         item_id: UUID,
         produto_id: UUID,
         marca_id: UUID | None,
-        marca_confirmada: bool,
-        conteudo_embalagem: Decimal | None,
-        unidade_embalagem: UnidadeMedida | None,
         unidade_corrigida: UnidadeMedida,
         quantidade_normalizada: Decimal,
     ) -> Nota:
@@ -46,10 +43,14 @@ class RepositorioRevisao:
             ).fetchone()
             if item is None:
                 raise NaoEncontrado("Item não encontrado nessa nota.")
-            if conexao.execute(
-                "SELECT id FROM produtos WHERE id = ?", (str(produto_id),)
-            ).fetchone() is None:
+            produto = conexao.execute(
+                "SELECT id, nao_solicitar_marca FROM produtos WHERE id = ?",
+                (str(produto_id),),
+            ).fetchone()
+            if produto is None:
                 raise NaoEncontrado("Produto não encontrado.")
+            if not produto["nao_solicitar_marca"] and marca_id is None:
+                raise DadosInvalidos("A marca é obrigatória para o produto selecionado.")
             if marca_id is not None and conexao.execute(
                 "SELECT id FROM marcas WHERE id = ?", (str(marca_id),)
             ).fetchone() is None:
@@ -59,9 +60,6 @@ class RepositorioRevisao:
                 conexao,
                 produto_id,
                 marca_id,
-                marca_confirmada,
-                conteudo_embalagem,
-                unidade_embalagem,
             )
             conexao.execute(
                 """
@@ -112,18 +110,25 @@ class RepositorioRevisao:
             for item in itens:
                 associacao = conexao.execute(
                     """
-                    SELECT apresentacao_id, unidade_corrigida, fator_normalizacao
-                    FROM associacoes_produto
+                    SELECT ap.apresentacao_id, ap.unidade_corrigida, ap.fator_normalizacao
+                    FROM associacoes_produto ap
+                    JOIN apresentacoes_produto a ON a.id = ap.apresentacao_id
+                    JOIN produtos p ON p.id = a.produto_id
                     WHERE estabelecimento_id = ? AND codigo_item = ?
+                      AND (p.nao_solicitar_marca = 1 OR a.marca_id IS NOT NULL)
                     """,
                     (nota["estabelecimento_id"], item["codigo"]),
                 ).fetchone()
                 if associacao is None:
                     candidatas = conexao.execute(
                         """
-                        SELECT DISTINCT apresentacao_id, unidade_corrigida, fator_normalizacao
-                        FROM associacoes_produto
+                        SELECT DISTINCT ap.apresentacao_id, ap.unidade_corrigida,
+                               ap.fator_normalizacao
+                        FROM associacoes_produto ap
+                        JOIN apresentacoes_produto a ON a.id = ap.apresentacao_id
+                        JOIN produtos p ON p.id = a.produto_id
                         WHERE descricao_normalizada = ?
+                          AND (p.nao_solicitar_marca = 1 OR a.marca_id IS NOT NULL)
                         """,
                         (normalizar_nome(item["descricao_original"]),),
                     ).fetchall()
@@ -168,9 +173,10 @@ class RepositorioRevisao:
             itens = conexao.execute(
                 """
                 SELECT i.revisado, i.apresentacao_id, i.unidade_corrigida,
-                       i.quantidade_normalizada, a.marca_confirmada
+                       i.quantidade_normalizada, a.marca_id, p.nao_solicitar_marca
                 FROM itens i
                 LEFT JOIN apresentacoes_produto a ON a.id = i.apresentacao_id
+                LEFT JOIN produtos p ON p.id = a.produto_id
                 WHERE i.nota_id = ?
                 """,
                 (nota["id"],),
@@ -183,7 +189,7 @@ class RepositorioRevisao:
                 or item["unidade_corrigida"] is None
                 or item["quantidade_normalizada"] is None
                 or Decimal(item["quantidade_normalizada"]) <= 0
-                or not item["marca_confirmada"]
+                or (not item["nao_solicitar_marca"] and item["marca_id"] is None)
             ]
             if not itens or incompletos:
                 raise Conflito(
@@ -201,49 +207,28 @@ class RepositorioRevisao:
         conexao: sqlite3.Connection,
         produto_id: UUID,
         marca_id: UUID | None,
-        marca_confirmada: bool,
-        conteudo_embalagem: Decimal | None,
-        unidade_embalagem: UnidadeMedida | None,
     ) -> str:
         marca = str(marca_id) if marca_id else None
-        conteudo = decimal_texto(conteudo_embalagem) if conteudo_embalagem else None
-        unidade = unidade_embalagem.value if unidade_embalagem else None
         existente = conexao.execute(
             """
             SELECT id FROM apresentacoes_produto
             WHERE produto_id = ?
               AND ((marca_id = ?) OR (marca_id IS NULL AND ? IS NULL))
-              AND ((conteudo_embalagem = ?) OR (conteudo_embalagem IS NULL AND ? IS NULL))
-              AND ((unidade_embalagem = ?) OR (unidade_embalagem IS NULL AND ? IS NULL))
-              AND marca_confirmada = ?
             """,
-            (
-                str(produto_id),
-                marca,
-                marca,
-                conteudo,
-                conteudo,
-                unidade,
-                unidade,
-                int(marca_confirmada),
-            ),
+            (str(produto_id), marca, marca),
         ).fetchone()
         if existente:
             return existente["id"]
         apresentacao_id = str(uuid4())
         conexao.execute(
             """
-            INSERT INTO apresentacoes_produto
-                (id, produto_id, marca_id, conteudo_embalagem, unidade_embalagem, marca_confirmada)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO apresentacoes_produto (id, produto_id, marca_id)
+            VALUES (?, ?, ?)
             """,
             (
                 apresentacao_id,
                 str(produto_id),
                 marca,
-                conteudo,
-                unidade,
-                int(marca_confirmada),
             ),
         )
         return apresentacao_id

@@ -46,6 +46,7 @@ class CatalogoRevisaoApiTests(unittest.TestCase):
                 "nome": "Pão",
                 "categoria_id": categoria.json()["id"],
                 "unidade_base": "KG",
+                "nao_solicitar_marca": True,
             },
         )
         queijo = self.cliente.post(
@@ -54,6 +55,7 @@ class CatalogoRevisaoApiTests(unittest.TestCase):
                 "nome": "Queijo muçarela",
                 "categoria_id": categoria.json()["id"],
                 "unidade_base": "KG",
+                "nao_solicitar_marca": False,
             },
         )
         self.assertEqual(pao.status_code, 201)
@@ -71,8 +73,6 @@ class CatalogoRevisaoApiTests(unittest.TestCase):
         produto_id: str,
         quantidade_normalizada: str,
         marca_id: str | None = None,
-        conteudo: str | None = None,
-        unidade_embalagem: str | None = None,
         unidade_corrigida: str = "UN",
     ):
         return self.cliente.patch(
@@ -80,9 +80,6 @@ class CatalogoRevisaoApiTests(unittest.TestCase):
             json={
                 "produto_id": produto_id,
                 "marca_id": marca_id,
-                "marca_confirmada": True,
-                "conteudo_embalagem": conteudo,
-                "unidade_embalagem": unidade_embalagem,
                 "unidade_corrigida": unidade_corrigida,
                 "quantidade_normalizada": quantidade_normalizada,
             },
@@ -99,6 +96,7 @@ class CatalogoRevisaoApiTests(unittest.TestCase):
             [item["id"] for item in self.cliente.get("/produtos?busca=pão").json()],
             [pao["id"]],
         )
+        self.assertTrue(pao["nao_solicitar_marca"])
         alterada = self.cliente.patch(
             f"/marcas/{marca['id']}", json={"nome": "Rodeio Alimentos"}
         )
@@ -113,6 +111,7 @@ class CatalogoRevisaoApiTests(unittest.TestCase):
                 "nome": "Pão francês",
                 "categoria_id": categoria["id"],
                 "unidade_base": "KG",
+                "nao_solicitar_marca": True,
             },
         )
         self.assertEqual(produto.status_code, 200)
@@ -139,8 +138,6 @@ class CatalogoRevisaoApiTests(unittest.TestCase):
             queijo["id"],
             "0.600",
             marca["id"],
-            "300",
-            "G",
         )
         self.assertEqual(segunda.status_code, 200)
         importada = self.cliente.post(f"/notas/{CHAVE}/importacao")
@@ -162,6 +159,31 @@ class CatalogoRevisaoApiTests(unittest.TestCase):
             ).status_code,
             409,
         )
+
+    def test_marca_e_obrigatoria_conforme_configuracao_do_produto(self):
+        nota = self.ler_nota()
+        _, marca, pao, queijo = self.criar_catalogo()
+
+        sem_marca_permitida = self.revisar(
+            nota["itens"][0]["id"], pao["id"], "0.15", unidade_corrigida="KG"
+        )
+        self.assertEqual(sem_marca_permitida.status_code, 200)
+        apresentacao = sem_marca_permitida.json()["itens"][0]["apresentacao"]
+        self.assertIsNone(apresentacao["marca"])
+        self.assertNotIn("marca_confirmada", apresentacao)
+        self.assertNotIn("conteudo_embalagem", apresentacao)
+        self.assertNotIn("unidade_embalagem", apresentacao)
+
+        marca_obrigatoria = self.revisar(
+            nota["itens"][1]["id"], queijo["id"], "0.600"
+        )
+        self.assertEqual(marca_obrigatoria.status_code, 422)
+        self.assertIn("marca é obrigatória", marca_obrigatoria.json()["mensagem"])
+
+        com_marca = self.revisar(
+            nota["itens"][1]["id"], queijo["id"], "0.600", marca["id"]
+        )
+        self.assertEqual(com_marca.status_code, 200)
 
     def test_classificacao_automatica_por_codigo_e_por_descricao(self):
         nota = self.ler_nota()
@@ -222,18 +244,26 @@ class MigracaoTests(unittest.TestCase):
                         id TEXT PRIMARY KEY, nome TEXT NOT NULL,
                         categoria_id TEXT NOT NULL, unidade_base TEXT NOT NULL
                     );
-                    CREATE TABLE apresentacoes_produto (id TEXT PRIMARY KEY);
+                    CREATE TABLE apresentacoes_produto (
+                        id TEXT PRIMARY KEY, produto_id TEXT NOT NULL, marca_id TEXT,
+                        conteudo_embalagem TEXT, unidade_embalagem TEXT,
+                        marca_confirmada INTEGER NOT NULL
+                    );
                     CREATE TABLE notas (
                         id TEXT PRIMARY KEY, chave TEXT NOT NULL, situacao TEXT NOT NULL
                     );
                     INSERT INTO notas VALUES ('nota-1', 'chave-existente', 'lida');
+                    INSERT INTO categorias VALUES ('categoria-1', 'Alimentação');
+                    INSERT INTO produtos VALUES ('produto-1', 'Pão', 'categoria-1', 'KG');
+                    INSERT INTO apresentacoes_produto
+                    VALUES ('apresentacao-1', 'produto-1', NULL, NULL, NULL, 1);
                     PRAGMA user_version = 1;
                     """
                 )
                 conexao.commit()
             BancoSQLite(caminho).inicializar()
             with closing(sqlite3.connect(caminho)) as conexao:
-                self.assertEqual(conexao.execute("PRAGMA user_version").fetchone()[0], 2)
+                self.assertEqual(conexao.execute("PRAGMA user_version").fetchone()[0], 3)
                 self.assertEqual(
                     conexao.execute("SELECT chave FROM notas").fetchone()[0],
                     "chave-existente",
@@ -245,6 +275,15 @@ class MigracaoTests(unittest.TestCase):
                         "SELECT name FROM sqlite_master WHERE name = 'associacoes_produto'"
                     ).fetchone()
                 )
+                produto = conexao.execute(
+                    "SELECT nao_solicitar_marca FROM produtos WHERE id = 'produto-1'"
+                ).fetchone()
+                self.assertEqual(produto[0], 1)
+                colunas_apresentacao = [
+                    linha[1]
+                    for linha in conexao.execute("PRAGMA table_info(apresentacoes_produto)")
+                ]
+                self.assertEqual(colunas_apresentacao, ["id", "produto_id", "marca_id"])
 
 
 if __name__ == "__main__":

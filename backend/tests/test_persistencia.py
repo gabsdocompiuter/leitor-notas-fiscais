@@ -98,9 +98,7 @@ class PersistenciaTests(unittest.TestCase):
     def test_persiste_grafo_da_classificacao_quando_presente(self):
         nota = self.nova_nota()
         produto = Produto("Queijo muçarela", Categoria("Alimentação"), UnidadeMedida.QUILOGRAMA)
-        nota.itens[1].apresentacao = ApresentacaoProduto(
-            produto, Marca("Rodeio"), Decimal("300"), UnidadeMedida.GRAMA, True,
-        )
+        nota.itens[1].apresentacao = ApresentacaoProduto(produto, Marca("Rodeio"))
         nota.itens[1].quantidade_normalizada = Decimal("0.600")
         self.assertEqual(asdict(nota), asdict(self.repo.salvar(nota)))
 

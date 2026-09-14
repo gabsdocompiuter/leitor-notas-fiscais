@@ -12,6 +12,7 @@ class ProdutoResponse(BaseModel):
     nome: str
     categoria: CategoriaResponse
     unidade_base: UnidadeMedida
+    nao_solicitar_marca: bool
 
     @classmethod
     def from_entity(cls, produto: Produto) -> "ProdutoResponse":
@@ -20,4 +21,5 @@ class ProdutoResponse(BaseModel):
             nome=produto.nome,
             categoria=CategoriaResponse.from_entity(produto.categoria),
             unidade_base=produto.unidade_base,
+            nao_solicitar_marca=produto.nao_solicitar_marca,
         )

@@ -35,7 +35,12 @@ def listar_produtos(
 )
 def criar_produto(entrada: ProdutoRequest, servico: Servico) -> ProdutoResponse:
     return ProdutoResponse.from_entity(
-        servico.criar_produto(entrada.nome, entrada.categoria_id, entrada.unidade_base)
+        servico.criar_produto(
+            entrada.nome,
+            entrada.categoria_id,
+            entrada.unidade_base,
+            entrada.nao_solicitar_marca,
+        )
     )
 
 
@@ -60,7 +65,11 @@ def atualizar_produto(
 ) -> ProdutoResponse:
     return ProdutoResponse.from_entity(
         servico.atualizar_produto(
-            produto_id, entrada.nome, entrada.categoria_id, entrada.unidade_base
+            produto_id,
+            entrada.nome,
+            entrada.categoria_id,
+            entrada.unidade_base,
+            entrada.nao_solicitar_marca,
         )
     )
 

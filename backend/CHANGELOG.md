@@ -6,6 +6,9 @@ As versões só são alteradas por solicitação explícita do usuário.
 
 ### Adicionado
 
+- Flag `nao_solicitar_marca` no cadastro de produtos.
+- Migração da estrutura SQLite 2 para 3, preservando os dados existentes.
+
 - Container do backend para execução pelo Docker Compose da raiz.
 - Workspace local do Postman organizado por sistema, leituras e notas, com
   variáveis compartilhadas e todas as chamadas da API.
@@ -20,6 +23,8 @@ As versões só são alteradas por solicitação explícita do usuário.
 
 ### Alterado
 
+- A marca passa a ser obrigatória conforme a configuração do produto.
+- Remove confirmação de marca, conteúdo e unidade da embalagem dos itens.
 - Notas importadas e seus cadastros relacionados não podem mais ser alterados.
 - O workspace Postman agora inclui os catálogos, a revisão e a importação.
 

@@ -67,9 +67,6 @@ def revisar_item(
         item_id,
         entrada.produto_id,
         entrada.marca_id,
-        entrada.marca_confirmada,
-        entrada.conteudo_embalagem,
-        entrada.unidade_embalagem,
         entrada.unidade_corrigida,
         entrada.quantidade_normalizada,
     )

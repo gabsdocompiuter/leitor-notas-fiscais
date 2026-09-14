@@ -188,13 +188,26 @@ class RepositorioCatalogo:
             if existente:
                 return self._produto(existente)
             conexao.execute(
-                "INSERT INTO produtos (id, nome, categoria_id, unidade_base) VALUES (?, ?, ?, ?)",
-                (str(produto.id), produto.nome, str(produto.categoria.id), produto.unidade_base.value),
+                """INSERT INTO produtos
+                    (id, nome, categoria_id, unidade_base, nao_solicitar_marca)
+                    VALUES (?, ?, ?, ?, ?)""",
+                (
+                    str(produto.id),
+                    produto.nome,
+                    str(produto.categoria.id),
+                    produto.unidade_base.value,
+                    int(produto.nao_solicitar_marca),
+                ),
             )
         return self.obter_produto(produto.id)
 
     def atualizar_produto(
-        self, produto_id: UUID, nome: str, categoria_id: UUID, unidade_base: UnidadeMedida
+        self,
+        produto_id: UUID,
+        nome: str,
+        categoria_id: UUID,
+        unidade_base: UnidadeMedida,
+        nao_solicitar_marca: bool,
     ) -> Produto:
         with self.banco.conectar() as conexao:
             self._exigir_nao_importada(conexao, "produto", produto_id)
@@ -212,8 +225,16 @@ class RepositorioCatalogo:
             if duplicado:
                 raise Conflito("Já existe esse produto na categoria e unidade informadas.")
             alteracao = conexao.execute(
-                "UPDATE produtos SET nome = ?, categoria_id = ?, unidade_base = ? WHERE id = ?",
-                (nome, str(categoria_id), unidade_base.value, str(produto_id)),
+                """UPDATE produtos
+                   SET nome = ?, categoria_id = ?, unidade_base = ?, nao_solicitar_marca = ?
+                   WHERE id = ?""",
+                (
+                    nome,
+                    str(categoria_id),
+                    unidade_base.value,
+                    int(nao_solicitar_marca),
+                    str(produto_id),
+                ),
             )
             if alteracao.rowcount != 1:
                 raise NaoEncontrado("Produto não encontrado.")
@@ -248,6 +269,7 @@ class RepositorioCatalogo:
             nome=linha["nome"],
             categoria=Categoria(id=UUID(linha["categoria_id"]), nome=linha["categoria_nome"]),
             unidade_base=UnidadeMedida(linha["unidade_base"]),
+            nao_solicitar_marca=bool(linha["nao_solicitar_marca"]),
         )
 
     @staticmethod

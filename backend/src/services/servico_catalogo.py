@@ -61,18 +61,27 @@ class ServicoCatalogo:
         return self.repositorio.obter_produto(produto_id)
 
     def criar_produto(
-        self, nome: str, categoria_id: UUID, unidade_base: UnidadeMedida
+        self,
+        nome: str,
+        categoria_id: UUID,
+        unidade_base: UnidadeMedida,
+        nao_solicitar_marca: bool,
     ) -> Produto:
         categoria = self.repositorio.obter_categoria(categoria_id)
         return self.repositorio.criar_produto(
-            Produto(self._nome(nome), categoria, unidade_base)
+            Produto(self._nome(nome), categoria, unidade_base, nao_solicitar_marca)
         )
 
     def atualizar_produto(
-        self, produto_id: UUID, nome: str, categoria_id: UUID, unidade_base: UnidadeMedida
+        self,
+        produto_id: UUID,
+        nome: str,
+        categoria_id: UUID,
+        unidade_base: UnidadeMedida,
+        nao_solicitar_marca: bool,
     ) -> Produto:
         return self.repositorio.atualizar_produto(
-            produto_id, self._nome(nome), categoria_id, unidade_base
+            produto_id, self._nome(nome), categoria_id, unidade_base, nao_solicitar_marca
         )
 
     def excluir_produto(self, produto_id: UUID) -> None:

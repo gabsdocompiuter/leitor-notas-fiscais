@@ -13,3 +13,4 @@ class Produto:
     nome: str
     categoria: Categoria
     unidade_base: UnidadeMedida
+    nao_solicitar_marca: bool = False

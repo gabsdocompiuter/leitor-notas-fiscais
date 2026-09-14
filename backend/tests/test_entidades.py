@@ -34,22 +34,22 @@ class EntidadesTests(unittest.TestCase):
         item = nota.itens[0]
         original = (item.descricao_original, item.quantidade, item.unidade_original, item.valor_total)
         produto = Produto("Pão", Categoria("Alimentação"), UnidadeMedida.QUILOGRAMA)
-        item.apresentacao = ApresentacaoProduto(produto, marca_confirmada=True)
+        item.apresentacao = ApresentacaoProduto(produto)
         item.unidade_corrigida = UnidadeMedida.QUILOGRAMA
         item.quantidade_normalizada = Decimal("0.15")
         item.revisado = True
         self.assertEqual(original, (item.descricao_original, item.quantidade, item.unidade_original, item.valor_total))
         self.assertEqual(nota.situacao, SituacaoNota.LIDA)
 
-    def test_marcas_e_tamanhos_compartilham_produto_mas_variantes_nao(self):
+    def test_marcas_compartilham_produto_mas_variantes_nao(self):
         categoria = Categoria("Alimentação")
         integral = Produto("Leite integral", categoria, UnidadeMedida.LITRO)
         desnatado = Produto("Leite desnatado", categoria, UnidadeMedida.LITRO)
-        grande = ApresentacaoProduto(integral, Marca("Tirol"), Decimal("1"), UnidadeMedida.LITRO, True)
-        pequeno = ApresentacaoProduto(integral, Marca("Dália"), Decimal("500"), UnidadeMedida.MILILITRO, True)
-        self.assertEqual(grande.produto.id, pequeno.produto.id)
+        tirol = ApresentacaoProduto(integral, Marca("Tirol"))
+        dalia = ApresentacaoProduto(integral, Marca("Dália"))
+        self.assertEqual(tirol.produto.id, dalia.produto.id)
         self.assertNotEqual(integral.id, desnatado.id)
-        self.assertNotEqual(grande.id, pequeno.id)
+        self.assertNotEqual(tirol.id, dalia.id)
 
     def test_mesmo_codigo_pode_pertencer_a_estabelecimentos_diferentes(self):
         produto = Produto("Queijo", Categoria("Alimentação"), UnidadeMedida.QUILOGRAMA)

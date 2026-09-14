@@ -166,50 +166,31 @@
                 </button>
                 <div class="invalid-feedback">Selecione um produto.</div>
               </div>
-              <div class="col-12 col-lg-6">
-                <label class="form-label" [for]="'marca-' + item.id">Marca</label>
-                <button
-                  type="button"
-                  class="catalog-select"
-                  [id]="'marca-' + item.id"
-                  [disabled]="atual.situacao === 'importada'"
-                  (click)="abrirSeletor('marca', item)"
-                >
-                  <span
-                    [class.placeholder-text]="nomeMarcaSelecionada(item.id) === 'Selecionar marca'"
-                    >{{ nomeMarcaSelecionada(item.id) }}</span
+              @if (deveSolicitarMarca(item.id)) {
+                <div class="col-12 col-lg-6">
+                  <label class="form-label" [for]="'marca-' + item.id">Marca</label>
+                  <button
+                    type="button"
+                    class="catalog-select"
+                    [id]="'marca-' + item.id"
+                    [class.is-invalid]="
+                      formulario.get('marca_id')?.invalid && formulario.get('marca_id')?.touched
+                    "
+                    [disabled]="atual.situacao === 'importada'"
+                    (click)="abrirSeletor('marca', item)"
                   >
-                  <i class="bi bi-search" aria-hidden="true"></i>
-                </button>
-              </div>
-              <div class="col-6 col-md-3">
-                <label class="form-label" [for]="'conteudo-' + item.id">Conteúdo</label>
-                <input
-                  class="form-control"
-                  [id]="'conteudo-' + item.id"
-                  type="number"
-                  min="0.0001"
-                  step="any"
-                  formControlName="conteudo_embalagem"
-                  placeholder="1,5"
-                  [attr.disabled]="atual.situacao === 'importada' ? true : null"
-                />
-              </div>
-              <div class="col-6 col-md-3">
-                <label class="form-label" [for]="'un-emb-' + item.id">Un. embalagem</label>
-                <select
-                  class="form-select"
-                  [id]="'un-emb-' + item.id"
-                  formControlName="unidade_embalagem"
-                  [attr.disabled]="atual.situacao === 'importada' ? true : null"
-                >
-                  <option [ngValue]="null">Não se aplica</option>
-                  @for (unidade of unidades; track unidade.valor) {
-                    <option [value]="unidade.valor">{{ unidade.valor }}</option>
-                  }
-                </select>
-              </div>
-              <div class="col-6 col-md-3">
+                    <span
+                      [class.placeholder-text]="
+                        nomeMarcaSelecionada(item.id) === 'Selecionar marca'
+                      "
+                      >{{ nomeMarcaSelecionada(item.id) }}</span
+                    >
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                  </button>
+                  <div class="invalid-feedback">Selecione uma marca.</div>
+                </div>
+              }
+              <div class="col-6 col-lg-3">
                 <label class="form-label" [for]="'un-cor-' + item.id">Un. corrigida</label>
                 <select
                   class="form-select"
@@ -222,7 +203,7 @@
                   }
                 </select>
               </div>
-              <div class="col-6 col-md-3">
+              <div class="col-6 col-lg-3">
                 <label class="form-label" [for]="'qtd-norm-' + item.id">Qtd. normalizada</label>
                 <input
                   class="form-control"
@@ -234,26 +215,7 @@
                   [attr.disabled]="atual.situacao === 'importada' ? true : null"
                 />
               </div>
-              @if (formulario.hasError('embalagemIncompleta') && formulario.touched) {
-                <div class="col-12">
-                  <div class="form-text text-danger">
-                    Preencha conteúdo e unidade da embalagem juntos.
-                  </div>
-                </div>
-              }
-              <div class="col-12 d-flex flex-wrap align-items-center justify-content-between gap-3">
-                <div class="form-check">
-                  <input
-                    class="form-check-input"
-                    type="checkbox"
-                    formControlName="marca_confirmada"
-                    [id]="'marca-ok-' + item.id"
-                    [attr.disabled]="atual.situacao === 'importada' ? true : null"
-                  />
-                  <label class="form-check-label" [for]="'marca-ok-' + item.id"
-                    >Marca conferida, inclusive quando o item não possui marca</label
-                  >
-                </div>
+              <div class="col-12 d-flex justify-content-end">
                 @if (atual.situacao !== 'importada') {
                   <button
                     class="btn btn-primary rounded-pill px-4"
@@ -350,7 +312,12 @@
               <span class="result-icon"><i class="bi bi-basket"></i></span>
               <span
                 ><strong>{{ produto.nome }}</strong
-                ><small>{{ produto.categoria.nome }} · {{ produto.unidade_base }}</small></span
+                ><small
+                  >{{ produto.categoria.nome }} · {{ produto.unidade_base }}
+                  @if (produto.nao_solicitar_marca) {
+                    · sem marca
+                  }
+                </small></span
               >
               <i class="bi bi-chevron-right ms-auto"></i>
             </button>
@@ -358,13 +325,6 @@
             <p class="empty-results"><i class="bi bi-search me-2"></i>Nenhum produto encontrado.</p>
           }
         } @else {
-          <button type="button" class="catalog-result" (click)="selecionarMarca(null)">
-            <span class="result-icon"><i class="bi bi-slash-circle"></i></span>
-            <span
-              ><strong>Sem marca</strong><small>Confirmar que o item não possui marca</small></span
-            >
-            <i class="bi bi-chevron-right ms-auto"></i>
-          </button>
           @for (marca of marcasFiltradas(); track marca.id) {
             <button type="button" class="catalog-result" (click)="selecionarMarca(marca)">
               <span class="result-icon"><i class="bi bi-tag"></i></span>
@@ -418,6 +378,17 @@
                 </select>
               </div>
               <div class="col-12">
+                <div class="form-check mb-2">
+                  <input
+                    id="produto-sem-marca"
+                    class="form-check-input"
+                    type="checkbox"
+                    formControlName="nao_solicitar_marca"
+                  />
+                  <label class="form-check-label" for="produto-sem-marca">
+                    Não solicitar marca para este produto
+                  </label>
+                </div>
                 <button
                   class="btn btn-outline-primary w-100"
                   type="submit"

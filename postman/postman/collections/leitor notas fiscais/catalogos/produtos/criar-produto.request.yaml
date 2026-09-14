@@ -11,6 +11,7 @@ body:
     {
       "nome": "Leite integral",
       "categoria_id": "{{categoriaId}}",
-      "unidade_base": "L"
+      "unidade_base": "L",
+      "nao_solicitar_marca": false
     }
 order: 2000

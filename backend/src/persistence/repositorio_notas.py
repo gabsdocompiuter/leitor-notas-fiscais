@@ -138,20 +138,28 @@ class RepositorioNotas:
         categoria = produto.categoria
         conexao.execute("INSERT INTO categorias (id, nome) VALUES (?, ?) ON CONFLICT(id) DO NOTHING", (str(categoria.id), categoria.nome))
         conexao.execute(
-            "INSERT INTO produtos (id, nome, categoria_id, unidade_base) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO NOTHING",
-            (str(produto.id), produto.nome, str(categoria.id), produto.unidade_base.value),
+            """INSERT INTO produtos
+                (id, nome, categoria_id, unidade_base, nao_solicitar_marca)
+                VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING""",
+            (
+                str(produto.id),
+                produto.nome,
+                str(categoria.id),
+                produto.unidade_base.value,
+                int(produto.nao_solicitar_marca),
+            ),
         )
         if apresentacao.marca is not None:
             marca = apresentacao.marca
             conexao.execute("INSERT INTO marcas (id, nome) VALUES (?, ?) ON CONFLICT(id) DO NOTHING", (str(marca.id), marca.nome))
         conexao.execute(
-            """INSERT INTO apresentacoes_produto
-                (id, produto_id, marca_id, conteudo_embalagem, unidade_embalagem, marca_confirmada)
-                VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING""",
-            (str(apresentacao.id), str(produto.id), str(apresentacao.marca.id) if apresentacao.marca else None,
-             str(apresentacao.conteudo_embalagem) if apresentacao.conteudo_embalagem is not None else None,
-             apresentacao.unidade_embalagem.value if apresentacao.unidade_embalagem else None,
-             int(apresentacao.marca_confirmada)),
+            """INSERT INTO apresentacoes_produto (id, produto_id, marca_id)
+               VALUES (?, ?, ?) ON CONFLICT(id) DO NOTHING""",
+            (
+                str(apresentacao.id),
+                str(produto.id),
+                str(apresentacao.marca.id) if apresentacao.marca else None,
+            ),
         )
 
     def _ler_captura(self, conexao: sqlite3.Connection, linha: sqlite3.Row) -> LeituraNota:
@@ -200,9 +208,7 @@ class RepositorioNotas:
             produto=Produto(
                 id=UUID(produto["id"]), nome=produto["nome"], unidade_base=UnidadeMedida(produto["unidade_base"]),
                 categoria=Categoria(id=UUID(categoria["id"]), nome=categoria["nome"]),
+                nao_solicitar_marca=bool(produto["nao_solicitar_marca"]),
             ),
             marca=Marca(id=UUID(marca["id"]), nome=marca["nome"]) if marca else None,
-            conteudo_embalagem=Decimal(linha["conteudo_embalagem"]) if linha["conteudo_embalagem"] is not None else None,
-            unidade_embalagem=UnidadeMedida(linha["unidade_embalagem"]) if linha["unidade_embalagem"] else None,
-            marca_confirmada=bool(linha["marca_confirmada"]),
         )

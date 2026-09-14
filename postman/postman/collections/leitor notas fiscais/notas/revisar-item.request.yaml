@@ -1,6 +1,6 @@
 $kind: http-request
 name: Revisar item
-description: "Confirma produto, marca, unidade e quantidade normalizada do item."
+description: "Confirma produto, unidade e quantidade normalizada; a marca é obrigatória conforme a configuração do produto."
 url: "{{baseUrl}}/notas/:chave/itens/:itemId"
 method: PATCH
 pathVariables:
@@ -16,10 +16,7 @@ body:
   content: |-
     {
       "produto_id": "{{produtoId}}",
-      "marca_id": null,
-      "marca_confirmada": true,
-      "conteudo_embalagem": null,
-      "unidade_embalagem": null,
+      "marca_id": "{{marcaId}}",
       "unidade_corrigida": "UN",
       "quantidade_normalizada": "1"
     }
