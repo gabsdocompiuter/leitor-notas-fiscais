@@ -1,0 +1,42 @@
+<div class="container py-4 py-md-5">
+  <a routerLink="/cadastros" class="link-secondary text-decoration-none">← Cadastros</a>
+
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 my-4">
+    <h1 class="h2 mb-0">{{ titulo }}</h1>
+    <a class="btn btn-primary" [routerLink]="['/cadastros', tipo, 'new']">
+      Novo {{ nomeSingular.toLowerCase() }}
+    </a>
+  </div>
+
+  @if (erro()) {
+    <div class="alert alert-danger" role="alert">{{ erro() }}</div>
+  }
+
+  <div class="card">
+    <div class="card-body">
+      <label class="form-label" for="busca-catalogo">Pesquisar</label>
+      <input
+        id="busca-catalogo"
+        class="form-control"
+        type="search"
+        [placeholder]="'Pesquisar ' + titulo.toLowerCase()"
+        [(ngModel)]="busca"
+        (ngModelChange)="carregar()"
+      />
+    </div>
+
+    <div class="list-group list-group-flush">
+      @for (item of itens(); track item.id) {
+        <a
+          class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3"
+          [routerLink]="['/cadastros', tipo, item.id]"
+        >
+          <span>{{ item.nome }}</span>
+          <span class="text-primary">Editar</span>
+        </a>
+      } @empty {
+        <div class="card-body py-5 text-center text-secondary">Nenhum cadastro encontrado.</div>
+      }
+    </div>
+  </div>
+</div>

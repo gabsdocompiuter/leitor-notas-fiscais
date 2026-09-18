@@ -1,0 +1,15 @@
+<div class="container py-4 py-md-5">
+  <h1 class="h2 mb-4">Cadastros</h1>
+  <div class="row g-3">
+    @for (item of itens; track item.link) {
+      <div class="col-12 col-md-6">
+        <a class="card h-100 text-decoration-none text-body shadow-sm" [routerLink]="item.link">
+          <div class="card-body p-4">
+            <h2 class="h5">{{ item.nome }}</h2>
+            <p class="text-secondary mb-0">{{ item.descricao }}</p>
+          </div>
+        </a>
+      </div>
+    }
+  </div>
+</div>

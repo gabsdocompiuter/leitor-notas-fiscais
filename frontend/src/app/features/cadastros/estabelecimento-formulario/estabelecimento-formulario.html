@@ -1,0 +1,64 @@
+<div class="container py-4 py-md-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+      <a routerLink="/cadastros/estabelecimentos" class="link-secondary text-decoration-none">
+        ← Estabelecimentos
+      </a>
+      <h1 class="h2 my-4">Editar estabelecimento</h1>
+
+      @if (erro()) {
+        <div class="alert alert-danger" role="alert">{{ erro() }}</div>
+      }
+
+      @if (carregando()) {
+        <div class="d-flex justify-content-center py-5">
+          <div class="spinner-border" role="status">
+            <span class="visually-hidden">Carregando...</span>
+          </div>
+        </div>
+      } @else if (estabelecimento()) {
+        <form class="card" (ngSubmit)="salvar()">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label" for="nome-estabelecimento">
+                  Nome do estabelecimento
+                </label>
+                <input
+                  id="nome-estabelecimento"
+                  class="form-control"
+                  [value]="estabelecimento()!.razao_social"
+                  readonly
+                />
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label" for="cnpj">CNPJ</label>
+                <input id="cnpj" class="form-control" [value]="estabelecimento()!.cnpj" readonly />
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label" for="apelido">Apelido</label>
+                <input
+                  id="apelido"
+                  class="form-control"
+                  name="apelido"
+                  maxlength="150"
+                  placeholder="Apelido opcional"
+                  autofocus
+                  [(ngModel)]="apelido"
+                />
+              </div>
+            </div>
+          </div>
+          <div class="card-footer d-flex flex-wrap justify-content-end gap-2">
+            <a class="btn btn-outline-secondary" routerLink="/cadastros/estabelecimentos">
+              Cancelar
+            </a>
+            <button class="btn btn-primary" type="submit" [disabled]="salvando()">
+              {{ salvando() ? 'Salvando...' : 'Salvar' }}
+            </button>
+          </div>
+        </form>
+      }
+    </div>
+  </div>
+</div>

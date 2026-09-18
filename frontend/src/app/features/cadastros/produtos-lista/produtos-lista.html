@@ -1,0 +1,54 @@
+<div class="container py-4 py-md-5">
+  <a routerLink="/cadastros" class="link-secondary text-decoration-none">← Cadastros</a>
+
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 my-4">
+    <h1 class="h2 mb-0">Produtos</h1>
+    <a class="btn btn-primary" routerLink="/cadastros/produtos/new">Novo produto</a>
+  </div>
+
+  @if (erro()) {
+    <div class="alert alert-danger" role="alert">{{ erro() }}</div>
+  }
+
+  <div class="card">
+    <div class="card-body">
+      <label class="form-label" for="busca-produto">Pesquisar</label>
+      <input
+        id="busca-produto"
+        class="form-control"
+        type="search"
+        placeholder="Pesquisar produto"
+        [(ngModel)]="busca"
+        (ngModelChange)="carregar()"
+      />
+    </div>
+
+    <div class="list-group list-group-flush">
+      @for (produto of produtos(); track produto.id) {
+        <a
+          class="list-group-item list-group-item-action d-flex flex-wrap justify-content-between align-items-center gap-3 py-3"
+          [routerLink]="['/cadastros/produtos', produto.id]"
+        >
+          <span>
+            <strong class="d-block">{{ produto.nome }}</strong>
+            <small class="text-secondary">
+              {{ produto.categoria.nome }} ·
+              {{
+                produto.tratar_apenas_como_unidades ? 'Somente unidades' : produto.unidade_medida
+              }}
+              @if (produto.contem_variacoes) {
+                · Com variações
+              }
+              @if (produto.nao_solicitar_marca) {
+                · Sem marca
+              }
+            </small>
+          </span>
+          <span class="text-primary">Editar</span>
+        </a>
+      } @empty {
+        <div class="card-body py-5 text-center text-secondary">Nenhum produto encontrado.</div>
+      }
+    </div>
+  </div>
+</div>

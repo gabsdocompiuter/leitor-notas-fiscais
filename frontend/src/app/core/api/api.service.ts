@@ -48,6 +48,10 @@ export class ApiService {
     return this.http.get<Categoria[]>(`${this.baseUrl}/categorias`, { params });
   }
 
+  obterCategoria(id: string): Observable<Categoria> {
+    return this.http.get<Categoria>(`${this.baseUrl}/categorias/${id}`);
+  }
+
   criarCategoria(nome: string): Observable<Categoria> {
     return this.http.post<Categoria>(`${this.baseUrl}/categorias`, { nome });
   }
@@ -61,6 +65,10 @@ export class ApiService {
     return this.http.get<Marca[]>(`${this.baseUrl}/marcas`, { params });
   }
 
+  obterMarca(id: string): Observable<Marca> {
+    return this.http.get<Marca>(`${this.baseUrl}/marcas/${id}`);
+  }
+
   criarMarca(nome: string): Observable<Marca> {
     return this.http.post<Marca>(`${this.baseUrl}/marcas`, { nome });
   }
@@ -72,6 +80,10 @@ export class ApiService {
   listarProdutos(busca?: string): Observable<Produto[]> {
     const params = busca ? new HttpParams().set('busca', busca) : undefined;
     return this.http.get<Produto[]>(`${this.baseUrl}/produtos`, { params });
+  }
+
+  obterProduto(id: string): Observable<Produto> {
+    return this.http.get<Produto>(`${this.baseUrl}/produtos/${id}`);
   }
 
   criarProduto(produto: ProdutoRequest): Observable<Produto> {
@@ -91,7 +103,10 @@ export class ApiService {
   }
 
   criarVariacao(produtoId: string, valor: VariacaoProdutoRequest): Observable<VariacaoProduto> {
-    return this.http.post<VariacaoProduto>(`${this.baseUrl}/produtos/${produtoId}/variacoes`, valor);
+    return this.http.post<VariacaoProduto>(
+      `${this.baseUrl}/produtos/${produtoId}/variacoes`,
+      valor,
+    );
   }
 
   atualizarVariacao(
@@ -99,15 +114,16 @@ export class ApiService {
     variacaoId: string,
     valor: VariacaoProdutoRequest,
   ): Observable<VariacaoProduto> {
-    return this.http.patch<VariacaoProduto>(
-      `${this.baseUrl}/variacoes/${variacaoId}`,
-      valor,
-    );
+    return this.http.patch<VariacaoProduto>(`${this.baseUrl}/variacoes/${variacaoId}`, valor);
   }
 
   listarEstabelecimentos(busca?: string): Observable<Estabelecimento[]> {
     const params = busca ? new HttpParams().set('busca', busca) : undefined;
     return this.http.get<Estabelecimento[]>(`${this.baseUrl}/estabelecimentos`, { params });
+  }
+
+  obterEstabelecimento(id: string): Observable<Estabelecimento> {
+    return this.http.get<Estabelecimento>(`${this.baseUrl}/estabelecimentos/${id}`);
   }
 
   atualizarEstabelecimento(id: string, apelido: string | null): Observable<Estabelecimento> {
