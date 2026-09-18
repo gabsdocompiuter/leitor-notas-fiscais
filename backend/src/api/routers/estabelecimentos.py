@@ -25,6 +25,20 @@ def listar_estabelecimentos(
     ]
 
 
+@router.get(
+    "/{estabelecimento_id}",
+    response_model=EstabelecimentoResponse,
+    responses={404: {"model": ErroResponse}},
+    summary="Consultar estabelecimento",
+)
+def obter_estabelecimento(
+    estabelecimento_id: UUID, servico: Servico
+) -> EstabelecimentoResponse:
+    return EstabelecimentoResponse.from_entity(
+        servico.obter_estabelecimento(estabelecimento_id)
+    )
+
+
 @router.patch(
     "/{estabelecimento_id}",
     response_model=EstabelecimentoResponse,

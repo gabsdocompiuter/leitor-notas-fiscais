@@ -390,6 +390,16 @@ class RepositorioCatalogo:
         with self.banco.conectar() as conexao:
             return [self._estabelecimento(linha) for linha in conexao.execute(consulta, parametros)]
 
+    def obter_estabelecimento(self, estabelecimento_id: UUID) -> Estabelecimento:
+        with self.banco.conectar() as conexao:
+            linha = conexao.execute(
+                "SELECT * FROM estabelecimentos WHERE id = ?",
+                (str(estabelecimento_id),),
+            ).fetchone()
+        if linha is None:
+            raise NaoEncontrado("Estabelecimento não encontrado.")
+        return self._estabelecimento(linha)
+
     def atualizar_apelido_estabelecimento(
         self, estabelecimento_id: UUID, apelido: str | None
     ) -> Estabelecimento:

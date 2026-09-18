@@ -115,12 +115,20 @@ class CatalogoRevisaoApiTests(unittest.TestCase):
 
     def test_estabelecimento_altera_apenas_apelido(self):
         loja = self.ler()["estabelecimento"]
+        consultada = self.cliente.get(f"/estabelecimentos/{loja['id']}")
+        self.assertEqual(consultada.status_code, 200)
+        self.assertEqual(consultada.json()["id"], loja["id"])
         alterada = self.cliente.patch(
             f"/estabelecimentos/{loja['id']}", json={"apelido": "Mercado perto"}
         )
         self.assertEqual(alterada.status_code, 200)
         self.assertEqual(alterada.json()["nome_exibicao"], "Mercado perto")
         self.assertEqual(alterada.json()["razao_social"], loja["razao_social"])
+
+        ausente = self.cliente.get(
+            "/estabelecimentos/00000000-0000-0000-0000-000000000000"
+        )
+        self.assertEqual(ausente.status_code, 404)
 
 
 class MigracaoTests(unittest.TestCase):

@@ -155,6 +155,9 @@ class ServicoCatalogo:
             limpar_nome(busca) if busca else None
         )
 
+    def obter_estabelecimento(self, estabelecimento_id: UUID) -> Estabelecimento:
+        return self.repositorio.obter_estabelecimento(estabelecimento_id)
+
     def atualizar_apelido_estabelecimento(
         self, estabelecimento_id: UUID, apelido: str | None
     ) -> Estabelecimento:
