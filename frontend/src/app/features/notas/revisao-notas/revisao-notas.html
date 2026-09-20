@@ -38,22 +38,23 @@
 
     <section class="card border-0 bg-body-tertiary shadow-sm my-4">
       <div class="card-body p-4">
-        <div class="row align-items-start g-3">
-          <div class="col-12 col-sm">
-            <span class="text-primary text-uppercase fw-bold small">
-              {{ atual.situacao === 'importada' ? 'Nota importada' : 'Revisão da compra' }}
-            </span>
-            <h1 class="h2 mt-2 mb-1">{{ atual.estabelecimento.nome_exibicao }}</h1>
-            <p class="text-body-secondary mb-0">
-              {{ atual.emissao | date: 'dd/MM/yyyy, HH:mm' }} · NFC-e {{ atual.numero }}
-            </p>
-          </div>
-          <div class="col-12 col-sm-auto">
-            <div class="bg-white border rounded p-3 d-flex flex-column">
+        <div class="d-flex flex-column gap-3">
+          <span class="text-primary text-uppercase fw-bold small">
+            {{ atual.situacao === 'importada' ? 'Nota importada' : 'Revisão da compra' }}
+          </span>
+
+          <div class="d-flex flex-row align-items-center justify-content-between">
+            <div class="d-flex flex-column">
+              <h1 class="h2">{{ atual.estabelecimento.nome_exibicao }}</h1>
+              <p class="text-body-secondary mb-0">
+                {{ atual.emissao | date: 'dd/MM/yyyy, HH:mm' }} · NFC-e {{ atual.numero }}
+              </p>
+            </div>
+            <div class="d-flex flex-column align-items-end">
+              <strong class="text-primary fs-5">
+                {{ +atual.valor_a_pagar | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
+              </strong>
               <span class="text-body-secondary small">Total pago</span>
-              <strong class="text-primary fs-5">{{
-                +atual.valor_a_pagar | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
-              }}</strong>
             </div>
           </div>
         </div>
@@ -114,32 +115,29 @@
         @let formulario = formularioItem(item.id);
         @if (formulario) {
           <article
-            class="card border-start border-4 shadow-sm"
+            class="card border-start border-1 shadow-sm"
             [class.border-success]="item.revisado"
             [class.border-warning]="!item.revisado"
           >
             <div class="card-body p-3 p-md-4">
-              <div class="d-flex align-items-start gap-3">
-                <span class="badge text-bg-light text-primary fs-6 p-2 flex-shrink-0">
-                  {{ item.numero }}
-                </span>
-                <div class="overflow-hidden">
-                  <div class="d-flex flex-wrap align-items-center gap-2">
-                    <h3 class="h6 mb-0">{{ item.descricao_original }}</h3>
-                    <span
-                      class="badge"
-                      [class.text-bg-success]="item.revisado"
-                      [class.text-bg-warning]="!item.revisado"
-                    >
-                      {{ item.revisado ? 'Revisado' : 'Requer atenção' }}
-                    </span>
-                  </div>
-                  <p class="text-body-secondary small mb-0 mt-1">
-                    {{ item.quantidade }} {{ item.unidade_original }} ×
-                    {{ +item.valor_unitario | currency: 'BRL' }} · Total
-                    {{ +item.valor_total | currency: 'BRL' }}
-                  </p>
+              <div class="overflow-hidden">
+
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                  <h3 class="h6 mb-0">{{ item.descricao_original }}</h3>
+                  <span
+                    class="badge"
+                    [class.text-bg-success]="item.revisado"
+                    [class.text-bg-warning]="!item.revisado"
+                  >
+                    {{ item.revisado ? 'Revisado' : 'Requer atenção' }}
+                  </span>
                 </div>
+                <p class="text-body-secondary small mb-0 mt-1">
+                  {{ item.quantidade }} {{ item.unidade_original }} ×
+                  {{ +item.valor_unitario | currency: 'BRL' }} · Total
+                  {{ +item.valor_total | currency: 'BRL' }}
+                </p>
+
               </div>
 
               @if (item.alertas.length && !item.revisado) {
