@@ -209,31 +209,33 @@
                   </div>
                 }
 
-                <div class="col-12 col-lg-4">
-                  <label class="form-label" [for]="'quantidade-' + item.id">Quantidade</label>
-                  <div class="input-group">
-                    <input
-                      class="form-control"
-                      [id]="'quantidade-' + item.id"
-                      type="number"
-                      min="0.000001"
-                      [step]="passoQuantidade(item.id)"
-                      formControlName="quantidade_confirmada"
-                      [attr.disabled]="atual.situacao === 'importada' ? true : null"
-                    />
-                    <span class="input-group-text">{{ unidadeQuantidade(item.id) }}</span>
-                  </div>
-                  @if (
-                    formulario.get('quantidade_confirmada')?.invalid &&
-                    formulario.get('quantidade_confirmada')?.touched
-                  ) {
-                    <div class="text-danger small mt-1">
-                      Informe uma quantidade válida{{
-                        passoQuantidade(item.id) === '1' ? ' e inteira' : ''
-                      }}.
+                @if (nomeProdutoSelecionado(item.id)) {
+                  <div class="col-12 col-lg-4">
+                    <label class="form-label" [for]="'quantidade-' + item.id">Quantidade</label>
+                    <div class="input-group">
+                      <input
+                        class="form-control"
+                        [id]="'quantidade-' + item.id"
+                        type="number"
+                        min="0.000001"
+                        [step]="passoQuantidade(item.id)"
+                        formControlName="quantidade_confirmada"
+                        [attr.disabled]="atual.situacao === 'importada' ? true : null"
+                      />
+                      <span class="input-group-text">{{ unidadeQuantidade(item.id) }}</span>
                     </div>
-                  }
-                </div>
+                    @if (
+                      formulario.get('quantidade_confirmada')?.invalid &&
+                      formulario.get('quantidade_confirmada')?.touched
+                    ) {
+                      <div class="text-danger small mt-1">
+                        Informe uma quantidade válida{{
+                          passoQuantidade(item.id) === '1' ? ' e inteira' : ''
+                        }}.
+                      </div>
+                    }
+                  </div>
+                }
 
                 <div class="col-12 d-flex justify-content-end">
                   @if (atual.situacao !== 'importada') {
