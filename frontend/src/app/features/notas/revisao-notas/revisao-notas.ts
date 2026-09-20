@@ -39,7 +39,6 @@ type TipoModal = 'produto' | 'marca' | 'variacao';
     PesquisaVariacao,
   ],
   templateUrl: './revisao-notas.html',
-  styleUrl: './revisao-notas.scss',
 })
 export class RevisaoNotas implements OnInit {
   private readonly api = inject(ApiService);

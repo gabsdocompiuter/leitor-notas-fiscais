@@ -14,7 +14,6 @@ type FiltroSituacao = SituacaoNota | 'todas';
   selector: 'lnf-listagem-notas',
   imports: [CurrencyPipe, DatePipe, RouterLink, EstadoVazio],
   templateUrl: './listagem-notas.html',
-  styleUrl: './listagem-notas.scss',
 })
 export class ListagemNotas implements OnInit {
   private readonly api = inject(ApiService);

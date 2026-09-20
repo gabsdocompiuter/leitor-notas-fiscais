@@ -1,17 +1,26 @@
-<div class="container page-section">
-  <a class="back-link" routerLink="/notas"
-    ><i class="bi bi-arrow-left me-2"></i>Voltar para notas</a
-  >
+<div class="container py-4 py-md-5">
+  <a class="link-secondary text-decoration-none fw-semibold small" routerLink="/notas">
+    <i class="bi bi-arrow-left me-2"></i>Voltar para notas
+  </a>
+
   @if (erro()) {
     <div class="alert alert-danger alert-dismissible mt-3" role="alert">
-      {{ erro() }}<button class="btn-close" (click)="erro.set(null)"></button>
+      {{ erro() }}
+      <button class="btn-close" type="button" aria-label="Fechar" (click)="erro.set(null)"></button>
     </div>
   }
   @if (sucesso()) {
     <div class="alert alert-success alert-dismissible mt-3" role="status">
-      {{ sucesso() }}<button class="btn-close" (click)="sucesso.set(null)"></button>
+      {{ sucesso() }}
+      <button
+        class="btn-close"
+        type="button"
+        aria-label="Fechar"
+        (click)="sucesso.set(null)"
+      ></button>
     </div>
   }
+
   @if (carregando()) {
     <div class="d-flex justify-content-center py-5">
       <div class="spinner-border text-primary"><span class="visually-hidden">Carregando</span></div>
@@ -26,226 +35,265 @@
     />
   } @else {
     @let atual = nota()!;
-    <section class="note-header mt-4 mb-4">
-      <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
-        <div>
-          <span class="eyebrow">{{
-            atual.situacao === 'importada' ? 'Nota importada' : 'Revisão da compra'
-          }}</span>
-          <h1 class="h2 mt-1 mb-1">{{ atual.estabelecimento.nome_exibicao }}</h1>
-          <p class="text-secondary mb-0">
-            {{ atual.emissao | date: 'dd/MM/yyyy, HH:mm' }} · NFC-e {{ atual.numero }}
-          </p>
+
+    <section class="card border-0 bg-body-tertiary shadow-sm my-4">
+      <div class="card-body p-4">
+        <div class="row align-items-start g-3">
+          <div class="col-12 col-sm">
+            <span class="text-primary text-uppercase fw-bold small">
+              {{ atual.situacao === 'importada' ? 'Nota importada' : 'Revisão da compra' }}
+            </span>
+            <h1 class="h2 mt-2 mb-1">{{ atual.estabelecimento.nome_exibicao }}</h1>
+            <p class="text-body-secondary mb-0">
+              {{ atual.emissao | date: 'dd/MM/yyyy, HH:mm' }} · NFC-e {{ atual.numero }}
+            </p>
+          </div>
+          <div class="col-12 col-sm-auto">
+            <div class="bg-white border rounded p-3 d-flex flex-column">
+              <span class="text-body-secondary small">Total pago</span>
+              <strong class="text-primary fs-5">{{
+                +atual.valor_a_pagar | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+              }}</strong>
+            </div>
+          </div>
         </div>
-        <div class="total-box">
-          <span>Total pago</span
-          ><strong>{{
-            +atual.valor_a_pagar | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
-          }}</strong>
-        </div>
-      </div>
-      <div class="progress-wrap mt-4">
-        <div class="d-flex justify-content-between small mb-2">
-          <span
-            >{{ atual.quantidade_itens - itensPendentes(atual) }} de
-            {{ atual.quantidade_itens }} itens revisados</span
-          ><strong
-            >{{
-              atual.quantidade_itens
-                ? (
-                    ((atual.quantidade_itens - itensPendentes(atual)) / atual.quantidade_itens) *
-                    100
-                  ).toFixed(0)
-                : 0
-            }}%</strong
-          >
-        </div>
-        <div class="progress">
+
+        <div class="mt-4">
+          <div class="d-flex justify-content-between small mb-2">
+            <span>
+              {{ atual.quantidade_itens - itensPendentes(atual) }} de
+              {{ atual.quantidade_itens }} itens revisados
+            </span>
+            <strong>
+              {{
+                atual.quantidade_itens
+                  ? (
+                      ((atual.quantidade_itens - itensPendentes(atual)) / atual.quantidade_itens) *
+                      100
+                    ).toFixed(0)
+                  : 0
+              }}%
+            </strong>
+          </div>
           <div
-            class="progress-bar"
-            [style.width.%]="
-              atual.quantidade_itens
-                ? ((atual.quantidade_itens - itensPendentes(atual)) / atual.quantidade_itens) * 100
-                : 0
-            "
-          ></div>
+            class="progress"
+            role="progressbar"
+            aria-label="Progresso da revisão"
+            [attr.aria-valuenow]="atual.quantidade_itens - itensPendentes(atual)"
+            aria-valuemin="0"
+            [attr.aria-valuemax]="atual.quantidade_itens"
+          >
+            <div
+              class="progress-bar"
+              [style.width.%]="
+                atual.quantidade_itens
+                  ? ((atual.quantidade_itens - itensPendentes(atual)) / atual.quantidade_itens) *
+                    100
+                  : 0
+              "
+            ></div>
+          </div>
         </div>
       </div>
     </section>
+
     <div class="d-flex align-items-end justify-content-between gap-3 mb-3">
       <div>
-        <span class="eyebrow">Itens da nota</span>
-        <h2 class="h4 mb-0">Revise a classificação</h2>
+        <span class="text-primary text-uppercase fw-bold small">Itens da nota</span>
+        <h2 class="h4 mt-1 mb-0">Revise a classificação</h2>
       </div>
       @if (atual.situacao !== 'importada' && itensPendentes(atual) > 0) {
-        <span class="pending-count"
-          ><i class="bi bi-exclamation-triangle me-1"></i
-          >{{ itensPendentes(atual) }} pendente(s)</span
-        >
+        <span class="badge rounded-pill text-bg-warning">
+          <i class="bi bi-exclamation-triangle me-1"></i>{{ itensPendentes(atual) }} pendente(s)
+        </span>
       }
     </div>
+
     <div class="d-grid gap-3">
       @for (item of atual.itens; track item.id) {
         @let formulario = formularioItem(item.id);
         @if (formulario) {
           <article
-            class="item-card"
-            [class.reviewed]="item.revisado"
-            [class.has-warning]="!item.revisado"
+            class="card border-start border-4 shadow-sm"
+            [class.border-success]="item.revisado"
+            [class.border-warning]="!item.revisado"
           >
-            <div class="item-summary">
-              <div class="item-number">{{ item.numero }}</div>
-              <div class="min-width-0">
-                <div class="d-flex flex-wrap align-items-center gap-2">
-                  <h3 class="h6 mb-0">{{ item.descricao_original }}</h3>
-                  <span
-                    class="badge"
-                    [class.text-bg-success]="item.revisado"
-                    [class.text-bg-warning]="!item.revisado"
-                    >{{ item.revisado ? 'Revisado' : 'Requer atenção' }}</span
-                  >
+            <div class="card-body p-3 p-md-4">
+              <div class="d-flex align-items-start gap-3">
+                <span class="badge text-bg-light text-primary fs-6 p-2 flex-shrink-0">
+                  {{ item.numero }}
+                </span>
+                <div class="overflow-hidden">
+                  <div class="d-flex flex-wrap align-items-center gap-2">
+                    <h3 class="h6 mb-0">{{ item.descricao_original }}</h3>
+                    <span
+                      class="badge"
+                      [class.text-bg-success]="item.revisado"
+                      [class.text-bg-warning]="!item.revisado"
+                    >
+                      {{ item.revisado ? 'Revisado' : 'Requer atenção' }}
+                    </span>
+                  </div>
+                  <p class="text-body-secondary small mb-0 mt-1">
+                    {{ item.quantidade }} {{ item.unidade_original }} ×
+                    {{ +item.valor_unitario | currency: 'BRL' }} · Total
+                    {{ +item.valor_total | currency: 'BRL' }}
+                  </p>
                 </div>
-                <p class="text-secondary small mb-0 mt-1">
-                  {{ item.quantidade }} {{ item.unidade_original }} ×
-                  {{ +item.valor_unitario | currency: 'BRL' }} · Total
-                  {{ +item.valor_total | currency: 'BRL' }}
-                </p>
               </div>
-            </div>
-            @if (item.alertas.length && !item.revisado) {
-              <div class="item-alerts mt-3">
-                @for (alerta of item.alertas; track alerta) {
-                  <span><i class="bi bi-exclamation-circle me-1"></i>{{ alerta }}</span>
-                }
-              </div>
-            }
-            <form class="row g-3 mt-1" [formGroup]="formulario" (ngSubmit)="salvarItem(item)">
-              <div class="col-12 col-lg-6">
-                <label class="form-label">Produto</label
-                ><button
-                  type="button"
-                  class="catalog-select"
-                  [class.is-invalid]="
-                    formulario.get('produto_id')?.invalid && formulario.get('produto_id')?.touched
-                  "
-                  [disabled]="atual.situacao === 'importada'"
-                  (click)="abrirSeletor('produto', item)"
-                >
-                  <span [class.placeholder-text]="!nomeProdutoSelecionado(item.id)">{{
-                    nomeProdutoSelecionado(item.id) ?? 'Pesquisar produto'
-                  }}</span
-                  ><i class="bi bi-search"></i>
-                </button>
-                <div class="invalid-feedback">Selecione um produto.</div>
-              </div>
-              @if (deveSolicitarMarca(item.id)) {
-                <div class="col-12 col-lg-6">
-                  <label class="form-label">Marca</label
-                  ><button
-                    type="button"
-                    class="catalog-select"
-                    [class.is-invalid]="
-                      formulario.get('marca_id')?.invalid && formulario.get('marca_id')?.touched
-                    "
-                    [disabled]="atual.situacao === 'importada'"
-                    (click)="abrirSeletor('marca', item)"
-                  >
-                    <span>{{ nomeMarcaSelecionada(item.id) }}</span
-                    ><i class="bi bi-search"></i>
-                  </button>
-                  <div class="invalid-feedback">Selecione uma marca.</div>
+
+              @if (item.alertas.length && !item.revisado) {
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                  @for (alerta of item.alertas; track alerta) {
+                    <span class="badge text-bg-warning fw-normal py-2 px-3">
+                      <i class="bi bi-exclamation-circle me-1"></i>{{ alerta }}
+                    </span>
+                  }
                 </div>
               }
-              @if (deveSelecionarVariacao(item.id)) {
+
+              <form class="row g-3 mt-1" [formGroup]="formulario" (ngSubmit)="salvarItem(item)">
                 <div class="col-12 col-lg-6">
-                  <label class="form-label">Variação</label
-                  ><button
+                  <label class="form-label">Produto</label>
+                  <button
                     type="button"
-                    class="catalog-select"
+                    class="form-control d-flex align-items-center justify-content-between text-start"
                     [class.is-invalid]="
-                      formulario.get('variacao_id')?.invalid &&
-                      formulario.get('variacao_id')?.touched
+                      formulario.get('produto_id')?.invalid && formulario.get('produto_id')?.touched
                     "
                     [disabled]="atual.situacao === 'importada'"
-                    (click)="abrirSeletor('variacao', item)"
+                    (click)="abrirSeletor('produto', item)"
                   >
-                    <span>{{ nomeVariacaoSelecionada(item.id) }}</span
-                    ><i class="bi bi-search"></i>
+                    <span [class.text-body-secondary]="!nomeProdutoSelecionado(item.id)">
+                      {{ nomeProdutoSelecionado(item.id) ?? 'Pesquisar produto' }}
+                    </span>
+                    <i class="bi bi-search"></i>
                   </button>
-                  <div class="invalid-feedback">Selecione uma variação.</div>
+                  <div class="invalid-feedback">Selecione um produto.</div>
                 </div>
-              }
-              <div class="col-12 col-lg-4">
-                <label class="form-label" [for]="'quantidade-' + item.id">Quantidade</label>
-                <div class="input-group">
-                  <input
-                    class="form-control"
-                    [id]="'quantidade-' + item.id"
-                    type="number"
-                    min="0.000001"
-                    [step]="passoQuantidade(item.id)"
-                    formControlName="quantidade_confirmada"
-                    [attr.disabled]="atual.situacao === 'importada' ? true : null"
-                  /><span class="input-group-text">{{ unidadeQuantidade(item.id) }}</span>
-                </div>
-                @if (
-                  formulario.get('quantidade_confirmada')?.invalid &&
-                  formulario.get('quantidade_confirmada')?.touched
-                ) {
-                  <div class="text-danger small mt-1">
-                    Informe uma quantidade válida{{
-                      passoQuantidade(item.id) === '1' ? ' e inteira' : ''
-                    }}.
+
+                @if (deveSolicitarMarca(item.id)) {
+                  <div class="col-12 col-lg-6">
+                    <label class="form-label">Marca</label>
+                    <button
+                      type="button"
+                      class="form-control d-flex align-items-center justify-content-between text-start"
+                      [class.is-invalid]="
+                        formulario.get('marca_id')?.invalid && formulario.get('marca_id')?.touched
+                      "
+                      [disabled]="atual.situacao === 'importada'"
+                      (click)="abrirSeletor('marca', item)"
+                    >
+                      <span>{{ nomeMarcaSelecionada(item.id) }}</span>
+                      <i class="bi bi-search"></i>
+                    </button>
+                    <div class="invalid-feedback">Selecione uma marca.</div>
                   </div>
                 }
-              </div>
-              <div class="col-12 d-flex justify-content-end">
-                @if (atual.situacao !== 'importada') {
-                  <button
-                    class="btn btn-primary rounded-pill px-4"
-                    type="submit"
-                    [disabled]="itemSalvando() !== null"
-                  >
-                    @if (itemSalvando() === item.id) {
-                      <span class="spinner-border spinner-border-sm me-2"></span>Salvando...
-                    } @else {
-                      <i class="bi bi-check2 me-2"></i
-                      >{{ item.revisado ? 'Salvar ajustes' : 'Confirmar item' }}
-                    }
-                  </button>
+
+                @if (deveSelecionarVariacao(item.id)) {
+                  <div class="col-12 col-lg-6">
+                    <label class="form-label">Variação</label>
+                    <button
+                      type="button"
+                      class="form-control d-flex align-items-center justify-content-between text-start"
+                      [class.is-invalid]="
+                        formulario.get('variacao_id')?.invalid &&
+                        formulario.get('variacao_id')?.touched
+                      "
+                      [disabled]="atual.situacao === 'importada'"
+                      (click)="abrirSeletor('variacao', item)"
+                    >
+                      <span>{{ nomeVariacaoSelecionada(item.id) }}</span>
+                      <i class="bi bi-search"></i>
+                    </button>
+                    <div class="invalid-feedback">Selecione uma variação.</div>
+                  </div>
                 }
-              </div>
-            </form>
+
+                <div class="col-12 col-lg-4">
+                  <label class="form-label" [for]="'quantidade-' + item.id">Quantidade</label>
+                  <div class="input-group">
+                    <input
+                      class="form-control"
+                      [id]="'quantidade-' + item.id"
+                      type="number"
+                      min="0.000001"
+                      [step]="passoQuantidade(item.id)"
+                      formControlName="quantidade_confirmada"
+                      [attr.disabled]="atual.situacao === 'importada' ? true : null"
+                    />
+                    <span class="input-group-text">{{ unidadeQuantidade(item.id) }}</span>
+                  </div>
+                  @if (
+                    formulario.get('quantidade_confirmada')?.invalid &&
+                    formulario.get('quantidade_confirmada')?.touched
+                  ) {
+                    <div class="text-danger small mt-1">
+                      Informe uma quantidade válida{{
+                        passoQuantidade(item.id) === '1' ? ' e inteira' : ''
+                      }}.
+                    </div>
+                  }
+                </div>
+
+                <div class="col-12 d-flex justify-content-end">
+                  @if (atual.situacao !== 'importada') {
+                    <button
+                      class="btn btn-primary rounded-pill px-4"
+                      type="submit"
+                      [disabled]="itemSalvando() !== null"
+                    >
+                      @if (itemSalvando() === item.id) {
+                        <span class="spinner-border spinner-border-sm me-2"></span>Salvando...
+                      } @else {
+                        <i class="bi bi-check2 me-2"></i>
+                        {{ item.revisado ? 'Salvar ajustes' : 'Confirmar item' }}
+                      }
+                    </button>
+                  }
+                </div>
+              </form>
+            </div>
           </article>
         }
       }
     </div>
+
     @if (atual.situacao !== 'importada') {
-      <section class="import-bar mt-4">
-        <div>
-          <strong>{{
-            podeImportar(atual) ? 'Tudo pronto para importar' : 'A revisão ainda não terminou'
-          }}</strong>
-          <p class="small text-secondary mb-0">
-            {{
-              podeImportar(atual)
-                ? 'Após importar, a nota ficará disponível somente para consulta.'
-                : 'Confirme todos os itens para liberar a importação.'
-            }}
-          </p>
-        </div>
-        <button
-          class="btn btn-primary rounded-pill px-4"
-          type="button"
-          [disabled]="!podeImportar(atual) || importando()"
-          (click)="concluirImportacao()"
+      <section class="card shadow-sm mt-4">
+        <div
+          class="card-body d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 p-4"
         >
-          @if (importando()) {
-            <span class="spinner-border spinner-border-sm me-2"></span>Importando...
-          } @else {
-            <i class="bi bi-box-arrow-in-down me-2"></i>Concluir importação
-          }
-        </button>
+          <div>
+            <strong>
+              {{
+                podeImportar(atual) ? 'Tudo pronto para importar' : 'A revisão ainda não terminou'
+              }}
+            </strong>
+            <p class="small text-body-secondary mb-0">
+              {{
+                podeImportar(atual)
+                  ? 'Após importar, a nota ficará disponível somente para consulta.'
+                  : 'Confirme todos os itens para liberar a importação.'
+              }}
+            </p>
+          </div>
+          <div class="d-grid flex-shrink-0">
+            <button
+              class="btn btn-primary rounded-pill px-4"
+              type="button"
+              [disabled]="!podeImportar(atual) || importando()"
+              (click)="concluirImportacao()"
+            >
+              @if (importando()) {
+                <span class="spinner-border spinner-border-sm me-2"></span>Importando...
+              } @else {
+                <i class="bi bi-box-arrow-in-down me-2"></i>Concluir importação
+              }
+            </button>
+          </div>
+        </div>
       </section>
     }
   }
