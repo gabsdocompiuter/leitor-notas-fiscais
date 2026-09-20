@@ -3,16 +3,16 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
-import { ApiService } from '../../../core/api/api.service';
-import { Estabelecimento } from '../../../core/models/api.models';
-import { mensagemErro } from '../../../core/utils/erro-api';
+import { ApiService } from '../../../../core/api/api.service';
+import { Estabelecimento } from '../../../../core/models/api.models';
+import { mensagemErro } from '../../../../core/utils/erro-api';
 
 @Component({
-  selector: 'lnf-estabelecimento-formulario',
+  selector: 'lnf-cadastro-estabelecimento',
   imports: [FormsModule, RouterLink],
-  templateUrl: './estabelecimento-formulario.html',
+  templateUrl: './cadastro-estabelecimento.html',
 })
-export class EstabelecimentoFormulario implements OnInit {
+export class CadastroEstabelecimento implements OnInit {
   private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);

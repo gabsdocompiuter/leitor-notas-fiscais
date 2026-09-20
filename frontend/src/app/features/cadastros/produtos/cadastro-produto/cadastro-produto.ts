@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 
-import { ApiService } from '../../../core/api/api.service';
+import { ApiService } from '../../../../core/api/api.service';
 import {
   Categoria,
   Produto,
@@ -12,15 +12,15 @@ import {
   UnidadeMedida,
   UnidadeMedidaInfo,
   VariacaoProduto,
-} from '../../../core/models/api.models';
-import { mensagemErro } from '../../../core/utils/erro-api';
+} from '../../../../core/models/api.models';
+import { mensagemErro } from '../../../../core/utils/erro-api';
 
 @Component({
-  selector: 'lnf-produto-formulario',
+  selector: 'lnf-cadastro-produto',
   imports: [FormsModule, RouterLink],
-  templateUrl: './produto-formulario.html',
+  templateUrl: './cadastro-produto.html',
 })
-export class ProdutoFormulario implements OnInit {
+export class CadastroProduto implements OnInit {
   private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);

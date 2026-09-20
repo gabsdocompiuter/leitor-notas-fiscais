@@ -1,0 +1,224 @@
+@if (!cadastroAberto()) {
+  <div
+    class="modal fade show d-block"
+    tabindex="-1"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="titulo-pesquisa-produto"
+    (mousedown)="solicitarFechamento()"
+  >
+    <div
+      class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg"
+      (mousedown)="$event.stopPropagation()"
+    >
+      <section class="modal-content">
+        <header class="modal-header">
+          <div class="overflow-hidden">
+            <h2 class="modal-title fs-5" id="titulo-pesquisa-produto">{{ tituloPesquisa }}</h2>
+            @if (contexto()) {
+              <p class="text-body-secondary small mb-0 text-truncate">{{ contexto() }}</p>
+            }
+          </div>
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Fechar"
+            (click)="solicitarFechamento()"
+          ></button>
+        </header>
+        <div class="modal-body">
+          <div class="input-group input-group-lg mb-3">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input
+              #campoBusca
+              type="search"
+              class="form-control"
+              [value]="busca()"
+              (input)="atualizarBusca($event)"
+              [placeholder]="placeholderPesquisa"
+              aria-label="Pesquisar produto"
+            />
+            <button
+              type="button"
+              class="btn btn-primary"
+              aria-label="Criar produto"
+              title="Criar produto"
+              (click)="abrirCadastro()"
+            >
+              <i class="bi bi-plus-lg"></i>
+            </button>
+          </div>
+          <div class="list-group list-group-flush">
+            @for (produto of resultados(); track produto.id) {
+              <button
+                type="button"
+                class="list-group-item list-group-item-action d-flex align-items-center gap-3"
+                (click)="selecionar(produto)"
+              >
+                <i class="bi bi-basket fs-4 text-primary"></i>
+                <span class="d-flex flex-column overflow-hidden">
+                  <strong class="text-truncate">{{ produto.nome }}</strong>
+                  <small class="text-body-secondary text-truncate"
+                    >{{ produto.categoria.nome }} ·
+                    {{
+                      produto.tratar_apenas_como_unidades ? 'unidades' : produto.unidade_medida
+                    }}</small
+                  >
+                </span>
+                <i class="bi bi-chevron-right ms-auto"></i>
+              </button>
+            } @empty {
+              <p class="text-body-secondary text-center py-4 mb-0">{{ mensagemSemResultados }}</p>
+            }
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+} @else if (!seletorCategoriaAberto()) {
+  <div
+    class="modal fade show d-block"
+    tabindex="-1"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="titulo-cadastro-produto"
+    (mousedown)="voltarParaPesquisa()"
+  >
+    <div
+      class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg"
+      (mousedown)="$event.stopPropagation()"
+    >
+      <section class="modal-content">
+        <header class="modal-header">
+          <h2 class="modal-title fs-5" id="titulo-cadastro-produto">{{ tituloCadastro }}</h2>
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Voltar para pesquisa"
+            [disabled]="salvando()"
+            (click)="voltarParaPesquisa()"
+          ></button>
+        </header>
+        <form [formGroup]="formulario" (ngSubmit)="criar()">
+          <div class="modal-body">
+            @if (erro()) {
+              <div class="alert alert-danger" role="alert">{{ erro() }}</div>
+            }
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label" for="nome-novo-produto">Nome</label>
+                <input
+                  id="nome-novo-produto"
+                  class="form-control"
+                  formControlName="nome"
+                  maxlength="150"
+                  [class.is-invalid]="
+                    formulario.controls.nome.invalid && formulario.controls.nome.touched
+                  "
+                />
+                <div class="invalid-feedback">Informe um nome com até 150 caracteres.</div>
+              </div>
+              <div class="col-12 col-md-8">
+                <label class="form-label">Categoria</label>
+                <button
+                  type="button"
+                  class="form-control d-flex align-items-center justify-content-between text-start"
+                  [class.is-invalid]="
+                    formulario.controls.categoria_id.invalid &&
+                    formulario.controls.categoria_id.touched
+                  "
+                  (click)="abrirPesquisaCategoria()"
+                >
+                  <span [class.text-body-secondary]="!categoriaSelecionada()">{{
+                    categoriaSelecionada()?.nome ?? 'Pesquisar categoria'
+                  }}</span>
+                  <i class="bi bi-search"></i>
+                </button>
+                <div class="invalid-feedback">Selecione uma categoria.</div>
+              </div>
+              @if (!formulario.controls.tratar_apenas_como_unidades.value) {
+                <div class="col-12 col-md-4">
+                  <label class="form-label" for="unidade-novo-produto">Unidade</label>
+                  <select
+                    id="unidade-novo-produto"
+                    class="form-select"
+                    formControlName="unidade_medida"
+                  >
+                    @for (unidade of unidades(); track unidade.codigo) {
+                      <option [value]="unidade.codigo">{{ unidade.codigo }}</option>
+                    }
+                  </select>
+                </div>
+              }
+              <div class="col-12">
+                <div class="form-check mb-2">
+                  <input
+                    id="produto-somente-unidades"
+                    class="form-check-input"
+                    type="checkbox"
+                    formControlName="tratar_apenas_como_unidades"
+                  />
+                  <label class="form-check-label" for="produto-somente-unidades"
+                    >Tratar apenas como unidades</label
+                  >
+                </div>
+                @if (!formulario.controls.tratar_apenas_como_unidades.value) {
+                  <div class="form-check mb-2">
+                    <input
+                      id="produto-com-variacoes"
+                      class="form-check-input"
+                      type="checkbox"
+                      formControlName="contem_variacoes"
+                    />
+                    <label class="form-check-label" for="produto-com-variacoes"
+                      >Contém variações de peso ou volume</label
+                    >
+                  </div>
+                }
+                <div class="form-check">
+                  <input
+                    id="produto-sem-marca"
+                    class="form-check-input"
+                    type="checkbox"
+                    formControlName="nao_solicitar_marca"
+                  />
+                  <label class="form-check-label" for="produto-sem-marca"
+                    >Não solicitar marca</label
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+          <footer class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              [disabled]="salvando()"
+              (click)="voltarParaPesquisa()"
+            >
+              Cancelar
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="salvando()">
+              @if (salvando()) {
+                <span class="spinner-border spinner-border-sm me-2"></span>Salvando...
+              } @else {
+                Salvar produto
+              }
+            </button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+} @else {
+  <lnf-pesquisa-categoria
+    [registros]="categorias()"
+    contexto="Categoria do novo produto"
+    [buscaInicial]="categoriaSelecionada()?.nome ?? ''"
+    (fechar)="fecharPesquisaCategoria()"
+    (registroSelecionado)="selecionarCategoria($event)"
+    (cadastroCriado)="registrarCategoriaCriada($event)"
+  />
+}

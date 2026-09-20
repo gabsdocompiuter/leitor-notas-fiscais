@@ -1,11 +1,11 @@
 <div class="container py-4 py-md-5">
   <div class="row justify-content-center">
     <div class="col-12 col-lg-8">
-      <a [routerLink]="rotaListagem" class="link-secondary text-decoration-none">
-        ← {{ tituloPlural }}
+      <a routerLink="/cadastros/categorias" class="link-secondary text-decoration-none">
+        ← Categorias
       </a>
 
-      <h1 class="h2 my-4">{{ novo ? 'Novo' : 'Editar' }} {{ tituloSingular.toLowerCase() }}</h1>
+      <h1 class="h2 my-4">{{ novo ? 'Nova categoria' : 'Editar categoria' }}</h1>
 
       @if (erro()) {
         <div class="alert alert-danger" role="alert">{{ erro() }}</div>
@@ -20,9 +20,9 @@
       } @else {
         <form class="card" #formulario="ngForm" (ngSubmit)="salvar()">
           <div class="card-body">
-            <label class="form-label" for="nome">Nome</label>
+            <label class="form-label" for="nome-categoria">Nome</label>
             <input
-              id="nome"
+              id="nome-categoria"
               class="form-control"
               name="nome"
               required
@@ -32,7 +32,7 @@
             />
           </div>
           <div class="card-footer d-flex flex-wrap justify-content-end gap-2">
-            <a class="btn btn-outline-secondary" [routerLink]="rotaListagem">Cancelar</a>
+            <a class="btn btn-outline-secondary" routerLink="/cadastros/categorias">Cancelar</a>
             <button
               class="btn btn-primary"
               type="submit"

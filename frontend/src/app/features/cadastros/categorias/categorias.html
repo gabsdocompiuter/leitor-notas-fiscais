@@ -2,10 +2,8 @@
   <a routerLink="/cadastros" class="link-secondary text-decoration-none">← Cadastros</a>
 
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 my-4">
-    <h1 class="h2 mb-0">{{ titulo }}</h1>
-    <a class="btn btn-primary" [routerLink]="['/cadastros', tipo, 'new']">
-      Novo {{ nomeSingular.toLowerCase() }}
-    </a>
+    <h1 class="h2 mb-0">Categorias</h1>
+    <a class="btn btn-primary" routerLink="/cadastros/categorias/new">Nova categoria</a>
   </div>
 
   @if (erro()) {
@@ -14,28 +12,28 @@
 
   <div class="card">
     <div class="card-body">
-      <label class="form-label" for="busca-catalogo">Pesquisar</label>
+      <label class="form-label" for="busca-categoria">Pesquisar</label>
       <input
-        id="busca-catalogo"
+        id="busca-categoria"
         class="form-control"
         type="search"
-        [placeholder]="'Pesquisar ' + titulo.toLowerCase()"
+        placeholder="Pesquisar categorias"
         [(ngModel)]="busca"
         (ngModelChange)="carregar()"
       />
     </div>
 
     <div class="list-group list-group-flush">
-      @for (item of itens(); track item.id) {
+      @for (categoria of categorias(); track categoria.id) {
         <a
           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3"
-          [routerLink]="['/cadastros', tipo, item.id]"
+          [routerLink]="['/cadastros/categorias', categoria.id]"
         >
-          <span>{{ item.nome }}</span>
+          <span>{{ categoria.nome }}</span>
           <span class="text-primary">Editar</span>
         </a>
       } @empty {
-        <div class="card-body py-5 text-center text-secondary">Nenhum cadastro encontrado.</div>
+        <div class="card-body py-5 text-center text-secondary">Nenhuma categoria encontrada.</div>
       }
     </div>
   </div>

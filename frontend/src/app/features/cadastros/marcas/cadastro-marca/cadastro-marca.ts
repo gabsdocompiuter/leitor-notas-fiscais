@@ -3,15 +3,15 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
-import { ApiService } from '../../../core/api/api.service';
-import { mensagemErro } from '../../../core/utils/erro-api';
+import { ApiService } from '../../../../core/api/api.service';
+import { mensagemErro } from '../../../../core/utils/erro-api';
 
 @Component({
-  selector: 'lnf-catalogo-nome-formulario',
+  selector: 'lnf-cadastro-marca',
   imports: [FormsModule, RouterLink],
-  templateUrl: './catalogo-nome-formulario.html',
+  templateUrl: './cadastro-marca.html',
 })
-export class CatalogoNomeFormulario implements OnInit {
+export class CadastroMarca implements OnInit {
   private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -20,35 +20,21 @@ export class CatalogoNomeFormulario implements OnInit {
   readonly carregando = signal(true);
   readonly salvando = signal(false);
 
-  tipo!: 'categorias' | 'marcas';
-  tituloPlural = '';
-  tituloSingular = '';
-  rotaListagem = '';
   id: string | null = null;
   novo = false;
   nome = '';
 
   ngOnInit(): void {
-    this.tipo = this.route.snapshot.data['tipo'] as 'categorias' | 'marcas';
-    this.tituloPlural = this.tipo === 'categorias' ? 'Categorias' : 'Marcas';
-    this.tituloSingular = this.tipo === 'categorias' ? 'Categoria' : 'Marca';
-    this.rotaListagem = `/cadastros/${this.tipo}`;
     this.id = this.route.snapshot.paramMap.get('id');
     this.novo = this.id === null;
-
     if (this.novo) {
       this.carregando.set(false);
       return;
     }
 
-    const requisicao =
-      this.tipo === 'categorias'
-        ? this.api.obterCategoria(this.id!)
-        : this.api.obterMarca(this.id!);
-
-    requisicao.subscribe({
-      next: (item) => {
-        this.nome = item.nome;
+    this.api.obterMarca(this.id!).subscribe({
+      next: (marca) => {
+        this.nome = marca.nome;
         this.carregando.set(false);
       },
       error: (erro) => this.tratarErroCarregamento(erro),
@@ -61,17 +47,9 @@ export class CatalogoNomeFormulario implements OnInit {
 
     this.erro.set(null);
     this.salvando.set(true);
-    const requisicao =
-      this.tipo === 'categorias'
-        ? this.id
-          ? this.api.atualizarCategoria(this.id, nome)
-          : this.api.criarCategoria(nome)
-        : this.id
-          ? this.api.atualizarMarca(this.id, nome)
-          : this.api.criarMarca(nome);
-
+    const requisicao = this.id ? this.api.atualizarMarca(this.id, nome) : this.api.criarMarca(nome);
     requisicao.subscribe({
-      next: () => void this.router.navigateByUrl(this.rotaListagem),
+      next: () => void this.router.navigateByUrl('/cadastros/marcas'),
       error: (erro) => {
         this.salvando.set(false);
         this.erro.set(mensagemErro(erro));
@@ -81,7 +59,7 @@ export class CatalogoNomeFormulario implements OnInit {
 
   private tratarErroCarregamento(erro: unknown): void {
     if (erro instanceof HttpErrorResponse && (erro.status === 404 || erro.status === 422)) {
-      void this.router.navigateByUrl(this.rotaListagem);
+      void this.router.navigateByUrl('/cadastros/marcas');
       return;
     }
     this.carregando.set(false);

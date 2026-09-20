@@ -4,12 +4,14 @@ export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'notas' },
   {
     path: 'notas',
-    loadComponent: () => import('./features/notas/lista-notas').then((m) => m.ListaNotas),
+    loadComponent: () =>
+      import('./features/notas/listagem-notas/listagem-notas').then((m) => m.ListagemNotas),
     title: 'Notas · Minhas Compras',
   },
   {
     path: 'notas/:chave/revisao',
-    loadComponent: () => import('./features/notas/revisao-nota').then((m) => m.RevisaoNota),
+    loadComponent: () =>
+      import('./features/notas/revisao-notas/revisao-notas').then((m) => m.RevisaoNotas),
     title: 'Revisar nota · Minhas Compras',
   },
   {
@@ -26,72 +28,64 @@ export const routes: Routes = [
   {
     path: 'cadastros/categorias',
     loadComponent: () =>
-      import('./features/cadastros/catalogo-nomes/catalogo-nomes').then((m) => m.CatalogoNomes),
-    data: { tipo: 'categorias' },
+      import('./features/cadastros/categorias/categorias').then((m) => m.Categorias),
     title: 'Categorias · Minhas Compras',
   },
   {
     path: 'cadastros/categorias/new',
     loadComponent: () =>
-      import('./features/cadastros/catalogo-nome-formulario/catalogo-nome-formulario').then(
-        (m) => m.CatalogoNomeFormulario,
+      import('./features/cadastros/categorias/cadastro-categoria/cadastro-categoria').then(
+        (m) => m.CadastroCategoria,
       ),
-    data: { tipo: 'categorias' },
     title: 'Nova categoria · Minhas Compras',
   },
   {
     path: 'cadastros/categorias/:id',
     loadComponent: () =>
-      import('./features/cadastros/catalogo-nome-formulario/catalogo-nome-formulario').then(
-        (m) => m.CatalogoNomeFormulario,
+      import('./features/cadastros/categorias/cadastro-categoria/cadastro-categoria').then(
+        (m) => m.CadastroCategoria,
       ),
-    data: { tipo: 'categorias' },
     title: 'Editar categoria · Minhas Compras',
   },
   {
     path: 'cadastros/marcas',
-    loadComponent: () =>
-      import('./features/cadastros/catalogo-nomes/catalogo-nomes').then((m) => m.CatalogoNomes),
-    data: { tipo: 'marcas' },
+    loadComponent: () => import('./features/cadastros/marcas/marcas').then((m) => m.Marcas),
     title: 'Marcas · Minhas Compras',
   },
   {
     path: 'cadastros/marcas/new',
     loadComponent: () =>
-      import('./features/cadastros/catalogo-nome-formulario/catalogo-nome-formulario').then(
-        (m) => m.CatalogoNomeFormulario,
+      import('./features/cadastros/marcas/cadastro-marca/cadastro-marca').then(
+        (m) => m.CadastroMarca,
       ),
-    data: { tipo: 'marcas' },
     title: 'Nova marca · Minhas Compras',
   },
   {
     path: 'cadastros/marcas/:id',
     loadComponent: () =>
-      import('./features/cadastros/catalogo-nome-formulario/catalogo-nome-formulario').then(
-        (m) => m.CatalogoNomeFormulario,
+      import('./features/cadastros/marcas/cadastro-marca/cadastro-marca').then(
+        (m) => m.CadastroMarca,
       ),
-    data: { tipo: 'marcas' },
     title: 'Editar marca · Minhas Compras',
   },
   {
     path: 'cadastros/produtos',
-    loadComponent: () =>
-      import('./features/cadastros/produtos-lista/produtos-lista').then((m) => m.ProdutosLista),
+    loadComponent: () => import('./features/cadastros/produtos/produtos').then((m) => m.Produtos),
     title: 'Produtos · Minhas Compras',
   },
   {
     path: 'cadastros/produtos/new',
     loadComponent: () =>
-      import('./features/cadastros/produto-formulario/produto-formulario').then(
-        (m) => m.ProdutoFormulario,
+      import('./features/cadastros/produtos/cadastro-produto/cadastro-produto').then(
+        (m) => m.CadastroProduto,
       ),
     title: 'Novo produto · Minhas Compras',
   },
   {
     path: 'cadastros/produtos/:id',
     loadComponent: () =>
-      import('./features/cadastros/produto-formulario/produto-formulario').then(
-        (m) => m.ProdutoFormulario,
+      import('./features/cadastros/produtos/cadastro-produto/cadastro-produto').then(
+        (m) => m.CadastroProduto,
       ),
     title: 'Editar produto · Minhas Compras',
   },
@@ -106,8 +100,8 @@ export const routes: Routes = [
   {
     path: 'cadastros/estabelecimentos/:id',
     loadComponent: () =>
-      import('./features/cadastros/estabelecimento-formulario/estabelecimento-formulario').then(
-        (m) => m.EstabelecimentoFormulario,
+      import('./features/cadastros/estabelecimentos/cadastro-estabelecimento/cadastro-estabelecimento').then(
+        (m) => m.CadastroEstabelecimento,
       ),
     title: 'Editar estabelecimento · Minhas Compras',
   },

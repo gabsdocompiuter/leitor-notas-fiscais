@@ -1,0 +1,130 @@
+@if (!cadastroAberto()) {
+  <div
+    class="modal fade show d-block"
+    tabindex="-1"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="titulo-pesquisa-categoria"
+    (mousedown)="solicitarFechamento()"
+  >
+    <div
+      class="modal-dialog modal-dialog-centered modal-dialog-scrollable"
+      (mousedown)="$event.stopPropagation()"
+    >
+      <section class="modal-content">
+        <header class="modal-header">
+          <div>
+            <h2 class="modal-title fs-5" id="titulo-pesquisa-categoria">{{ tituloPesquisa }}</h2>
+            @if (contexto()) {
+              <p class="text-body-secondary small mb-0 text-truncate">{{ contexto() }}</p>
+            }
+          </div>
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Fechar"
+            (click)="solicitarFechamento()"
+          ></button>
+        </header>
+        <div class="modal-body">
+          <div class="input-group input-group-lg mb-3">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input
+              #campoBusca
+              type="search"
+              class="form-control"
+              [value]="busca()"
+              (input)="atualizarBusca($event)"
+              [placeholder]="placeholderPesquisa"
+              aria-label="Pesquisar categoria"
+            />
+            <button
+              type="button"
+              class="btn btn-primary"
+              aria-label="Criar categoria"
+              title="Criar categoria"
+              (click)="abrirCadastro()"
+            >
+              <i class="bi bi-plus-lg"></i>
+            </button>
+          </div>
+          <div class="list-group list-group-flush">
+            @for (categoria of resultados(); track categoria.id) {
+              <button
+                type="button"
+                class="list-group-item list-group-item-action d-flex align-items-center gap-3"
+                (click)="selecionar(categoria)"
+              >
+                <i class="bi bi-folder fs-4 text-primary"></i>
+                <span class="fw-semibold text-truncate">{{ categoria.nome }}</span>
+                <i class="bi bi-chevron-right ms-auto"></i>
+              </button>
+            } @empty {
+              <p class="text-body-secondary text-center py-4 mb-0">{{ mensagemSemResultados }}</p>
+            }
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+} @else {
+  <div
+    class="modal fade show d-block"
+    tabindex="-1"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="titulo-cadastro-categoria"
+    (mousedown)="voltarParaPesquisa()"
+  >
+    <div class="modal-dialog modal-dialog-centered" (mousedown)="$event.stopPropagation()">
+      <section class="modal-content">
+        <header class="modal-header">
+          <h2 class="modal-title fs-5" id="titulo-cadastro-categoria">{{ tituloCadastro }}</h2>
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Voltar para pesquisa"
+            [disabled]="salvando()"
+            (click)="voltarParaPesquisa()"
+          ></button>
+        </header>
+        <form [formGroup]="formulario" (ngSubmit)="criar()">
+          <div class="modal-body">
+            @if (erro()) {
+              <div class="alert alert-danger" role="alert">{{ erro() }}</div>
+            }
+            <label class="form-label" for="nome-nova-categoria">Nome</label>
+            <input
+              id="nome-nova-categoria"
+              class="form-control"
+              formControlName="nome"
+              maxlength="100"
+              [class.is-invalid]="
+                formulario.controls.nome.invalid && formulario.controls.nome.touched
+              "
+            />
+            <div class="invalid-feedback">Informe um nome com até 100 caracteres.</div>
+          </div>
+          <footer class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              [disabled]="salvando()"
+              (click)="voltarParaPesquisa()"
+            >
+              Cancelar
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="salvando()">
+              @if (salvando()) {
+                <span class="spinner-border spinner-border-sm me-2"></span>Salvando...
+              } @else {
+                Salvar categoria
+              }
+            </button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  </div>
+}
+<div class="modal-backdrop fade show"></div>

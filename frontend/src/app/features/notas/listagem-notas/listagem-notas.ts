@@ -2,21 +2,21 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { ApiService } from '../../core/api/api.service';
-import { Nota, SituacaoNota } from '../../core/models/api.models';
-import { mensagemErro } from '../../core/utils/erro-api';
-import { quantidadeItensPendentes, rotuloSituacao } from '../../core/utils/nota.utils';
-import { EstadoVazio } from '../../shared/components/estado-vazio/estado-vazio';
+import { ApiService } from '../../../core/api/api.service';
+import { Nota, SituacaoNota } from '../../../core/models/api.models';
+import { mensagemErro } from '../../../core/utils/erro-api';
+import { quantidadeItensPendentes, rotuloSituacao } from '../../../core/utils/nota.utils';
+import { EstadoVazio } from '../../../shared/components/estado-vazio/estado-vazio';
 
 type FiltroSituacao = SituacaoNota | 'todas';
 
 @Component({
-  selector: 'lnf-lista-notas',
+  selector: 'lnf-listagem-notas',
   imports: [CurrencyPipe, DatePipe, RouterLink, EstadoVazio],
-  templateUrl: './lista-notas.html',
-  styleUrl: './lista-notas.scss',
+  templateUrl: './listagem-notas.html',
+  styleUrl: './listagem-notas.scss',
 })
-export class ListaNotas implements OnInit {
+export class ListagemNotas implements OnInit {
   private readonly api = inject(ApiService);
 
   readonly notas = signal<Nota[]>([]);

@@ -3,18 +3,18 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
 import { ApiService } from '../../../core/api/api.service';
-import { Produto } from '../../../core/models/api.models';
+import { Categoria } from '../../../core/models/api.models';
 import { mensagemErro } from '../../../core/utils/erro-api';
 
 @Component({
-  selector: 'lnf-produtos-lista',
+  selector: 'lnf-categorias',
   imports: [FormsModule, RouterLink],
-  templateUrl: './produtos-lista.html',
+  templateUrl: './categorias.html',
 })
-export class ProdutosLista implements OnInit {
+export class Categorias implements OnInit {
   private readonly api = inject(ApiService);
 
-  readonly produtos = signal<Produto[]>([]);
+  readonly categorias = signal<Categoria[]>([]);
   readonly erro = signal<string | null>(null);
   busca = '';
 
@@ -24,8 +24,8 @@ export class ProdutosLista implements OnInit {
 
   carregar(): void {
     this.erro.set(null);
-    this.api.listarProdutos(this.busca).subscribe({
-      next: (produtos) => this.produtos.set(produtos),
+    this.api.listarCategorias(this.busca).subscribe({
+      next: (categorias) => this.categorias.set(categorias),
       error: (erro) => this.erro.set(mensagemErro(erro)),
     });
   }
