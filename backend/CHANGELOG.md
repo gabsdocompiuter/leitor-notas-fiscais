@@ -9,11 +9,7 @@ As versões só são alteradas por solicitação explícita do usuário.
 - Modos de produto por unidade, a granel ou por variações de peso e volume.
 - Cadastro de variações e catálogo descritivo de unidades de medida.
 - Consulta e edição do apelido dos estabelecimentos.
-- Migração SQLite da estrutura 3 para 4, mantendo apenas notas na situação `lida`.
-
 - Flag `nao_solicitar_marca` no cadastro de produtos.
-- Migração da estrutura SQLite 2 para 3, preservando os dados existentes.
-
 - Container do backend para execução pelo Docker Compose da raiz.
 - Workspace local do Postman organizado por sistema, leituras e notas, com
   variáveis compartilhadas e todas as chamadas da API.
@@ -24,9 +20,14 @@ As versões só são alteradas por solicitação explícita do usuário.
 - Classificação automática por associação específica ou descrição original
   normalizada sem conflitos.
 - Confirmação da importação somente quando todos os itens estiverem revisados.
-- Migração da estrutura SQLite 1 para 2 sem apagar notas existentes.
+- Entidades ORM tipadas, repositories por entidade e services transacionais com
+  SQLAlchemy 2 e `sessionmaker`.
+- Alembic como fonte única do schema, com uma nova migration inicial para banco vazio.
 
 ### Alterado
+
+- A persistência deixa de usar SQL manual e passa a usar a API ORM do SQLAlchemy.
+- As migrations SQL legadas e o controle por `PRAGMA user_version` foram removidos.
 
 - A revisão passa a confirmar somente a quantidade e, quando aplicável, a variação.
 - Produtos por unidade e com variações exigem quantidades inteiras.

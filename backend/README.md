@@ -91,10 +91,13 @@ Uma nota só pode ser importada quando todos os itens estiverem revisados. A
 importação grava `importada_em` em UTC. Depois disso, a nota e os cadastros que
 alterariam seus dados históricos ficam imutáveis.
 
-## SQLite
+## Persistência, SQLAlchemy e Alembic
 
 O banco padrão fica em `backend/data/notas.sqlite3`, independentemente da pasta
-de onde o processo foi iniciado. A pasta é criada automaticamente.
+de onde o processo foi iniciado. A pasta é criada automaticamente. O acesso aos
+dados usa SQLAlchemy 2, com entidades declarativas tipadas por `Mapped` e
+`mapped_column`. Os repositories não confirmam transações: cada service abre a
+sessão e controla `commit`/`rollback` por caso de uso com `sessionmaker`.
 
 As tabelas são `leituras`, `estabelecimentos`, `notas`, `itens`, `categorias`,
 `marcas`, `produtos`, `variacoes_produto`, `apresentacoes_produto` e
@@ -102,10 +105,19 @@ As tabelas são `leituras`, `estabelecimentos`, `notas`, `itens`, `categorias`,
 transacional, com chaves estrangeiras habilitadas. Notas são únicas por chave e
 estabelecimentos por CNPJ.
 
-`PRAGMA user_version=4` identifica a estrutura atual. Ao migrar da estrutura 3,
-o backend mantém os catálogos, estabelecimentos e somente as notas ainda na
-situação `lida`. Revisões e importações anteriores são removidas para permitir a
-adoção segura do novo modelo de quantidades e variações.
+O Alembic é a única fonte de criação e evolução do schema. Esta refatoração parte
+de um banco vazio e possui uma migration inicial (`0001`). Para aplicar as
+migrations manualmente, dentro de `backend/`, execute:
+
+```bash
+alembic upgrade head
+```
+
+Para criar uma nova revisão depois de alterar as entidades:
+
+```bash
+alembic revision --autogenerate -m "descricao da alteracao"
+```
 
 ## CLI preservada
 
@@ -128,9 +140,12 @@ reconsulta a SEFAZ ao ser repetida; a API aplica o comportamento idempotente.
 - `cli.py`: entrada da ferramenta de terminal.
 - `src/api/`: aplicação FastAPI, rotas, dependências, erros e contratos Pydantic.
 - `src/core/`: configuração, versão e exceções compartilhadas.
-- `src/models/`: entidades e enumerações, com uma classe por arquivo.
+- `src/models/`: modelos de domínio e enumerações, independentes do banco.
 - `src/services/`: consulta, extração, catálogos, revisão e classificação.
-- `src/persistence/`: conexão, migrações, esquema SQL e repositórios.
+- `src/persistence/entities/`: entidades SQLAlchemy, uma classe por arquivo.
+- `src/persistence/repositories/`: repositories SQLAlchemy por entidade.
+- `src/persistence/migrations/`: ambiente e revisões do Alembic.
+- `src/persistence/banco_sqlite.py`: engine, `sessionmaker` e inicialização do schema.
 - `src/presentation/`: CLI, terminal e serialização JSON.
 - `tests/`: testes locais sem acesso à rede.
 

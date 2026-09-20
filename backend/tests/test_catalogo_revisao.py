@@ -132,45 +132,23 @@ class CatalogoRevisaoApiTests(unittest.TestCase):
 
 
 class MigracaoTests(unittest.TestCase):
-    def test_migracao_preserva_apenas_notas_lidas_e_catalogos(self):
+    def test_migracao_inicial_cria_schema_e_pode_ser_reexecutada(self):
         with tempfile.TemporaryDirectory() as temporario:
-            caminho = Path(temporario) / "v3.sqlite3"
+            caminho = Path(temporario) / "novo.sqlite3"
+            banco = BancoSQLite(caminho)
+            banco.inicializar()
             with closing(sqlite3.connect(caminho)) as conexao:
-                conexao.executescript(
-                    """
-                    CREATE TABLE estabelecimentos (id TEXT PRIMARY KEY, cnpj TEXT, razao_social TEXT, apelido TEXT);
-                    CREATE TABLE categorias (id TEXT PRIMARY KEY, nome TEXT);
-                    CREATE TABLE marcas (id TEXT PRIMARY KEY, nome TEXT);
-                    CREATE TABLE produtos (id TEXT PRIMARY KEY, nome TEXT, categoria_id TEXT, unidade_base TEXT, nao_solicitar_marca INTEGER);
-                    CREATE TABLE apresentacoes_produto (id TEXT PRIMARY KEY, produto_id TEXT, marca_id TEXT);
-                    CREATE TABLE notas (id TEXT PRIMARY KEY, chave TEXT, numero TEXT, serie TEXT, estabelecimento_id TEXT, emissao TEXT, quantidade_itens INTEGER, valor_total TEXT, desconto TEXT, valor_a_pagar TEXT, url_origem TEXT, situacao TEXT, importada_em TEXT);
-                    CREATE TABLE itens (id TEXT PRIMARY KEY, nota_id TEXT, numero INTEGER, codigo TEXT, descricao_original TEXT, quantidade TEXT, unidade_original TEXT, valor_unitario TEXT, valor_total TEXT, alertas TEXT, apresentacao_id TEXT, unidade_corrigida TEXT, quantidade_normalizada TEXT, revisado INTEGER);
-                    CREATE TABLE leituras (id TEXT PRIMARY KEY, chave TEXT, url TEXT, nota_id TEXT, erro_consulta TEXT, criada_em TEXT);
-                    CREATE TABLE associacoes_produto (id TEXT PRIMARY KEY, estabelecimento_id TEXT, codigo_item TEXT, descricao_original TEXT, descricao_normalizada TEXT, apresentacao_id TEXT, unidade_corrigida TEXT, fator_normalizacao TEXT, UNIQUE(estabelecimento_id, codigo_item));
-                    INSERT INTO estabelecimentos VALUES ('e', '1', 'Loja', NULL);
-                    INSERT INTO categorias VALUES ('c', 'Alimentação');
-                    INSERT INTO produtos VALUES ('p-un', 'Ovos', 'c', 'UN', 1);
-                    INSERT INTO produtos VALUES ('p-kg', 'Arroz', 'c', 'KG', 0);
-                    INSERT INTO notas VALUES ('n1', 'lida', '1', '1', 'e', '2026-01-01', 1, '1', '0', '1', 'url', 'lida', NULL);
-                    INSERT INTO notas VALUES ('n2', 'revisao', '2', '1', 'e', '2026-01-01', 1, '1', '0', '1', 'url', 'em_revisao', NULL);
-                    INSERT INTO notas VALUES ('n3', 'importada', '3', '1', 'e', '2026-01-01', 1, '1', '0', '1', 'url', 'importada', '2026-01-02');
-                    INSERT INTO itens VALUES ('i1', 'n1', 1, '1', 'Item', '1', 'UN', '1', '1', '[]', NULL, NULL, NULL, 0);
-                    INSERT INTO itens VALUES ('i2', 'n2', 1, '1', 'Item', '1', 'UN', '1', '1', '[]', NULL, NULL, NULL, 0);
-                    INSERT INTO itens VALUES ('i3', 'n3', 1, '1', 'Item', '1', 'UN', '1', '1', '[]', NULL, NULL, NULL, 0);
-                    INSERT INTO leituras VALUES ('l1', 'lida', 'url', 'n1', NULL, '2026-01-01');
-                    INSERT INTO leituras VALUES ('l2', 'revisao', 'url', 'n2', NULL, '2026-01-01');
-                    INSERT INTO leituras VALUES ('l3', 'importada', 'url', 'n3', NULL, '2026-01-01');
-                    PRAGMA user_version = 3;
-                    """
+                self.assertEqual(
+                    conexao.execute("SELECT version_num FROM alembic_version").fetchone(),
+                    ("0001",),
                 )
-            BancoSQLite(caminho).inicializar()
-            with closing(sqlite3.connect(caminho)) as conexao:
-                self.assertEqual(conexao.execute("PRAGMA user_version").fetchone()[0], 4)
-                self.assertEqual(conexao.execute("SELECT chave FROM notas").fetchall(), [("lida",)])
-                self.assertEqual(conexao.execute("SELECT nota_id FROM leituras").fetchall(), [("n1",)])
-                self.assertEqual(conexao.execute("SELECT revisado, quantidade_confirmada FROM itens").fetchone(), (0, None))
-                produtos = conexao.execute("SELECT id, tratar_apenas_como_unidades, unidade_medida FROM produtos ORDER BY id").fetchall()
-                self.assertEqual(produtos, [("p-kg", 0, "KG"), ("p-un", 1, None)])
+                tabelas = {
+                    linha[0]
+                    for linha in conexao.execute(
+                        "SELECT name FROM sqlite_master WHERE type = 'table'"
+                    )
+                }
+                self.assertTrue({"notas", "itens", "categorias"}.issubset(tabelas))
 
 
 if __name__ == "__main__":

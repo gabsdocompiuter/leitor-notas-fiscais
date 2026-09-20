@@ -9,7 +9,7 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-COPY main.py cli.py ./
+COPY main.py cli.py alembic.ini ./
 COPY src ./src
 RUN mkdir -p /app/data
 

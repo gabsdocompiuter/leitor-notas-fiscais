@@ -3,9 +3,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path
 
 from ...core.exceptions import NaoEncontrado
-from ...persistence.repositorio_notas import RepositorioNotas
 from ...services.servico_leitura_notas import ServicoLeituraNotas
-from ..dependencies import obter_repositorio, obter_servico_leitura
+from ...services.servico_notas import ServicoNotas
+from ..dependencies import obter_servico_leitura, obter_servico_notas
 from ..schemas.erro_response import ErroResponse
 from ..schemas.leitura_request import LeituraRequest
 from ..schemas.leitura_response import LeituraResponse
@@ -40,9 +40,9 @@ def criar_leitura(
 )
 def obter_leitura(
     chave: Chave,
-    repositorio: Annotated[RepositorioNotas, Depends(obter_repositorio)],
+    servico: Annotated[ServicoNotas, Depends(obter_servico_notas)],
 ) -> LeituraResponse:
-    leitura = repositorio.obter_leitura_por_chave(chave)
+    leitura = servico.obter_leitura_por_chave(chave)
     if leitura is None:
         raise NaoEncontrado("Leitura não encontrada.")
     return LeituraResponse.from_entity(leitura)

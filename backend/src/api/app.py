@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -6,12 +7,10 @@ from fastapi import FastAPI
 from ..core.config import CAMINHO_BANCO
 from ..core.version import __version__
 from ..persistence.banco_sqlite import BancoSQLite
-from ..persistence.repositorio_catalogo import RepositorioCatalogo
-from ..persistence.repositorio_notas import RepositorioNotas
-from ..persistence.repositorio_revisao import RepositorioRevisao
 from ..services.consulta import consultar_nota
 from ..services.servico_catalogo import ServicoCatalogo
 from ..services.servico_leitura_notas import ServicoLeituraNotas
+from ..services.servico_notas import ServicoNotas
 from ..services.servico_revisao_notas import ServicoRevisaoNotas
 from .exception_handlers import registrar_tratadores
 from .routers import (
@@ -32,6 +31,13 @@ def criar_app(
     caminho_banco: str | Path = CAMINHO_BANCO,
     consultar: Callable[[str], bytes] = consultar_nota,
 ) -> FastAPI:
+    banco = BancoSQLite(caminho_banco)
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        yield
+        banco.fechar()
+
     app = FastAPI(
         title="Leitor de notas fiscais",
         summary="Leitura e consulta de NFC-e para revisão posterior.",
@@ -41,6 +47,7 @@ def criar_app(
             "confirma sua importação para o dashboard."
         ),
         version=__version__,
+        lifespan=lifespan,
         docs_url="/docs",
         redoc_url="/redoc",
         openapi_url="/openapi.json",
@@ -51,17 +58,15 @@ def criar_app(
             {"name": "Catálogos", "description": "Categorias, marcas e produtos reutilizáveis."},
         ],
     )
-    banco = BancoSQLite(caminho_banco)
-    repositorio = RepositorioNotas(banco)
-    repositorio_catalogo = RepositorioCatalogo(banco)
-    repositorio_revisao = RepositorioRevisao(banco, repositorio)
-    servico_catalogo = ServicoCatalogo(repositorio_catalogo)
-    servico_revisao = ServicoRevisaoNotas(repositorio_revisao)
-    app.state.repositorio_notas = repositorio
+    servico_notas = ServicoNotas(banco.session_factory)
+    servico_catalogo = ServicoCatalogo(banco.session_factory)
+    servico_revisao = ServicoRevisaoNotas(banco.session_factory)
+    app.state.banco = banco
+    app.state.servico_notas = servico_notas
     app.state.servico_catalogo = servico_catalogo
     app.state.servico_revisao_notas = servico_revisao
     app.state.servico_leitura_notas = ServicoLeituraNotas(
-        repositorio, consultar, servico_revisao
+        banco.session_factory, consultar, servico_revisao
     )
     registrar_tratadores(app)
     app.include_router(health.router)

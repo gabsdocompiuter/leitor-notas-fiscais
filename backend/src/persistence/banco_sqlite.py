@@ -3,15 +3,53 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import create_engine, event
+from sqlalchemy.pool import NullPool
+from sqlalchemy.orm import Session, sessionmaker
+
 from ..core.exceptions import ErroPersistencia
 
 
 class BancoSQLite:
+    """Configura o engine, as sessões e a execução das migrations do SQLite."""
+
     def __init__(self, caminho: str | Path):
         self.caminho = Path(caminho).resolve()
+        self.caminho.parent.mkdir(parents=True, exist_ok=True)
+        self.engine = create_engine(
+            f"sqlite:///{self.caminho.as_posix()}",
+            connect_args={"timeout": 30, "check_same_thread": False},
+            poolclass=NullPool,
+        )
+        event.listen(self.engine, "connect", self._configurar_conexao)
+        self.session_factory = sessionmaker(
+            bind=self.engine, class_=Session, expire_on_commit=False
+        )
+        self.inicializar()
+
+    @staticmethod
+    def _configurar_conexao(conexao: sqlite3.Connection, _: object) -> None:
+        cursor = conexao.cursor()
+        cursor.execute("PRAGMA foreign_keys = ON")
+        cursor.close()
+
+    def inicializar(self) -> None:
+        """Atualiza um banco vazio até a revisão mais recente do Alembic."""
+        configuracao = Config(str(Path(__file__).resolve().parents[2] / "alembic.ini"))
+        configuracao.set_main_option(
+            "script_location", str(Path(__file__).with_name("migrations"))
+        )
+        configuracao.set_main_option("sqlalchemy.url", f"sqlite:///{self.caminho.as_posix()}")
+        try:
+            command.upgrade(configuracao, "head")
+        except Exception as erro:
+            raise ErroPersistencia(f"Falha ao migrar o SQLite: {erro}") from erro
 
     @contextmanager
     def conectar(self) -> Iterator[sqlite3.Connection]:
+        """Acesso DB-API mantido apenas para diagnósticos e compatibilidade."""
         conexao = None
         try:
             conexao = sqlite3.connect(self.caminho, timeout=30)
@@ -25,29 +63,5 @@ class BancoSQLite:
             if conexao is not None:
                 conexao.close()
 
-    def inicializar(self) -> None:
-        self.caminho.parent.mkdir(parents=True, exist_ok=True)
-        with self.conectar() as conexao:
-            versao = conexao.execute("PRAGMA user_version").fetchone()[0]
-            if versao == 0:
-                schema = Path(__file__).with_name("schema.sql").read_text(encoding="utf-8")
-                conexao.executescript(schema)
-            elif versao == 1:
-                migracao = Path(__file__).with_name("migration_1_to_2.sql").read_text(
-                    encoding="utf-8"
-                )
-                conexao.executescript(migracao)
-                versao = 2
-            if versao == 2:
-                migracao = Path(__file__).with_name("migration_2_to_3.sql").read_text(
-                    encoding="utf-8"
-                )
-                conexao.executescript(migracao)
-                versao = 3
-            if versao == 3:
-                migracao = Path(__file__).with_name("migration_3_to_4.sql").read_text(
-                    encoding="utf-8"
-                )
-                conexao.executescript(migracao)
-            elif versao not in (0, 4):
-                raise ErroPersistencia(f"Versão de estrutura SQLite não suportada: {versao}.")
+    def fechar(self) -> None:
+        self.engine.dispose()
