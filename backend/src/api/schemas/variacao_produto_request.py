@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field
 
-from ...models.unidade_medida import UnidadeMedida
+from ...enums.unidade_medida import UnidadeMedida
 
 
 class VariacaoProdutoRequest(BaseModel):

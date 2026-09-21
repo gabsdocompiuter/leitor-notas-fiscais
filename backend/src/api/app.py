@@ -6,12 +6,16 @@ from fastapi import FastAPI
 
 from ..core.config import CAMINHO_BANCO
 from ..core.version import __version__
-from ..persistence.banco_sqlite import BancoSQLite
-from ..services.consulta import consultar_nota
-from ..services.servico_catalogo import ServicoCatalogo
-from ..services.servico_leitura_notas import ServicoLeituraNotas
-from ..services.servico_notas import ServicoNotas
-from ..services.servico_revisao_notas import ServicoRevisaoNotas
+from ..core.persistence.banco_sqlite import BancoSQLite
+from ..services.categoria_service import CategoriaService
+from ..services.consulta_service import ConsultaService
+from ..services.estabelecimento_service import EstabelecimentoService
+from ..services.leitura_nota_service import LeituraNotaService
+from ..services.marca_service import MarcaService
+from ..services.nota_service import NotaService
+from ..services.produto_service import ProdutoService
+from ..services.revisao_nota_service import RevisaoNotaService
+from ..services.variacao_produto_service import VariacaoProdutoService
 from .exception_handlers import registrar_tratadores
 from .routers import (
     categorias,
@@ -29,7 +33,7 @@ from .routers import (
 
 def criar_app(
     caminho_banco: str | Path = CAMINHO_BANCO,
-    consultar: Callable[[str], bytes] = consultar_nota,
+    consultar: Callable[[str], bytes] = ConsultaService.consultar_nota,
 ) -> FastAPI:
     banco = BancoSQLite(caminho_banco)
 
@@ -58,15 +62,18 @@ def criar_app(
             {"name": "Catálogos", "description": "Categorias, marcas e produtos reutilizáveis."},
         ],
     )
-    servico_notas = ServicoNotas(banco.session_factory)
-    servico_catalogo = ServicoCatalogo(banco.session_factory)
-    servico_revisao = ServicoRevisaoNotas(banco.session_factory)
+    nota_service = NotaService(banco.session_factory)
+    revisao_service = RevisaoNotaService(banco.session_factory)
     app.state.banco = banco
-    app.state.servico_notas = servico_notas
-    app.state.servico_catalogo = servico_catalogo
-    app.state.servico_revisao_notas = servico_revisao
-    app.state.servico_leitura_notas = ServicoLeituraNotas(
-        banco.session_factory, consultar, servico_revisao
+    app.state.nota_service = nota_service
+    app.state.categoria_service = CategoriaService(banco.session_factory)
+    app.state.marca_service = MarcaService(banco.session_factory)
+    app.state.produto_service = ProdutoService(banco.session_factory)
+    app.state.variacao_produto_service = VariacaoProdutoService(banco.session_factory)
+    app.state.estabelecimento_service = EstabelecimentoService(banco.session_factory)
+    app.state.revisao_nota_service = revisao_service
+    app.state.leitura_nota_service = LeituraNotaService(
+        banco.session_factory, consultar, revisao_service
     )
     registrar_tratadores(app)
     app.include_router(health.router)

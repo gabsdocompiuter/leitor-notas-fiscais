@@ -1,26 +1,29 @@
-import io
-import json
 import tempfile
 import unittest
-from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import asdict
 from decimal import Decimal
 from pathlib import Path
-from unittest.mock import patch
 
-from src.core.exceptions import ErroConsulta, ErroPersistencia
-from src.models.apresentacao_produto import ApresentacaoProduto
-from src.models.categoria import Categoria
-from src.models.marca import Marca
-from src.models.produto import Produto
-from src.models.situacao_nota import SituacaoNota
-from src.models.unidade_medida import UnidadeMedida
-from src.persistence.banco_sqlite import BancoSQLite
-from src.persistence.repositorio_notas import RepositorioNotas
-from src.presentation.cli import main
-from src.services.leitura import extrair_nota
-from src.services.qrcode import extrair_chave
+from src.core.exceptions import ErroPersistencia
+from src.core.persistence.banco_sqlite import BancoSQLite
+from src.dtos.apresentacao_produto_dto import ApresentacaoProdutoDTO
+from src.dtos.categoria_dto import CategoriaDTO
+from src.dtos.marca_dto import MarcaDTO
+from src.dtos.produto_dto import ProdutoDTO
+from src.enums.situacao_nota import SituacaoNota
+from src.enums.unidade_medida import UnidadeMedida
+from src.services.leitura_nota_service import LeituraNotaService
+from src.services.leitura_service import LeituraService
+from src.services.nota_service import NotaService
+from src.services.qrcode_service import QRCodeService
 from test_leitura import HTML, URL_TESTE
+
+ApresentacaoProduto = ApresentacaoProdutoDTO
+Categoria = CategoriaDTO
+Marca = MarcaDTO
+Produto = ProdutoDTO
+extrair_nota = LeituraService.extrair_nota
+extrair_chave = QRCodeService.extrair_chave
 
 
 class PersistenciaTests(unittest.TestCase):
@@ -29,16 +32,18 @@ class PersistenciaTests(unittest.TestCase):
         self.addCleanup(self.temporario.cleanup)
         self.caminho = Path(self.temporario.name) / "dados" / "notas.sqlite3"
         self.banco = BancoSQLite(self.caminho)
-        self.repo = RepositorioNotas(self.banco)
+        self.repo = NotaService(self.banco.session_factory)
+        self.leituras = LeituraNotaService(self.banco.session_factory)
 
     def nova_nota(self):
         return extrair_nota(HTML, URL_TESTE)
 
     def test_persiste_e_reabre_sem_perder_ids_decimais_ou_situacao(self):
         nota = self.nova_nota()
-        leitura = self.repo.registrar_leitura(URL_TESTE, nota.chave)
+        leitura = self.leituras.registrar_leitura(URL_TESTE, nota.chave)
         salva = self.repo.salvar(nota, leitura.id)
-        outro_repo = RepositorioNotas(BancoSQLite(self.caminho))
+        outro_banco = BancoSQLite(self.caminho)
+        outro_repo = NotaService(outro_banco.session_factory)
         recuperada = outro_repo.obter_por_chave(nota.chave)
         self.assertEqual(asdict(nota), asdict(salva))
         self.assertEqual(asdict(salva), asdict(recuperada))
@@ -89,7 +94,7 @@ class PersistenciaTests(unittest.TestCase):
     def test_leitura_errada_desfaz_a_transacao(self):
         nota = self.nova_nota()
         url_errada = URL_TESTE.replace("432609", "432608")
-        leitura = self.repo.registrar_leitura(url_errada, extrair_chave(url_errada))
+        leitura = self.leituras.registrar_leitura(url_errada, extrair_chave(url_errada))
         with self.assertRaisesRegex(ErroPersistencia, "não corresponde"):
             self.repo.salvar(nota, leitura.id)
         self.assertIsNone(self.repo.obter_por_chave(nota.chave))
@@ -103,47 +108,15 @@ class PersistenciaTests(unittest.TestCase):
 
     def test_registro_de_erro_e_retentativa_preservam_captura(self):
         chave = extrair_chave(URL_TESTE)
-        leitura = self.repo.registrar_leitura(URL_TESTE, chave)
+        leitura = self.leituras.registrar_leitura(URL_TESTE, chave)
         self.repo.registrar_erro(leitura.id, "Indisponível")
-        tentativa = self.repo.registrar_leitura(URL_TESTE.replace("|", "%7C"), chave)
+        tentativa = self.leituras.registrar_leitura(URL_TESTE.replace("|", "%7C"), chave)
         self.assertEqual(tentativa.id, leitura.id)
         self.assertEqual(tentativa.erro_consulta, "Indisponível")
         self.repo.salvar(self.nova_nota(), tentativa.id)
         final = self.repo.obter_leitura_por_chave(chave)
         self.assertIsNone(final.erro_consulta)
         self.assertIsNotNone(final.nota)
-
-    def test_cli_grava_antes_da_exportacao_json_e_repeticao_reutiliza_ids(self):
-        arquivo = Path(self.temporario.name) / "nota.json"
-        args = ["main.py", "--banco", str(self.caminho), "--json", str(arquivo)]
-        resultados = []
-        for _ in range(2):
-            with patch("sys.argv", args), patch("src.presentation.cli.consultar_nota", return_value=HTML.encode()), redirect_stdout(io.StringIO()):
-                self.assertEqual(main(), 0)
-            resultados.append(json.loads(arquivo.read_text(encoding="utf-8")))
-        self.assertEqual(resultados[0], resultados[1])
-        self.assertEqual(next(iter(resultados[0])), "id")
-        nota = self.repo.obter_por_chave(extrair_chave(URL_TESTE))
-        self.assertEqual(resultados[0]["id"], str(nota.id))
-
-    def test_cli_mantem_link_e_erro_quando_sefaz_falha(self):
-        with patch("sys.argv", ["main.py", "--banco", str(self.caminho)]), \
-                patch("src.presentation.cli.consultar_nota", side_effect=ErroConsulta("Fora do ar")), \
-                redirect_stderr(io.StringIO()):
-            self.assertEqual(main(), 1)
-        leitura = self.repo.obter_leitura_por_chave(extrair_chave(URL_TESTE))
-        self.assertEqual(leitura.url, URL_TESTE)
-        self.assertEqual(leitura.erro_consulta, "Fora do ar")
-        self.assertIsNone(leitura.nota)
-
-    def test_cli_nao_salva_nota_parcial_quando_html_falha(self):
-        with patch("sys.argv", ["main.py", "--banco", str(self.caminho)]), \
-                patch("src.presentation.cli.consultar_nota", return_value=b"<h1>Indisponivel</h1>"), \
-                redirect_stderr(io.StringIO()):
-            self.assertEqual(main(), 1)
-        leitura = self.repo.obter_leitura_por_chave(extrair_chave(URL_TESTE))
-        self.assertIsNone(leitura.nota)
-        self.assertIn("tabela", leitura.erro_consulta)
 
     def test_banco_ativa_chaves_estrangeiras(self):
         with self.banco.conectar() as conexao:

@@ -2,7 +2,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from ...models.estabelecimento import Estabelecimento
+from ...dtos.estabelecimento_dto import EstabelecimentoDTO
 
 
 class EstabelecimentoResponse(BaseModel):
@@ -13,7 +13,7 @@ class EstabelecimentoResponse(BaseModel):
     nome_exibicao: str
 
     @classmethod
-    def from_entity(cls, estabelecimento: Estabelecimento) -> "EstabelecimentoResponse":
+    def from_entity(cls, estabelecimento: EstabelecimentoDTO) -> "EstabelecimentoResponse":
         return cls(
             id=estabelecimento.id,
             cnpj=estabelecimento.cnpj,

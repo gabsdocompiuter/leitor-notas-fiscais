@@ -4,18 +4,27 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from src.models.apresentacao_produto import ApresentacaoProduto
-from src.models.associacao_produto import AssociacaoProduto
-from src.models.categoria import Categoria
-from src.models.estabelecimento import Estabelecimento
-from src.models.leitura_nota import LeituraNota
-from src.models.marca import Marca
-from src.models.produto import Produto
-from src.models.situacao_nota import SituacaoNota
-from src.models.unidade_medida import UnidadeMedida
-from src.presentation.serializacao import serializar
-from src.services.leitura import extrair_nota
+from src.dtos.apresentacao_produto_dto import ApresentacaoProdutoDTO
+from src.dtos.associacao_produto_dto import AssociacaoProdutoDTO
+from src.dtos.categoria_dto import CategoriaDTO
+from src.dtos.estabelecimento_dto import EstabelecimentoDTO
+from src.dtos.leitura_nota_dto import LeituraNotaDTO
+from src.dtos.marca_dto import MarcaDTO
+from src.dtos.produto_dto import ProdutoDTO
+from src.enums.situacao_nota import SituacaoNota
+from src.enums.unidade_medida import UnidadeMedida
+from src.core.utils import serializar
+from src.services.leitura_service import LeituraService
 from test_leitura import HTML, URL_TESTE
+
+ApresentacaoProduto = ApresentacaoProdutoDTO
+AssociacaoProduto = AssociacaoProdutoDTO
+Categoria = CategoriaDTO
+Estabelecimento = EstabelecimentoDTO
+LeituraNota = LeituraNotaDTO
+Marca = MarcaDTO
+Produto = ProdutoDTO
+extrair_nota = LeituraService.extrair_nota
 
 
 class EntidadesTests(unittest.TestCase):

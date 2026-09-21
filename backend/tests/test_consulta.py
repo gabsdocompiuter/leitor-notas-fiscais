@@ -2,10 +2,14 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from src.core.exceptions import ErroConsulta, ErroLeitura
-from src.services.consulta import consultar_nota
-from src.services.leitura import extrair_nota
-from src.services.qrcode import extrair_chave
+from src.services.consulta_service import ConsultaService
+from src.services.leitura_service import LeituraService
+from src.services.qrcode_service import QRCodeService
 from test_leitura import HTML, URL_TESTE
+
+consultar_nota = ConsultaService.consultar_nota
+extrair_nota = LeituraService.extrair_nota
+extrair_chave = QRCodeService.extrair_chave
 
 
 class ConsultaTests(unittest.TestCase):
@@ -13,7 +17,7 @@ class ConsultaTests(unittest.TestCase):
         outra_url = URL_TESTE.replace("432609", "432608").replace("|", "%7C")
         resposta = MagicMock()
         resposta.__enter__.return_value.read.return_value = b"<html>nota</html>"
-        with patch("src.services.consulta.urlopen", return_value=resposta) as abrir:
+        with patch("src.services.consulta_service.urlopen", return_value=resposta) as abrir:
             self.assertEqual(consultar_nota(outra_url), b"<html>nota</html>")
         requisicao = abrir.call_args.args[0]
         self.assertEqual(requisicao.full_url, outra_url)
@@ -45,7 +49,7 @@ class ConsultaTests(unittest.TestCase):
             URL_TESTE.replace(".br/", ".br:1234/"),
             URL_TESTE.replace("https://", "https://usuario:senha@"),
         ]
-        with patch("src.services.consulta.urlopen") as abrir:
+        with patch("src.services.consulta_service.urlopen") as abrir:
             for url in invalidas:
                 with self.subTest(url=url), self.assertRaises(ErroConsulta):
                     consultar_nota(url)

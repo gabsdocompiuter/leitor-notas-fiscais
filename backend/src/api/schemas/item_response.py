@@ -2,7 +2,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from ...models.item import Item
+from ...dtos.item_dto import ItemDTO
 from .apresentacao_produto_response import ApresentacaoProdutoResponse
 from .variacao_produto_response import VariacaoProdutoResponse
 
@@ -23,7 +23,7 @@ class ItemResponse(BaseModel):
     revisado: bool
 
     @classmethod
-    def from_entity(cls, item: Item) -> "ItemResponse":
+    def from_entity(cls, item: ItemDTO) -> "ItemResponse":
         return cls(
             id=item.id,
             numero=item.numero,

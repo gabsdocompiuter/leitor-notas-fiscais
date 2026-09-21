@@ -3,15 +3,15 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
 
-from ...services.servico_catalogo import ServicoCatalogo
-from ..dependencies import obter_servico_catalogo
+from ...services.marca_service import MarcaService
+from ..dependencies import obter_marca_service
 from ..schemas.erro_response import ErroResponse
 from ..schemas.marca_request import MarcaRequest
 from ..schemas.marca_response import MarcaResponse
 
 
 router = APIRouter(prefix="/marcas", tags=["Catálogos"])
-Servico = Annotated[ServicoCatalogo, Depends(obter_servico_catalogo)]
+Servico = Annotated[MarcaService, Depends(obter_marca_service)]
 
 
 @router.get("", response_model=list[MarcaResponse], summary="Listar marcas")
@@ -19,7 +19,7 @@ def listar_marcas(
     servico: Servico,
     busca: Annotated[str | None, Query(max_length=100)] = None,
 ) -> list[MarcaResponse]:
-    return [MarcaResponse.from_entity(item) for item in servico.listar_marcas(busca)]
+    return [MarcaResponse.from_entity(item) for item in servico.listar(busca)]
 
 
 @router.post(
@@ -29,7 +29,7 @@ def listar_marcas(
     summary="Criar marca",
 )
 def criar_marca(entrada: MarcaRequest, servico: Servico) -> MarcaResponse:
-    return MarcaResponse.from_entity(servico.criar_marca(entrada.nome))
+    return MarcaResponse.from_entity(servico.criar(entrada.nome))
 
 
 @router.get(
@@ -39,7 +39,7 @@ def criar_marca(entrada: MarcaRequest, servico: Servico) -> MarcaResponse:
     summary="Consultar marca",
 )
 def obter_marca(marca_id: UUID, servico: Servico) -> MarcaResponse:
-    return MarcaResponse.from_entity(servico.obter_marca(marca_id))
+    return MarcaResponse.from_entity(servico.obter(marca_id))
 
 
 @router.patch(
@@ -51,4 +51,4 @@ def obter_marca(marca_id: UUID, servico: Servico) -> MarcaResponse:
 def atualizar_marca(
     marca_id: UUID, entrada: MarcaRequest, servico: Servico
 ) -> MarcaResponse:
-    return MarcaResponse.from_entity(servico.atualizar_marca(marca_id, entrada.nome))
+    return MarcaResponse.from_entity(servico.atualizar(marca_id, entrada.nome))

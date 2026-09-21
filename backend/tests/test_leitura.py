@@ -4,8 +4,11 @@ from decimal import Decimal
 from datetime import datetime
 
 from src.core.exceptions import ErroLeitura
-from src.services.leitura import extrair_nota, numero_br
-from src.presentation.serializacao import serializar
+from src.services.leitura_service import LeituraService
+from src.core.utils import serializar
+
+extrair_nota = LeituraService.extrair_nota
+numero_br = LeituraService.numero_br
 
 
 URL_TESTE = (

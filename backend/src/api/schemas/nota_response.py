@@ -3,8 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from ...models.nota import Nota
-from ...models.situacao_nota import SituacaoNota
+from ...dtos.nota_dto import NotaDTO
+from ...enums.situacao_nota import SituacaoNota
 from .estabelecimento_response import EstabelecimentoResponse
 from .item_response import ItemResponse
 
@@ -26,7 +26,7 @@ class NotaResponse(BaseModel):
     importada_em: datetime | None
 
     @classmethod
-    def from_entity(cls, nota: Nota) -> "NotaResponse":
+    def from_entity(cls, nota: NotaDTO) -> "NotaResponse":
         return cls(
             id=nota.id,
             chave=nota.chave,

@@ -3,15 +3,15 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
 
-from ...services.servico_catalogo import ServicoCatalogo
-from ..dependencies import obter_servico_catalogo
+from ...services.produto_service import ProdutoService
+from ..dependencies import obter_produto_service
 from ..schemas.erro_response import ErroResponse
 from ..schemas.produto_request import ProdutoRequest
 from ..schemas.produto_response import ProdutoResponse
 
 
 router = APIRouter(prefix="/produtos", tags=["Catálogos"])
-Servico = Annotated[ServicoCatalogo, Depends(obter_servico_catalogo)]
+Servico = Annotated[ProdutoService, Depends(obter_produto_service)]
 
 
 @router.get("", response_model=list[ProdutoResponse], summary="Listar produtos")
@@ -22,7 +22,7 @@ def listar_produtos(
 ) -> list[ProdutoResponse]:
     return [
         ProdutoResponse.from_entity(item)
-        for item in servico.listar_produtos(busca, categoria_id)
+        for item in servico.listar(busca, categoria_id)
     ]
 
 
@@ -35,7 +35,7 @@ def listar_produtos(
 )
 def criar_produto(entrada: ProdutoRequest, servico: Servico) -> ProdutoResponse:
     return ProdutoResponse.from_entity(
-        servico.criar_produto(
+        servico.criar(
             entrada.nome,
             entrada.categoria_id,
             entrada.nao_solicitar_marca,
@@ -53,7 +53,7 @@ def criar_produto(entrada: ProdutoRequest, servico: Servico) -> ProdutoResponse:
     summary="Consultar produto",
 )
 def obter_produto(produto_id: UUID, servico: Servico) -> ProdutoResponse:
-    return ProdutoResponse.from_entity(servico.obter_produto(produto_id))
+    return ProdutoResponse.from_entity(servico.obter(produto_id))
 
 
 @router.patch(
@@ -66,7 +66,7 @@ def atualizar_produto(
     produto_id: UUID, entrada: ProdutoRequest, servico: Servico
 ) -> ProdutoResponse:
     return ProdutoResponse.from_entity(
-        servico.atualizar_produto(
+        servico.atualizar(
             produto_id,
             entrada.nome,
             entrada.categoria_id,

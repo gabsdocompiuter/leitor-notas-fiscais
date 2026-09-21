@@ -2,7 +2,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
 
-from ...models.unidade_medida import UnidadeMedida
+from ...enums.unidade_medida import UnidadeMedida
 
 
 class ProdutoRequest(BaseModel):

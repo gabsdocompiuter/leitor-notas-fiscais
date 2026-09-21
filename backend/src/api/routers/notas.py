@@ -4,10 +4,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Path, Query
 
 from ...core.exceptions import NaoEncontrado
-from ...models.situacao_nota import SituacaoNota
-from ...services.servico_notas import ServicoNotas
-from ...services.servico_revisao_notas import ServicoRevisaoNotas
-from ..dependencies import obter_servico_notas, obter_servico_revisao
+from ...enums.situacao_nota import SituacaoNota
+from ...services.nota_service import NotaService
+from ...services.revisao_nota_service import RevisaoNotaService
+from ..dependencies import obter_nota_service, obter_revisao_nota_service
 from ..schemas.erro_response import ErroResponse
 from ..schemas.nota_response import NotaResponse
 from ..schemas.revisao_item_request import RevisaoItemRequest
@@ -19,7 +19,7 @@ Chave = Annotated[str, Path(pattern=r"^\d{44}$", description="Chave de acesso da
 
 @router.get("", response_model=list[NotaResponse], summary="Listar notas lidas")
 def listar_notas(
-    servico: Annotated[ServicoNotas, Depends(obter_servico_notas)],
+    servico: Annotated[NotaService, Depends(obter_nota_service)],
     situacao: Annotated[SituacaoNota | None, Query(description="Filtrar pela situação")] = None,
     limite: Annotated[int, Query(ge=1, le=100)] = 50,
     deslocamento: Annotated[int, Query(ge=0)] = 0,
@@ -38,7 +38,7 @@ def listar_notas(
 )
 def obter_nota(
     chave: Chave,
-    servico: Annotated[ServicoNotas, Depends(obter_servico_notas)],
+    servico: Annotated[NotaService, Depends(obter_nota_service)],
 ) -> NotaResponse:
     nota = servico.obter_por_chave(chave)
     if nota is None:
@@ -60,7 +60,7 @@ def revisar_item(
     chave: Chave,
     item_id: UUID,
     entrada: RevisaoItemRequest,
-    servico: Annotated[ServicoRevisaoNotas, Depends(obter_servico_revisao)],
+    servico: Annotated[RevisaoNotaService, Depends(obter_revisao_nota_service)],
 ) -> NotaResponse:
     nota = servico.revisar_item(
         chave,
@@ -84,6 +84,6 @@ def revisar_item(
 )
 def concluir_importacao(
     chave: Chave,
-    servico: Annotated[ServicoRevisaoNotas, Depends(obter_servico_revisao)],
+    servico: Annotated[RevisaoNotaService, Depends(obter_revisao_nota_service)],
 ) -> NotaResponse:
     return NotaResponse.from_entity(servico.concluir_importacao(chave))

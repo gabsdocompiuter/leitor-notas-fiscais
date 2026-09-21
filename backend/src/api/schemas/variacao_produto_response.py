@@ -2,8 +2,8 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from ...models.unidade_medida import UnidadeMedida
-from ...models.variacao_produto import VariacaoProduto
+from ...enums.unidade_medida import UnidadeMedida
+from ...dtos.variacao_produto_dto import VariacaoProdutoDTO
 
 
 class VariacaoProdutoResponse(BaseModel):
@@ -15,7 +15,7 @@ class VariacaoProdutoResponse(BaseModel):
     nome_exibicao: str
 
     @classmethod
-    def from_entity(cls, variacao: VariacaoProduto) -> "VariacaoProdutoResponse":
+    def from_entity(cls, variacao: VariacaoProdutoDTO) -> "VariacaoProdutoResponse":
         return cls(
             id=variacao.id,
             produto_id=variacao.produto.id,

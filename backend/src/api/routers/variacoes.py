@@ -3,15 +3,15 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
 
-from ...services.servico_catalogo import ServicoCatalogo
-from ..dependencies import obter_servico_catalogo
+from ...services.variacao_produto_service import VariacaoProdutoService
+from ..dependencies import obter_variacao_produto_service
 from ..schemas.erro_response import ErroResponse
 from ..schemas.variacao_produto_request import VariacaoProdutoRequest
 from ..schemas.variacao_produto_response import VariacaoProdutoResponse
 
 
 router = APIRouter(tags=["Catálogos"])
-Servico = Annotated[ServicoCatalogo, Depends(obter_servico_catalogo)]
+Servico = Annotated[VariacaoProdutoService, Depends(obter_variacao_produto_service)]
 
 
 @router.get(
@@ -22,7 +22,7 @@ Servico = Annotated[ServicoCatalogo, Depends(obter_servico_catalogo)]
 def listar_variacoes(produto_id: UUID, servico: Servico) -> list[VariacaoProdutoResponse]:
     return [
         VariacaoProdutoResponse.from_entity(item)
-        for item in servico.listar_variacoes(produto_id)
+        for item in servico.listar(produto_id)
     ]
 
 
@@ -37,7 +37,7 @@ def criar_variacao(
     produto_id: UUID, entrada: VariacaoProdutoRequest, servico: Servico
 ) -> VariacaoProdutoResponse:
     return VariacaoProdutoResponse.from_entity(
-        servico.criar_variacao(
+        servico.criar(
             produto_id, entrada.quantidade, entrada.unidade_medida, entrada.descricao
         )
     )
@@ -53,7 +53,7 @@ def atualizar_variacao(
     variacao_id: UUID, entrada: VariacaoProdutoRequest, servico: Servico
 ) -> VariacaoProdutoResponse:
     return VariacaoProdutoResponse.from_entity(
-        servico.atualizar_variacao(
+        servico.atualizar(
             variacao_id, entrada.quantidade, entrada.unidade_medida, entrada.descricao
         )
     )

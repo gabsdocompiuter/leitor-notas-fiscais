@@ -3,15 +3,15 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 
-from ...services.servico_catalogo import ServicoCatalogo
-from ..dependencies import obter_servico_catalogo
+from ...services.estabelecimento_service import EstabelecimentoService
+from ..dependencies import obter_estabelecimento_service
 from ..schemas.erro_response import ErroResponse
 from ..schemas.estabelecimento_request import EstabelecimentoRequest
 from ..schemas.estabelecimento_response import EstabelecimentoResponse
 
 
 router = APIRouter(prefix="/estabelecimentos", tags=["Catálogos"])
-Servico = Annotated[ServicoCatalogo, Depends(obter_servico_catalogo)]
+Servico = Annotated[EstabelecimentoService, Depends(obter_estabelecimento_service)]
 
 
 @router.get("", response_model=list[EstabelecimentoResponse], summary="Listar estabelecimentos")
@@ -21,7 +21,7 @@ def listar_estabelecimentos(
 ) -> list[EstabelecimentoResponse]:
     return [
         EstabelecimentoResponse.from_entity(item)
-        for item in servico.listar_estabelecimentos(busca)
+        for item in servico.listar(busca)
     ]
 
 
@@ -35,7 +35,7 @@ def obter_estabelecimento(
     estabelecimento_id: UUID, servico: Servico
 ) -> EstabelecimentoResponse:
     return EstabelecimentoResponse.from_entity(
-        servico.obter_estabelecimento(estabelecimento_id)
+        servico.obter(estabelecimento_id)
     )
 
 
@@ -49,5 +49,5 @@ def atualizar_estabelecimento(
     estabelecimento_id: UUID, entrada: EstabelecimentoRequest, servico: Servico
 ) -> EstabelecimentoResponse:
     return EstabelecimentoResponse.from_entity(
-        servico.atualizar_apelido_estabelecimento(estabelecimento_id, entrada.apelido)
+        servico.atualizar_apelido(estabelecimento_id, entrada.apelido)
     )

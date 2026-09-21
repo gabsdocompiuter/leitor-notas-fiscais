@@ -1,4 +1,4 @@
-"""Configuração: URL de exemplo usada somente pela CLI e limite da resposta."""
+"""Configurações compartilhadas da API e da consulta à SEFAZ."""
 
 from pathlib import Path
 

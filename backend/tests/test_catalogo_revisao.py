@@ -7,7 +7,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from src.api.app import criar_app
-from src.persistence.banco_sqlite import BancoSQLite
+from src.core.persistence.banco_sqlite import BancoSQLite
 from tests.test_leitura import HTML, URL_TESTE
 
 CHAVE = "43260907718633007868650080002005971056148317"

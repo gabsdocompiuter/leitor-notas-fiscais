@@ -28,6 +28,14 @@ As versões só são alteradas por solicitação explícita do usuário.
 
 - A persistência deixa de usar SQL manual e passa a usar a API ORM do SQLAlchemy.
 - As migrations SQL legadas e o controle por `PRAGMA user_version` foram removidos.
+- DTOs, entidades, repositories e services passam a seguir nomes e diretórios
+  explícitos por responsabilidade.
+- Os services de catálogo foram separados por entidade.
+
+### Removido
+
+- CLI e camada `presentation`, mantendo os utilitários reutilizáveis em `core/utils.py`.
+- Adaptador legado `RepositorioNotas`.
 
 - A revisão passa a confirmar somente a quantidade e, quando aplicável, a variação.
 - Produtos por unidade e com variações exigem quantidades inteiras.

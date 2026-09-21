@@ -2,7 +2,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from ...models.categoria import Categoria
+from ...dtos.categoria_dto import CategoriaDTO
 
 
 class CategoriaResponse(BaseModel):
@@ -10,5 +10,5 @@ class CategoriaResponse(BaseModel):
     nome: str
 
     @classmethod
-    def from_entity(cls, categoria: Categoria) -> "CategoriaResponse":
+    def from_entity(cls, categoria: CategoriaDTO) -> "CategoriaResponse":
         return cls(id=categoria.id, nome=categoria.nome)

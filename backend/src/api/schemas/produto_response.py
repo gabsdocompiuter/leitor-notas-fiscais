@@ -2,8 +2,8 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from ...models.produto import Produto
-from ...models.unidade_medida import UnidadeMedida
+from ...dtos.produto_dto import ProdutoDTO
+from ...enums.unidade_medida import UnidadeMedida
 from .categoria_response import CategoriaResponse
 
 
@@ -17,7 +17,7 @@ class ProdutoResponse(BaseModel):
     unidade_medida: UnidadeMedida | None
 
     @classmethod
-    def from_entity(cls, produto: Produto) -> "ProdutoResponse":
+    def from_entity(cls, produto: ProdutoDTO) -> "ProdutoResponse":
         return cls(
             id=produto.id,
             nome=produto.nome,

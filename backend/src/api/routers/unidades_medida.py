@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from ...models.unidade_medida import UnidadeMedida
+from ...enums.unidade_medida import UnidadeMedida
 from ..schemas.unidade_medida_response import UnidadeMedidaResponse
 
 

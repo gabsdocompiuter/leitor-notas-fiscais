@@ -119,34 +119,17 @@ Para criar uma nova revisão depois de alterar as entidades:
 alembic revision --autogenerate -m "descricao da alteracao"
 ```
 
-## CLI preservada
-
-A ferramenta anterior continua disponível em `cli.py`:
-
-```bash
-python cli.py --url "URL_DO_QR_CODE" --json nota.json
-python cli.py --url "URL_DO_QR_CODE" --salvar-html pagina.html --json nota.json
-python cli.py --url "URL_DO_QR_CODE" --html pagina.html --json nota.json
-python cli.py --banco /caminho/notas.sqlite3 --json nota.json
-python cli.py --version
-```
-
-Sem `--url`, a CLI usa a URL de exemplo de `src/core/config.py`. A CLI ainda
-reconsulta a SEFAZ ao ser repetida; a API aplica o comportamento idempotente.
-
 ## Organização
 
 - `main.py`: entrada da API e objeto ASGI `app`.
-- `cli.py`: entrada da ferramenta de terminal.
 - `src/api/`: aplicação FastAPI, rotas, dependências, erros e contratos Pydantic.
-- `src/core/`: configuração, versão e exceções compartilhadas.
-- `src/models/`: modelos de domínio e enumerações, independentes do banco.
-- `src/services/`: consulta, extração, catálogos, revisão e classificação.
-- `src/persistence/entities/`: entidades SQLAlchemy, uma classe por arquivo.
-- `src/persistence/repositories/`: repositories SQLAlchemy por entidade.
-- `src/persistence/migrations/`: ambiente e revisões do Alembic.
-- `src/persistence/banco_sqlite.py`: engine, `sessionmaker` e inicialização do schema.
-- `src/presentation/`: CLI, terminal e serialização JSON.
+- `src/core/`: configurações, utilitários e exceções compartilhadas.
+- `src/core/persistence/`: engine, `sessionmaker`, tipos e migrations do Alembic.
+- `src/dtos/`: DTOs usados entre services e apresentação HTTP.
+- `src/entities/`: entidades SQLAlchemy, uma classe por arquivo.
+- `src/enums/`: enumerações compartilhadas pelo domínio e pelo ORM.
+- `src/repositories/`: repositories SQLAlchemy, um para cada entidade.
+- `src/services/`: regras e transações, com um service exclusivo por entidade.
 - `tests/`: testes locais sem acesso à rede.
 
 ## Testes
@@ -156,7 +139,7 @@ python -m unittest discover -s tests -v
 ```
 
 Os testes cobrem OpenAPI, catálogos, revisão, importação, classificação
-automática, migração do SQLite, leitura idempotente, extração, persistência e CLI.
+automática, migração do SQLite, leitura idempotente, extração e persistência.
 
 O workspace em `../postman/` possui requisições organizadas para todos os
 endpoints. Preencha as variáveis de IDs da collection com os valores retornados
@@ -165,8 +148,7 @@ pelas operações de criação e leitura.
 ## Versionamento
 
 A versão atual do backend é **0.2.0**, definida somente em
-`src/core/version.py`. Consulte-a pela API em `/version` ou pela CLI com
-`python cli.py --version`.
+`src/core/version.py`. Consulte-a pela API em `/version`.
 
 A versão só deve ser alterada quando o usuário solicitar explicitamente. Mudanças
 posteriores ficam em **Não lançado** no `CHANGELOG.md` até nova autorização.

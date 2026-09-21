@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from ...models.unidade_medida import UnidadeMedida
+from ...enums.unidade_medida import UnidadeMedida
 
 
 class UnidadeMedidaResponse(BaseModel):

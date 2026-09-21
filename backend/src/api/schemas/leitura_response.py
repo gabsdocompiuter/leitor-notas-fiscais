@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from ...models.leitura_nota import LeituraNota
+from ...dtos.leitura_nota_dto import LeituraNotaDTO
 from .nota_response import NotaResponse
 
 
@@ -15,7 +15,7 @@ class LeituraResponse(BaseModel):
     criada_em: datetime
 
     @classmethod
-    def from_entity(cls, leitura: LeituraNota) -> "LeituraResponse":
+    def from_entity(cls, leitura: LeituraNotaDTO) -> "LeituraResponse":
         return cls(
             id=leitura.id,
             url=leitura.url,

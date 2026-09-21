@@ -3,9 +3,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path
 
 from ...core.exceptions import NaoEncontrado
-from ...services.servico_leitura_notas import ServicoLeituraNotas
-from ...services.servico_notas import ServicoNotas
-from ..dependencies import obter_servico_leitura, obter_servico_notas
+from ...services.leitura_nota_service import LeituraNotaService
+from ...services.nota_service import NotaService
+from ..dependencies import obter_leitura_nota_service, obter_nota_service
 from ..schemas.erro_response import ErroResponse
 from ..schemas.leitura_request import LeituraRequest
 from ..schemas.leitura_response import LeituraResponse
@@ -27,7 +27,7 @@ Chave = Annotated[str, Path(pattern=r"^\d{44}$", description="Chave de acesso da
 )
 def criar_leitura(
     entrada: LeituraRequest,
-    servico: Annotated[ServicoLeituraNotas, Depends(obter_servico_leitura)],
+    servico: Annotated[LeituraNotaService, Depends(obter_leitura_nota_service)],
 ) -> LeituraResponse:
     return LeituraResponse.from_entity(servico.ler(entrada.url))
 
@@ -40,7 +40,7 @@ def criar_leitura(
 )
 def obter_leitura(
     chave: Chave,
-    servico: Annotated[ServicoNotas, Depends(obter_servico_notas)],
+    servico: Annotated[NotaService, Depends(obter_nota_service)],
 ) -> LeituraResponse:
     leitura = servico.obter_leitura_por_chave(chave)
     if leitura is None:

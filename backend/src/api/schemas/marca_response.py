@@ -2,7 +2,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from ...models.marca import Marca
+from ...dtos.marca_dto import MarcaDTO
 
 
 class MarcaResponse(BaseModel):
@@ -10,5 +10,5 @@ class MarcaResponse(BaseModel):
     nome: str
 
     @classmethod
-    def from_entity(cls, marca: Marca) -> "MarcaResponse":
+    def from_entity(cls, marca: MarcaDTO) -> "MarcaResponse":
         return cls(id=marca.id, nome=marca.nome)

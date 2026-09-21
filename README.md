@@ -9,8 +9,7 @@ Ler uma nota não significa importá-la. O fluxo da aplicação é: leitura do Q
 ```text
 backend/
   main.py            # API FastAPI
-  cli.py             # Ferramenta de terminal
-  src/               # API, modelos, serviços e persistência
+  src/               # API, DTOs, entidades, repositories, services e infraestrutura
   tests/             # Testes sem acesso à rede
   data/              # Banco SQLite local
   README.md          # Execução e contratos da API
