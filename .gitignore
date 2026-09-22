@@ -11,6 +11,7 @@ dist/
 coverage/
 
 # Configuracao e dados locais
+.npmrc
 .env
 .env.*
 !.env.example
