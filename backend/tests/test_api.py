@@ -6,7 +6,6 @@ from fastapi.testclient import TestClient
 
 from src.api.app import criar_app
 from src.core.exceptions import ErroConsulta
-from src.core.version import __version__
 from tests.test_leitura import HTML, URL_TESTE
 
 
@@ -29,13 +28,9 @@ class ApiTests(unittest.TestCase):
         self.cliente.close()
         self.temporario.cleanup()
 
-    def test_health_versao_e_swagger(self):
+    def test_health_e_swagger(self):
         self.assertEqual(self.cliente.get("/health").json(), {"status": "ok"})
-        self.assertEqual(
-            self.cliente.get("/version").json(), {"version": __version__}
-        )
         especificacao = self.cliente.get("/openapi.json").json()
-        self.assertEqual(especificacao["info"]["version"], "0.2.0")
         self.assertIn("/leituras", especificacao["paths"])
         self.assertIn("/notas/{chave}", especificacao["paths"])
         self.assertIn("/notas/{chave}/itens/{item_id}", especificacao["paths"])

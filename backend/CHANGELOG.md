@@ -46,6 +46,12 @@ As versões só são alteradas por solicitação explícita do usuário.
 - Notas importadas e seus cadastros relacionados não podem mais ser alterados.
 - O workspace Postman agora inclui os catálogos, a revisão e a importação.
 
+## 1.0.1 — 2026-09-22
+
+### Corrigido
+
+- Leitura de NFC-e sem desconto quando a SVRS omite a linha de valor total.
+
 ## 0.2.0 — 2026-09-10
 
 ### API

@@ -27,7 +27,7 @@ postman/
 docker-compose.yml   # Orquestra frontend, backend e Nginx
 ```
 
-## Backend 0.2.0
+## Backend 1.0.1
 
 Dentro de `backend/`:
 

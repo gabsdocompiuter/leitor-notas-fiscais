@@ -100,7 +100,13 @@ def extrair_nota(html: bytes | str, url: str) -> NotaDTO:
     if not quantidade_texto.isdigit():
         raise ErroLeitura("A quantidade total de itens não é um inteiro.")
     quantidade = int(quantidade_texto)
-    bruto = dinheiro(total("Valor total R$"))
+    bruto_texto = totais.get("valor total r$")
+    if bruto_texto is None:
+        if "descontos r$" in totais:
+            raise ErroLeitura("Total não encontrado: Valor total R$")
+        # A SVRS pode omitir o valor total quando não há desconto.
+        bruto_texto = total("Valor a pagar R$")
+    bruto = dinheiro(bruto_texto)
     desconto = dinheiro(totais.get("descontos r$", "0,00"))
     liquido = dinheiro(total("Valor a pagar R$"))
     if not itens or quantidade != len(itens):

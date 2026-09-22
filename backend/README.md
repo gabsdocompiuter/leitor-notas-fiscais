@@ -32,7 +32,7 @@ Para recarregar o servidor automaticamente durante o desenvolvimento:
 uvicorn main:app --host 0.0.0.0 --port 8008 --reload
 ```
 
-## Endpoints da versão 0.2.0
+## Endpoints da versão 1.0.1
 
 | Método | Caminho | Função |
 | --- | --- | --- |
@@ -147,7 +147,7 @@ pelas operações de criação e leitura.
 
 ## Versionamento
 
-A versão atual do backend é **0.2.0**, definida somente em
+A versão atual do backend é **1.0.1**, definida somente em
 `src/core/version.py`. Consulte-a pela API em `/version`.
 
 A versão só deve ser alterada quando o usuário solicitar explicitamente. Mudanças

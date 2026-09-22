@@ -88,6 +88,27 @@ class LeituraTests(unittest.TestCase):
         ).replace("35,68", "38,28")
         self.assertEqual(extrair_nota(sem_desconto, URL_TESTE).desconto, Decimal("0.00"))
 
+    def test_aceita_nota_sem_desconto_e_sem_valor_total(self):
+        sem_desconto = HTML.replace(
+            '<div id="linhaTotal"><label>Valor total R$:</label><span>38,28</span></div>', ""
+        ).replace(
+            '<div id="linhaTotal"><label>Descontos R$:</label><span>2,60</span></div>', ""
+        ).replace("35,68", "38,28")
+        nota = extrair_nota(sem_desconto, URL_TESTE)
+        self.assertEqual(nota.valor_total, Decimal("38.28"))
+        self.assertEqual(nota.desconto, Decimal("0.00"))
+        self.assertEqual(nota.valor_a_pagar, Decimal("38.28"))
+
+        with self.assertRaisesRegex(ErroLeitura, "soma dos itens"):
+            extrair_nota(sem_desconto.replace("27,80", "27,81"), URL_TESTE)
+
+    def test_rejeita_valor_total_ausente_com_desconto(self):
+        sem_total = HTML.replace(
+            '<div id="linhaTotal"><label>Valor total R$:</label><span>38,28</span></div>', ""
+        )
+        with self.assertRaisesRegex(ErroLeitura, "Total não encontrado: Valor total"):
+            extrair_nota(sem_total, URL_TESTE)
+
     def test_rejeita_resposta_de_outra_nota(self):
         with self.assertRaisesRegex(ErroLeitura, "chave retornada"):
             extrair_nota(HTML.replace("8317</span>", "8318</span>"), URL_TESTE)
