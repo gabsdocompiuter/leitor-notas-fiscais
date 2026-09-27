@@ -26,6 +26,8 @@ A API escuta em todas as interfaces na porta 8008. Na própria máquina, abra:
 - OpenAPI: `http://localhost:8008/openapi.json`
 - Estado da API: `http://localhost:8008/health`
 
+Copie `.env.example` para `.env` na raiz do diretório `backend`. A aplicação Python carrega esse arquivo diretamente ao iniciar. `CORS_ALLOWED_ORIGINS` aceita uma lista de origens separada por vírgulas.
+
 Para recarregar o servidor automaticamente durante o desenvolvimento:
 
 ```bash

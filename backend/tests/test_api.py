@@ -21,7 +21,11 @@ class ApiTests(unittest.TestCase):
             self.consultas += 1
             return HTML.encode("utf-8")
 
-        app = criar_app(Path(self.temporario.name) / "notas.sqlite3", consultar)
+        app = criar_app(
+            Path(self.temporario.name) / "notas.sqlite3",
+            consultar,
+            ["http://localhost:4200"],
+        )
         self.cliente = TestClient(app)
 
     def tearDown(self):
@@ -42,6 +46,21 @@ class ApiTests(unittest.TestCase):
         swagger = self.cliente.get("/docs")
         self.assertEqual(swagger.status_code, 200)
         self.assertIn("Swagger UI", swagger.text)
+
+    def test_cors_permite_frontend_local(self):
+        resposta = self.cliente.options(
+            "/health",
+            headers={
+                "Origin": "http://localhost:4200",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+
+        self.assertEqual(resposta.status_code, 200)
+        self.assertEqual(
+            resposta.headers["access-control-allow-origin"],
+            "http://localhost:4200",
+        )
 
     def test_leitura_salva_e_reutiliza_nota_sem_nova_consulta(self):
         primeira = self.cliente.post("/leituras", json={"url": URL_TESTE})

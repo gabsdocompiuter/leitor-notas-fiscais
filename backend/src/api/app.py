@@ -3,8 +3,9 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from ..core.config import CAMINHO_BANCO
+from ..core.config import CAMINHO_BANCO, ORIGENS_CORS
 from ..core.version import __version__
 from ..core.persistence.banco_sqlite import BancoSQLite
 from ..services.categoria_service import CategoriaService
@@ -34,6 +35,7 @@ from .routers import (
 def criar_app(
     caminho_banco: str | Path = CAMINHO_BANCO,
     consultar: Callable[[str], bytes] = ConsultaService.consultar_nota,
+    origens_cors: list[str] = ORIGENS_CORS,
 ) -> FastAPI:
     banco = BancoSQLite(caminho_banco)
 
@@ -61,6 +63,13 @@ def criar_app(
             {"name": "Notas", "description": "Notas já lidas e salvas no SQLite."},
             {"name": "Catálogos", "description": "Categorias, marcas e produtos reutilizáveis."},
         ],
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origens_cors,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
     nota_service = NotaService(banco.session_factory)
     revisao_service = RevisaoNotaService(banco.session_factory)
