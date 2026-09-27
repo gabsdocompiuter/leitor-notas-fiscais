@@ -52,7 +52,7 @@ npm install
 npm start
 ```
 
-Acesse `http://localhost:4200`. O proxy de desenvolvimento encaminha `/api` para o backend na porta 8008.
+Acesse `http://localhost:4200`. O ambiente local do Angular chama diretamente o backend na porta 8008. Para usar o proxy de desenvolvimento com a URL relativa `/api`, execute `npm run start:proxy`.
 
 ## Executar com Docker Compose
 
@@ -64,7 +64,7 @@ docker compose up --build -d
 
 Acesse `http://localhost:8080`. Somente o container `nginx` publica uma porta no servidor. O Nginx encaminha `/` para o frontend e remove o prefixo `/api` antes de encaminhar as chamadas ao backend.
 
-O banco permanece em `backend/data/notas.sqlite3` por meio de um bind mount. Para escolher outra porta pública, copie `.env.example` para `.env` e altere `APP_PORT`.
+O banco permanece em `backend/data/notas.sqlite3` por meio de um bind mount. Copie `.env.example` para `.env` para configurar a porta pública. Antes de iniciar os containers, copie também `backend/.env.example` para `backend/.env`. Esse arquivo é montado como somente leitura em `/app/.env` e carregado diretamente pela aplicação Python.
 
 ```bash
 docker compose ps

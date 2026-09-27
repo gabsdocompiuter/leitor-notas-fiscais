@@ -19,13 +19,17 @@ npm install
 npm start
 ```
 
-Acesse `http://localhost:4200`. O servidor de desenvolvimento encaminha chamadas de `/api` para `http://localhost:8008` conforme `proxy.conf.json`.
+Acesse `http://localhost:4200`. A configuração `local` usa `src/environments/environment.local.ts` e chama o backend diretamente em `http://localhost:8008`.
+
+Para executar com o proxy de desenvolvimento e a URL relativa `/api`, use `npm run start:proxy`.
 
 Para acessar por outro dispositivo da rede:
 
 ```powershell
 npm run start:network
 ```
+
+Esse comando mantém o proxy `/api`, pois `localhost` no arquivo de ambiente apontaria para o próprio dispositivo que abriu a aplicação.
 
 Para usar a câmera pelo Android via HTTP, cadastre exatamente a origem do servidor, incluindo a porta, como segura na [configuração experimental do Chrome](chrome://flags/#unsafely-treat-insecure-origin-as-secure) e reinicie o navegador.
 
@@ -48,6 +52,7 @@ O dashboard mensal será implementado depois da definição dos endpoints de tot
 ```bash
 npm start
 npm run start:network
+npm run start:proxy
 npm test
 npm run build
 ```

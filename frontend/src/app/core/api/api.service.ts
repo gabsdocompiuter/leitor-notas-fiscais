@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
+import { environment } from '../../../environments/environment';
 import {
   Categoria,
   Estabelecimento,
@@ -20,7 +21,7 @@ import {
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api';
+  private readonly baseUrl = environment.apiUrl;
 
   listarNotas(situacao?: SituacaoNota): Observable<Nota[]> {
     const params = situacao ? new HttpParams().set('situacao', situacao) : undefined;
