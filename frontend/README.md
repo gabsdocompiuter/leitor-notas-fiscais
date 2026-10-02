@@ -35,7 +35,7 @@ Para usar a câmera pelo Android via HTTP, cadastre exatamente a origem do servi
 
 ## Funcionalidades
 
-- Lista e filtro de notas lidas, em revisão e importadas.
+- Lista e filtro de notas aguardando revisão, em revisão e importadas.
 - Leitura do QR Code pela câmera com `@zxing/browser`.
 - Campo alternativo para colar o conteúdo do QR Code.
 - Revisão de produto, marca quando exigida, quantidade e variação de peso ou volume.
@@ -43,7 +43,7 @@ Para usar a câmera pelo Android via HTTP, cadastre exatamente a origem do servi
 - Cadastros rápidos de categorias, marcas e produtos.
 - Alertas e progresso da revisão.
 - Importação liberada somente depois da revisão de todos os itens.
-- Consulta somente leitura de notas importadas.
+- Consulta e ajuste individual dos itens de notas importadas.
 
 O dashboard mensal será implementado depois da definição dos endpoints de totalização no backend.
 

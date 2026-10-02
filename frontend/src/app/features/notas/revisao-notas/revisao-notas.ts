@@ -1,12 +1,19 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormBuilder,
+  FormGroup,
+  FormsModule,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 
 import { ApiService } from '../../../core/api/api.service';
 import {
   Categoria,
+  Estabelecimento,
   ItemNota,
   Marca,
   Nota,
@@ -31,6 +38,7 @@ type TipoModal = 'produto' | 'marca' | 'variacao';
   imports: [
     CurrencyPipe,
     DatePipe,
+    FormsModule,
     ReactiveFormsModule,
     RouterLink,
     EstadoVazio,
@@ -57,11 +65,17 @@ export class RevisaoNotas implements OnInit {
   readonly erro = signal<string | null>(null);
   readonly sucesso = signal<string | null>(null);
   readonly itemSalvando = signal<string | null>(null);
+  readonly itemEditando = signal<string | null>(null);
   readonly importando = signal(false);
   readonly modalAberto = signal(false);
   readonly tipoModal = signal<TipoModal>('produto');
   readonly itemModal = signal<ItemNota | null>(null);
   readonly buscaInicialModal = signal('');
+  readonly modalEstabelecimentoAberto = signal(false);
+  readonly salvandoEstabelecimento = signal(false);
+  readonly erroEstabelecimento = signal<string | null>(null);
+
+  apelidoEstabelecimento = '';
 
   ngOnInit(): void {
     this.carregar();
@@ -134,9 +148,26 @@ export class RevisaoNotas implements OnInit {
       'Selecionar variação'
     );
   }
+  itemEstaEmEdicao(item: ItemNota): boolean {
+    return !item.revisado || this.itemEditando() === item.id;
+  }
+  editarItem(item: ItemNota): void {
+    if (!item.revisado || this.itemSalvando() !== null) return;
+    const itemAnterior = this.nota()?.itens.find((atual) => atual.id === this.itemEditando());
+    if (itemAnterior && itemAnterior.id !== item.id) {
+      const formularioAnterior = this.formularios.get(itemAnterior.id);
+      if (formularioAnterior) this.restaurarFormulario(itemAnterior, formularioAnterior);
+    }
+    this.itemEditando.set(item.id);
+  }
+  cancelarEdicao(item: ItemNota): void {
+    const form = this.formularios.get(item.id);
+    if (form) this.restaurarFormulario(item, form);
+    this.itemEditando.set(null);
+  }
   salvarItem(item: ItemNota): void {
     const form = this.formularios.get(item.id);
-    if (!form || this.nota()?.situacao === 'importada') return;
+    if (!form || !this.itemEstaEmEdicao(item)) return;
     form.markAllAsTouched();
     if (form.invalid) {
       this.erro.set('Revise os campos destacados antes de salvar o item.');
@@ -186,7 +217,7 @@ export class RevisaoNotas implements OnInit {
 
   abrirSeletor(tipo: TipoModal, item: ItemNota): void {
     const form = this.formularios.get(item.id);
-    if (!form || this.nota()?.situacao === 'importada') return;
+    if (!form || !this.itemEstaEmEdicao(item)) return;
     this.tipoModal.set(tipo);
     this.itemModal.set(item);
     this.buscaInicialModal.set(
@@ -208,6 +239,39 @@ export class RevisaoNotas implements OnInit {
     this.modalAberto.set(false);
     this.itemModal.set(null);
     document.body.classList.remove('modal-open');
+  }
+  abrirEdicaoEstabelecimento(): void {
+    const estabelecimento = this.nota()?.estabelecimento;
+    if (!estabelecimento) return;
+    this.apelidoEstabelecimento = estabelecimento.apelido ?? '';
+    this.erroEstabelecimento.set(null);
+    this.modalEstabelecimentoAberto.set(true);
+    document.body.classList.add('modal-open');
+  }
+  fecharEdicaoEstabelecimento(): void {
+    if (this.salvandoEstabelecimento()) return;
+    this.modalEstabelecimentoAberto.set(false);
+    document.body.classList.remove('modal-open');
+  }
+  salvarEstabelecimento(): void {
+    const estabelecimento = this.nota()?.estabelecimento;
+    if (!estabelecimento || this.salvandoEstabelecimento()) return;
+    this.salvandoEstabelecimento.set(true);
+    this.erroEstabelecimento.set(null);
+    this.api
+      .atualizarEstabelecimento(estabelecimento.id, this.apelidoEstabelecimento.trim() || null)
+      .subscribe({
+        next: (atualizado) => {
+          this.atualizarEstabelecimentoNaNota(atualizado);
+          this.salvandoEstabelecimento.set(false);
+          this.fecharEdicaoEstabelecimento();
+          this.sucesso.set('Apelido do estabelecimento atualizado.');
+        },
+        error: (erro) => {
+          this.salvandoEstabelecimento.set(false);
+          this.erroEstabelecimento.set(mensagemErro(erro));
+        },
+      });
   }
   selecionarProduto(produto: Produto): void {
     const item = this.itemModal();
@@ -256,23 +320,33 @@ export class RevisaoNotas implements OnInit {
 
   private definirNota(nota: Nota): void {
     this.nota.set(nota);
+    this.itemEditando.set(null);
     this.formularios.clear();
     nota.itens.forEach((item) => {
-      const produto = item.apresentacao?.produto ?? null;
       const form = this.fb.group({
-        produto_id: [produto?.id ?? '', Validators.required],
-        marca_id: [item.apresentacao?.marca?.id ?? (null as string | null)],
-        variacao_id: [item.variacao?.id ?? (null as string | null)],
-        quantidade_confirmada: [
-          this.numero(item.quantidade_confirmada),
-          [Validators.required, Validators.min(0.000001)],
-        ],
+        produto_id: ['', Validators.required],
+        marca_id: [null as string | null],
+        variacao_id: [null as string | null],
+        quantidade_confirmada: [null as number | null],
       });
-      this.configurarCamposProduto(form, produto, item.apresentacao?.marca?.id ?? null);
-      if (item.quantidade_confirmada === null && produto)
-        this.preencherQuantidade(item, form, produto);
+      this.restaurarFormulario(item, form);
       this.formularios.set(item.id, form);
     });
+  }
+  private restaurarFormulario(item: ItemNota, form: FormGroup): void {
+    const produto = item.apresentacao?.produto ?? null;
+    form.reset({
+      produto_id: produto?.id ?? '',
+      marca_id: item.apresentacao?.marca?.id ?? null,
+      variacao_id: item.variacao?.id ?? null,
+      quantidade_confirmada: this.numero(item.quantidade_confirmada),
+    });
+    this.configurarCamposProduto(form, produto, item.apresentacao?.marca?.id ?? null);
+    if (item.quantidade_confirmada === null && produto)
+      this.preencherQuantidade(item, form, produto);
+  }
+  private atualizarEstabelecimentoNaNota(estabelecimento: Estabelecimento): void {
+    this.nota.update((nota) => (nota ? { ...nota, estabelecimento } : nota));
   }
   private preencherQuantidade(item: ItemNota, form: FormGroup, produto: Produto): void {
     form.patchValue({

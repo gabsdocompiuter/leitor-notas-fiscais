@@ -144,7 +144,7 @@
             @if (editandoVariacao()) {
               <div class="card-body border-bottom">
                 <div class="row g-3">
-                  <div class="col-12 col-md-3">
+                  <div class="col-12 col-md-6">
                     <label class="form-label" for="quantidade-variacao">Quantidade</label>
                     <input
                       id="quantidade-variacao"
@@ -155,23 +155,13 @@
                       [(ngModel)]="variacaoQuantidade"
                     />
                   </div>
-                  <div class="col-12 col-md-3">
+                  <div class="col-12 col-md-6">
                     <label class="form-label" for="unidade-variacao">Unidade</label>
                     <select id="unidade-variacao" class="form-select" [(ngModel)]="variacaoUnidade">
                       @for (unidade of unidades(); track unidade.codigo) {
                         <option [ngValue]="unidade.codigo">{{ unidade.codigo }}</option>
                       }
                     </select>
-                  </div>
-                  <div class="col-12 col-md-6">
-                    <label class="form-label" for="descricao-variacao">Descrição</label>
-                    <input
-                      id="descricao-variacao"
-                      class="form-control"
-                      maxlength="150"
-                      placeholder="Descrição opcional"
-                      [(ngModel)]="variacaoDescricao"
-                    />
                   </div>
                   <div class="col-12 d-flex flex-wrap justify-content-end gap-2">
                     <button

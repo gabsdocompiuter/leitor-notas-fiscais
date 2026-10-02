@@ -31,6 +31,8 @@ As versões só são alteradas por solicitação explícita do usuário.
 - DTOs, entidades, repositories e services passam a seguir nomes e diretórios
   explícitos por responsabilidade.
 - Os services de catálogo foram separados por entidade.
+- Itens de notas importadas podem ser reclassificados sem alterar a situação ou
+  a data da importação, atualizando também sua associação automática.
 
 ### Removido
 
@@ -43,7 +45,8 @@ As versões só são alteradas por solicitação explícita do usuário.
 
 - A marca passa a ser obrigatória conforme a configuração do produto.
 - Remove confirmação de marca, conteúdo e unidade da embalagem dos itens.
-- Notas importadas e seus cadastros relacionados não podem mais ser alterados.
+- Cadastros relacionados a notas importadas não podem mais ser alterados.
+- O campo de descrição livre das variações foi removido da API e do banco.
 - O workspace Postman agora inclui os catálogos, a revisão e a importação.
 
 ## 1.0.1 — 2026-09-22

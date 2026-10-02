@@ -90,8 +90,10 @@ de maiúsculas, minúsculas e espaços. Descrições com classificações confli
 continuam pendentes.
 
 Uma nota só pode ser importada quando todos os itens estiverem revisados. A
-importação grava `importada_em` em UTC. Depois disso, a nota e os cadastros que
-alterariam seus dados históricos ficam imutáveis.
+importação grava `importada_em` em UTC. Depois disso, cada item ainda pode ser
+reclassificado sem alterar a situação nem a data da importação, e a associação
+usada nas notas futuras acompanha o ajuste. Cadastros referenciados por notas
+importadas continuam imutáveis.
 
 ## Persistência, SQLAlchemy e Alembic
 

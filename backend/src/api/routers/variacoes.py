@@ -37,9 +37,7 @@ def criar_variacao(
     produto_id: UUID, entrada: VariacaoProdutoRequest, servico: Servico
 ) -> VariacaoProdutoResponse:
     return VariacaoProdutoResponse.from_entity(
-        servico.criar(
-            produto_id, entrada.quantidade, entrada.unidade_medida, entrada.descricao
-        )
+        servico.criar(produto_id, entrada.quantidade, entrada.unidade_medida)
     )
 
 
@@ -53,7 +51,5 @@ def atualizar_variacao(
     variacao_id: UUID, entrada: VariacaoProdutoRequest, servico: Servico
 ) -> VariacaoProdutoResponse:
     return VariacaoProdutoResponse.from_entity(
-        servico.atualizar(
-            variacao_id, entrada.quantidade, entrada.unidade_medida, entrada.descricao
-        )
+        servico.atualizar(variacao_id, entrada.quantidade, entrada.unidade_medida)
     )

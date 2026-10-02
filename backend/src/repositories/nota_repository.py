@@ -180,7 +180,6 @@ class NotaRepository(BaseRepository[NotaEntity]):
             produto=self._obter_ou_adicionar_produto(modelo.produto),
             quantidade=modelo.quantidade,
             unidade_medida=modelo.unidade_medida,
-            descricao=modelo.descricao,
         )
         self.session.add(entidade)
         return entidade

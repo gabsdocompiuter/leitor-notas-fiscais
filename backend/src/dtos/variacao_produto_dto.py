@@ -12,8 +12,7 @@ class VariacaoProdutoDTO:
     produto: ProdutoDTO
     quantidade: Decimal
     unidade_medida: UnidadeMedida
-    descricao: str | None = None
 
     @property
     def nome_exibicao(self) -> str:
-        return self.descricao or f"{self.quantidade:g} {self.unidade_medida.value}"
+        return f"{self.quantidade:g} {self.unidade_medida.value}"

@@ -43,13 +43,26 @@
             {{ atual.situacao === 'importada' ? 'Nota importada' : 'Revisão da compra' }}
           </span>
 
-          <div class="d-flex flex-row align-items-center justify-content-between">
-            <div class="d-flex flex-column">
-              <h1 class="h2">{{ atual.estabelecimento.nome_exibicao }}</h1>
-              <p class="text-body-secondary mb-0">
+          <div class="d-flex flex-row align-items-center justify-content-between gap-2">
+            <div class="d-flex flex-column gap-2">
+              <div class="">
+                <span class="fs-2 fw-semibold">
+                {{ atual.estabelecimento.nome_exibicao }}
+                </span>
+
+                <i
+                  class="bi bi-pencil mb-2"
+                  aria-hidden="true"
+                  role="button"
+                  (click)="abrirEdicaoEstabelecimento()"
+                ></i>
+              </div>
+
+              <span class="text-body-secondary">
                 {{ atual.emissao | date: 'dd/MM/yyyy, HH:mm' }} · NFC-e {{ atual.numero }}
-              </p>
+              </span>
             </div>
+
             <div class="d-flex flex-column align-items-end">
               <strong class="text-primary fs-5">
                 {{ +atual.valor_a_pagar | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
@@ -57,43 +70,56 @@
               <span class="text-body-secondary small">Total pago</span>
             </div>
           </div>
-        </div>
 
-        <div class="mt-4">
-          <div class="d-flex justify-content-between small mb-2">
-            <span>
-              {{ atual.quantidade_itens - itensPendentes(atual) }} de
-              {{ atual.quantidade_itens }} itens revisados
-            </span>
-            <strong>
-              {{
-                atual.quantidade_itens
-                  ? (
-                      ((atual.quantidade_itens - itensPendentes(atual)) / atual.quantidade_itens) *
-                      100
-                    ).toFixed(0)
-                  : 0
-              }}%
-            </strong>
-          </div>
-          <div
-            class="progress"
-            role="progressbar"
-            aria-label="Progresso da revisão"
-            [attr.aria-valuenow]="atual.quantidade_itens - itensPendentes(atual)"
-            aria-valuemin="0"
-            [attr.aria-valuemax]="atual.quantidade_itens"
-          >
+          <div class="d-flex flex-column gap-1">
+            <div class="d-flex justify-content-between small ms-1">
+              <span>
+                {{ atual.quantidade_itens - itensPendentes(atual) }} de
+                {{ atual.quantidade_itens }} itens revisados
+              </span>
+              <strong>
+                {{
+                  atual.quantidade_itens
+                    ? (
+                        ((atual.quantidade_itens - itensPendentes(atual)) / atual.quantidade_itens) *
+                        100
+                      ).toFixed(0)
+                    : 0
+                }}%
+              </strong>
+            </div>
+
             <div
-              class="progress-bar"
-              [style.width.%]="
-                atual.quantidade_itens
-                  ? ((atual.quantidade_itens - itensPendentes(atual)) / atual.quantidade_itens) *
-                    100
-                  : 0
-              "
-            ></div>
+              class="progress"
+              role="progressbar"
+              aria-label="Progresso da revisão"
+              [attr.aria-valuenow]="atual.quantidade_itens - itensPendentes(atual)"
+              aria-valuemin="0"
+              [attr.aria-valuemax]="atual.quantidade_itens"
+            >
+              <div
+                class="progress-bar"
+                [style.width.%]="
+                  atual.quantidade_itens
+                    ? ((atual.quantidade_itens - itensPendentes(atual)) / atual.quantidade_itens) *
+                      100
+                    : 0
+                "
+              ></div>
+            </div>
+
+            <a
+              class="ms-1 link-underline link-underline-opacity-0 d-flex gap-2"
+              target="_blank"
+              rel="noopener noreferrer"
+              [href]="atual.url_origem"
+            >
+              <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+              Ver nota original na SEFAZ
+            </a>
           </div>
+
+
         </div>
       </div>
     </section>
@@ -120,24 +146,35 @@
             [class.border-warning]="!item.revisado"
           >
             <div class="card-body p-3 p-md-4">
-              <div class="overflow-hidden">
-
-                <div class="d-flex flex-wrap align-items-center gap-2">
-                  <h3 class="h6 mb-0">{{ item.descricao_original }}</h3>
-                  <span
-                    class="badge"
-                    [class.text-bg-success]="item.revisado"
-                    [class.text-bg-warning]="!item.revisado"
+              <div class="d-flex align-items-center gap-3">
+                @if (item.revisado && !itemEstaEmEdicao(item)) {
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-primary rounded-circle flex-shrink-0 d-inline-flex align-items-center justify-content-center"
+                    aria-label="Editar item"
+                    title="Editar item"
+                    (click)="editarItem(item)"
                   >
-                    {{ item.revisado ? 'Revisado' : 'Requer atenção' }}
-                  </span>
+                    <i class="bi bi-pencil" aria-hidden="true"></i>
+                  </button>
+                }
+                <div class="overflow-hidden">
+                  <div class="d-flex flex-wrap align-items-center gap-2">
+                    <h3 class="h6 mb-0">{{ item.descricao_original }}</h3>
+                    <span
+                      class="badge"
+                      [class.text-bg-success]="item.revisado"
+                      [class.text-bg-warning]="!item.revisado"
+                    >
+                      {{ item.revisado ? 'Revisado' : 'Requer atenção' }}
+                    </span>
+                  </div>
+                  <p class="text-body-secondary small mb-0 mt-1">
+                    {{ item.quantidade }} {{ item.unidade_original }} ×
+                    {{ +item.valor_unitario | currency: 'BRL' }} · Total
+                    {{ +item.valor_total | currency: 'BRL' }}
+                  </p>
                 </div>
-                <p class="text-body-secondary small mb-0 mt-1">
-                  {{ item.quantidade }} {{ item.unidade_original }} ×
-                  {{ +item.valor_unitario | currency: 'BRL' }} · Total
-                  {{ +item.valor_total | currency: 'BRL' }}
-                </p>
-
               </div>
 
               @if (item.alertas.length && !item.revisado) {
@@ -159,7 +196,7 @@
                     [class.is-invalid]="
                       formulario.get('produto_id')?.invalid && formulario.get('produto_id')?.touched
                     "
-                    [disabled]="atual.situacao === 'importada'"
+                    [disabled]="!itemEstaEmEdicao(item)"
                     (click)="abrirSeletor('produto', item)"
                   >
                     <span [class.text-body-secondary]="!nomeProdutoSelecionado(item.id)">
@@ -179,7 +216,7 @@
                       [class.is-invalid]="
                         formulario.get('marca_id')?.invalid && formulario.get('marca_id')?.touched
                       "
-                      [disabled]="atual.situacao === 'importada'"
+                      [disabled]="!itemEstaEmEdicao(item)"
                       (click)="abrirSeletor('marca', item)"
                     >
                       <span>{{ nomeMarcaSelecionada(item.id) }}</span>
@@ -199,7 +236,7 @@
                         formulario.get('variacao_id')?.invalid &&
                         formulario.get('variacao_id')?.touched
                       "
-                      [disabled]="atual.situacao === 'importada'"
+                      [disabled]="!itemEstaEmEdicao(item)"
                       (click)="abrirSeletor('variacao', item)"
                     >
                       <span>{{ nomeVariacaoSelecionada(item.id) }}</span>
@@ -220,7 +257,7 @@
                         min="0.000001"
                         [step]="passoQuantidade(item.id)"
                         formControlName="quantidade_confirmada"
-                        [attr.disabled]="atual.situacao === 'importada' ? true : null"
+                        [attr.disabled]="itemEstaEmEdicao(item) ? null : true"
                       />
                       <span class="input-group-text">{{ unidadeQuantidade(item.id) }}</span>
                     </div>
@@ -237,8 +274,18 @@
                   </div>
                 }
 
-                <div class="col-12 d-flex justify-content-end">
-                  @if (atual.situacao !== 'importada') {
+                <div class="col-12 d-flex flex-wrap justify-content-end gap-2">
+                  @if (item.revisado && itemEstaEmEdicao(item)) {
+                    <button
+                      class="btn btn-outline-secondary rounded-pill px-4"
+                      type="button"
+                      [disabled]="itemSalvando() !== null"
+                      (click)="cancelarEdicao(item)"
+                    >
+                      Cancelar
+                    </button>
+                  }
+                  @if (!item.revisado || itemEstaEmEdicao(item)) {
                     <button
                       class="btn btn-primary rounded-pill px-4"
                       type="submit"
@@ -274,7 +321,7 @@
             <p class="small text-body-secondary mb-0">
               {{
                 podeImportar(atual)
-                  ? 'Após importar, a nota ficará disponível somente para consulta.'
+                  ? 'Após importar, ainda será possível ajustar itens individualmente.'
                   : 'Confirme todos os itens para liberar a importação.'
               }}
             </p>
@@ -298,6 +345,75 @@
     }
   }
 </div>
+
+@if (modalEstabelecimentoAberto()) {
+  @let atual = nota()!;
+  <div
+    class="modal fade show d-block"
+    tabindex="-1"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="titulo-edicao-estabelecimento"
+    (mousedown)="fecharEdicaoEstabelecimento()"
+  >
+    <div class="modal-dialog modal-dialog-centered" (mousedown)="$event.stopPropagation()">
+      <section class="modal-content">
+        <header class="modal-header">
+          <div>
+            <h2 class="modal-title fs-5" id="titulo-edicao-estabelecimento">
+              Editar estabelecimento
+            </h2>
+            <p class="text-body-secondary small mb-0">{{ atual.estabelecimento.razao_social }}</p>
+            <p class="text-body-secondary small mb-0">CNPJ {{ atual.estabelecimento.cnpj }}</p>
+          </div>
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Fechar"
+            [disabled]="salvandoEstabelecimento()"
+            (click)="fecharEdicaoEstabelecimento()"
+          ></button>
+        </header>
+        <form (ngSubmit)="salvarEstabelecimento()">
+          <div class="modal-body">
+            @if (erroEstabelecimento()) {
+              <div class="alert alert-danger" role="alert">{{ erroEstabelecimento() }}</div>
+            }
+            <label class="form-label" for="apelido-estabelecimento">Apelido</label>
+            <input
+              id="apelido-estabelecimento"
+              class="form-control"
+              name="apelidoEstabelecimento"
+              maxlength="100"
+              placeholder="Use a razão social"
+              autofocus
+              [(ngModel)]="apelidoEstabelecimento"
+            />
+            <div class="form-text">Deixe vazio para voltar a exibir a razão social.</div>
+          </div>
+          <footer class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              [disabled]="salvandoEstabelecimento()"
+              (click)="fecharEdicaoEstabelecimento()"
+            >
+              Cancelar
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="salvandoEstabelecimento()">
+              @if (salvandoEstabelecimento()) {
+                <span class="spinner-border spinner-border-sm me-2"></span>Salvando...
+              } @else {
+                Salvar
+              }
+            </button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}
 
 @if (modalAberto()) {
   @if (tipoModal() === 'produto') {

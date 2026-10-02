@@ -10,7 +10,7 @@ export function todosItensRevisados(nota: Nota): boolean {
 
 export function rotuloSituacao(situacao: SituacaoNota): string {
   return {
-    lida: 'Lida',
+    lida: 'Aguardando revisão',
     em_revisao: 'Em revisão',
     importada: 'Importada',
   }[situacao];

@@ -41,7 +41,6 @@ export class CadastroProduto implements OnInit {
   variacaoId: string | null = null;
   variacaoQuantidade: number | null = null;
   variacaoUnidade: UnidadeMedida = 'G';
-  variacaoDescricao = '';
 
   ngOnInit(): void {
     this.id = this.route.snapshot.paramMap.get('id');
@@ -125,7 +124,6 @@ export class CadastroProduto implements OnInit {
     this.variacaoId = null;
     this.variacaoQuantidade = null;
     this.variacaoUnidade = 'G';
-    this.variacaoDescricao = '';
     this.editandoVariacao.set(true);
   }
 
@@ -133,7 +131,6 @@ export class CadastroProduto implements OnInit {
     this.variacaoId = variacao.id;
     this.variacaoQuantidade = Number(variacao.quantidade);
     this.variacaoUnidade = variacao.unidade_medida;
-    this.variacaoDescricao = variacao.descricao ?? '';
     this.editandoVariacao.set(true);
   }
 
@@ -151,7 +148,6 @@ export class CadastroProduto implements OnInit {
     const valor = {
       quantidade: this.variacaoQuantidade!,
       unidade_medida: this.variacaoUnidade,
-      descricao: this.variacaoDescricao.trim() || null,
     };
     const requisicao = this.variacaoId
       ? this.api.atualizarVariacao(this.id, this.variacaoId, valor)

@@ -61,7 +61,6 @@ class EntityMapper:
             produto=cls.produto(entidade.produto),
             quantidade=entidade.quantidade,
             unidade_medida=entidade.unidade_medida,
-            descricao=entidade.descricao,
         )
 
     @classmethod
@@ -98,6 +97,9 @@ class EntityMapper:
 
     @classmethod
     def nota(cls, entidade: NotaEntity) -> NotaDTO:
+        importada_em = entidade.importada_em
+        if importada_em is not None and importada_em.tzinfo is None:
+            importada_em = importada_em.replace(tzinfo=timezone.utc)
         return NotaDTO(
             id=entidade.id,
             chave=entidade.chave,
@@ -112,7 +114,7 @@ class EntityMapper:
             itens=[cls.item(item) for item in entidade.itens],
             url_origem=entidade.url_origem,
             situacao=entidade.situacao,
-            importada_em=entidade.importada_em,
+            importada_em=importada_em,
         )
 
     @classmethod

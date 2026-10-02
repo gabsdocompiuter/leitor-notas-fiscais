@@ -49,8 +49,7 @@ class RevisaoNotaService:
             nota = notas.obter_por_chave(chave)
             if nota is None:
                 raise NaoEncontrado("Nota não encontrada.")
-            if nota.situacao == SituacaoNota.IMPORTADA:
-                raise Conflito("Uma nota importada não pode mais ser alterada.")
+            importada = nota.situacao == SituacaoNota.IMPORTADA
             item = ItemRepository(session).obter_na_nota(item_id, nota.id)
             if item is None:
                 raise NaoEncontrado("Item não encontrado nessa nota.")
@@ -72,7 +71,8 @@ class RevisaoNotaService:
             item.variacao = variacao
             item.quantidade_confirmada = quantidade_confirmada
             item.revisado = True
-            nota.situacao = SituacaoNota.EM_REVISAO
+            if not importada:
+                nota.situacao = SituacaoNota.EM_REVISAO
             self._salvar_associacao(
                 session,
                 nota.estabelecimento_id,

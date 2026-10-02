@@ -18,6 +18,10 @@
 - Remove o campo e o envio de marca quando o produto estiver configurado para não solicitá-la.
 - Mantém o resumo da importação no fim da lista, sem sobrepor os itens durante a revisão.
 - Remove a camada de composição residual da barra de importação no Chrome para Android.
+- Exibe notas lidas como "Aguardando revisão" e inclui o link para a NFC-e original.
+- Bloqueia itens revisados até a edição pelo lápis, inclusive em notas importadas.
+- Permite editar o apelido do estabelecimento diretamente na revisão da nota.
+- Remove a descrição livre das variações, que passam a usar quantidade e unidade.
 
 ## 0.1.0 - 2026-09-12
 

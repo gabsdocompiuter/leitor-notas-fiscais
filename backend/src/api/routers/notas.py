@@ -52,7 +52,6 @@ def obter_nota(
     summary="Revisar um item da nota",
     responses={
         404: {"model": ErroResponse, "description": "Nota, item ou cadastro não encontrado"},
-        409: {"model": ErroResponse, "description": "A nota já foi importada"},
         422: {"model": ErroResponse, "description": "Classificação incompleta ou inválida"},
     },
 )

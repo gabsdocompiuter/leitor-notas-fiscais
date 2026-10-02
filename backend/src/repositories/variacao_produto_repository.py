@@ -23,7 +23,6 @@ class VariacaoProdutoRepository(BaseRepository[VariacaoProdutoEntity]):
             .order_by(
                 VariacaoProdutoEntity.quantidade,
                 VariacaoProdutoEntity.unidade_medida,
-                VariacaoProdutoEntity.descricao,
             )
         )
         return list(self.session.scalars(consulta))

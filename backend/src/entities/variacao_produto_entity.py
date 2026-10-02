@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from sqlalchemy import Enum, ForeignKey, String, UniqueConstraint, Uuid
+from sqlalchemy import Enum, ForeignKey, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..enums.unidade_medida import UnidadeMedida
@@ -29,5 +29,4 @@ class VariacaoProdutoEntity(BaseEntity):
     unidade_medida: Mapped[UnidadeMedida] = mapped_column(
         Enum(UnidadeMedida, values_callable=lambda enum: [item.value for item in enum])
     )
-    descricao: Mapped[str | None] = mapped_column(String(100))
     produto: Mapped[ProdutoEntity] = relationship(back_populates="variacoes")

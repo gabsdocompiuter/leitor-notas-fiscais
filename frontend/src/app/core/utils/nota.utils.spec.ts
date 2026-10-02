@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { Nota } from '../models/api.models';
-import { quantidadeItensPendentes, todosItensRevisados } from './nota.utils';
+import { quantidadeItensPendentes, rotuloSituacao, todosItensRevisados } from './nota.utils';
 
 function criarNota(revisoes: boolean[]): Nota {
   return {
@@ -51,5 +51,9 @@ describe('estado de revisão da nota', () => {
     expect(todosItensRevisados(criarNota([true, true]))).toBe(true);
     expect(todosItensRevisados(criarNota([true, false]))).toBe(false);
     expect(todosItensRevisados(criarNota([]))).toBe(false);
+  });
+
+  it('apresenta a situação lida como aguardando revisão', () => {
+    expect(rotuloSituacao('lida')).toBe('Aguardando revisão');
   });
 });

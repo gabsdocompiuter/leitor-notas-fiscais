@@ -27,7 +27,6 @@ export class PesquisaVariacao extends PesquisaCadastroBase<VariacaoProduto> {
   readonly placeholderPesquisa = 'Pesquisar variação';
   readonly mensagemSemResultados = 'Nenhuma variação encontrada.';
   readonly formulario = this.fb.group({
-    descricao: ['', Validators.maxLength(100)],
     quantidade: [null as number | null, [Validators.required, Validators.min(0.000001)]],
     unidade_medida: ['G' as UnidadeMedida, Validators.required],
   });
@@ -43,7 +42,6 @@ export class PesquisaVariacao extends PesquisaCadastroBase<VariacaoProduto> {
       .criarVariacao(this.produto().id, {
         quantidade: Number(valor.quantidade),
         unidade_medida: valor.unidade_medida!,
-        descricao: valor.descricao?.trim() || null,
       })
       .subscribe({
         next: (variacao) => this.concluirCadastro(variacao),
@@ -55,9 +53,8 @@ export class PesquisaVariacao extends PesquisaCadastroBase<VariacaoProduto> {
     return variacao.nome_exibicao;
   }
 
-  protected override prepararCadastro(nomeInicial: string): void {
+  protected override prepararCadastro(_nomeInicial: string): void {
     this.formulario.reset({
-      descricao: nomeInicial,
       quantidade: null,
       unidade_medida: 'G',
     });

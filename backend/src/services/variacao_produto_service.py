@@ -34,7 +34,6 @@ class VariacaoProdutoService(BaseService):
         produto_id: UUID,
         quantidade: Decimal,
         unidade_medida: UnidadeMedida,
-        descricao: str | None,
     ) -> VariacaoProdutoDTO:
         with self.session_factory.begin() as session:
             produto = ProdutoRepository(session).obter(produto_id)
@@ -52,7 +51,6 @@ class VariacaoProdutoService(BaseService):
                         produto=produto,
                         quantidade=quantidade,
                         unidade_medida=unidade_medida,
-                        descricao=self.texto_opcional(descricao),
                     )
                 )
             return EntityMapper.variacao(entidade)
@@ -62,7 +60,6 @@ class VariacaoProdutoService(BaseService):
         variacao_id: UUID,
         quantidade: Decimal,
         unidade_medida: UnidadeMedida,
-        descricao: str | None,
     ) -> VariacaoProdutoDTO:
         with self.session_factory.begin() as session:
             repositorio = VariacaoProdutoRepository(session)
@@ -78,6 +75,5 @@ class VariacaoProdutoService(BaseService):
                 raise Conflito("Já existe essa variação para o produto.")
             entidade.quantidade = quantidade
             entidade.unidade_medida = unidade_medida
-            entidade.descricao = self.texto_opcional(descricao)
             session.flush()
             return EntityMapper.variacao(entidade)
