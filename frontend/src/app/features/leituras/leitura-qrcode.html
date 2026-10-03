@@ -69,24 +69,20 @@
             <small class="text-secondary">Opção para computador ou testes</small>
           </div>
         </div>
-        <form (ngSubmit)="enviar()">
-          <label class="form-label" for="url-nota">Conteúdo do QR Code</label>
+        <form class="d-flex flex-column gap-3" [formGroup]="formulario" (ngSubmit)="enviar()">
+          <label class="form-label mb-0" for="url-nota">Conteúdo do QR Code</label>
           <textarea
             id="url-nota"
             class="form-control"
             rows="5"
-            [formControl]="url"
+            formControlName="url"
             [class.is-invalid]="url.invalid && url.touched"
             placeholder="https://dfe-portal.svrs.rs.gov.br/Dfe/QrCodeNFce?p=..."
           ></textarea>
           @if (url.invalid && url.touched) {
             <div class="invalid-feedback">Informe o link lido no QR Code.</div>
           }
-          <button
-            class="btn btn-primary w-100 rounded-pill mt-3"
-            type="submit"
-            [disabled]="enviando()"
-          >
+          <button class="btn btn-primary w-100 rounded-pill" type="submit" [disabled]="enviando()">
             @if (enviando()) {
               <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span
               >Consultando SEFAZ...

@@ -183,7 +183,7 @@ class MigracaoTests(unittest.TestCase):
             with closing(sqlite3.connect(caminho)) as conexao:
                 self.assertEqual(
                     conexao.execute("SELECT version_num FROM alembic_version").fetchone(),
-                    ("0002",),
+                    ("0003",),
                 )
                 tabelas = {
                     linha[0]
@@ -191,7 +191,7 @@ class MigracaoTests(unittest.TestCase):
                         "SELECT name FROM sqlite_master WHERE type = 'table'"
                     )
                 }
-                self.assertTrue({"notas", "itens", "categorias"}.issubset(tabelas))
+                self.assertTrue({"notas", "itens", "categorias", "tags", "itens_tags"}.issubset(tabelas))
                 colunas = {
                     linha[1]
                     for linha in conexao.execute("PRAGMA table_info(variacoes_produto)")
@@ -249,7 +249,7 @@ class MigracaoTests(unittest.TestCase):
                 ).fetchone()
             self.assertNotIn("descricao", colunas)
             self.assertEqual(variacao, ("200", "ML"))
-            self.assertEqual(revisao, ("0002",))
+            self.assertEqual(revisao, ("0003",))
 
 
 if __name__ == "__main__":

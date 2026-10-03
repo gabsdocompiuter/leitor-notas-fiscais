@@ -1,6 +1,6 @@
 <header class="app-header sticky-top">
   <nav
-    class="container d-flex align-items-center justify-content-between py-3"
+    class="container d-flex flex-wrap align-items-center justify-content-between gap-3 py-3"
     aria-label="Navegação principal"
   >
     <a class="brand d-flex align-items-center gap-2 text-decoration-none" routerLink="/notas">
@@ -10,9 +10,13 @@
         <small class="d-none d-sm-block">Notas fiscais organizadas</small>
       </span>
     </a>
-    <div class="d-flex align-items-center gap-2">
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <a class="nav-link-custom" routerLink="/relatorios" routerLinkActive="active">Relatórios</a>
       <a class="nav-link-custom" routerLink="/notas" routerLinkActive="active">Notas</a>
       <a class="nav-link-custom" routerLink="/cadastros" routerLinkActive="active">Cadastros</a>
+      <a class="nav-link-custom" routerLink="/banco-de-dados" routerLinkActive="active"
+        >Banco de dados</a
+      >
       <a class="btn btn-primary rounded-pill px-3" routerLink="/ler">
         <i class="bi bi-qr-code-scan me-2" aria-hidden="true"></i>Ler nota
       </a>

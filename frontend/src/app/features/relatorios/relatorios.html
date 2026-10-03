@@ -1,0 +1,295 @@
+<div class="container py-4 py-md-5 d-flex flex-column gap-4">
+  <header class="d-flex flex-column flex-md-row justify-content-between gap-3">
+    <div class="d-flex flex-column gap-2">
+      <h1 class="h3 mb-0">Relatórios</h1>
+      <p class="text-body-secondary mb-0">Acompanhe suas compras por mês.</p>
+    </div>
+    <div class="d-flex align-items-end gap-2">
+      <button
+        class="btn btn-outline-secondary"
+        type="button"
+        aria-label="Mês anterior"
+        (click)="navegarMes(-1)"
+      >
+        <i class="bi bi-chevron-left" aria-hidden="true"></i>
+      </button>
+      <label class="d-flex flex-column gap-1 flex-grow-1">
+        <span class="small fw-semibold">Mês considerado</span>
+        <input
+          class="form-control"
+          type="month"
+          min="0002-01"
+          max="9998-12"
+          [value]="mes()"
+          (change)="selecionarMesCampo($event)"
+        />
+      </label>
+      <button
+        class="btn btn-outline-secondary"
+        type="button"
+        aria-label="Próximo mês"
+        (click)="navegarMes(1)"
+      >
+        <i class="bi bi-chevron-right" aria-hidden="true"></i>
+      </button>
+    </div>
+  </header>
+  <p class="small text-body-secondary mb-0">
+    Apenas notas importadas. Vale o mês da emissão, ou o seguinte quando marcado na nota.
+  </p>
+  @if (carregando()) {
+    <div class="d-flex justify-content-center py-5" role="status">
+      <span class="spinner-border text-primary"
+        ><span class="visually-hidden">Carregando relatório</span></span
+      >
+    </div>
+  } @else if (erro()) {
+    <div class="alert alert-danger d-flex flex-column align-items-start gap-2" role="alert">
+      <span>{{ erro() }}</span>
+      <button class="btn btn-outline-danger" type="button" (click)="carregar()">
+        Tentar novamente
+      </button>
+    </div>
+  } @else if (relatorio(); as dados) {
+    <section class="row g-3" aria-label="Resumo mensal">
+      <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card h-100">
+          <div class="card-body d-flex flex-column gap-2">
+            <span class="text-body-secondary">Total pago</span>
+            <strong class="fs-4">{{
+              +dados.total_pago | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+            }}</strong>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card h-100">
+          <div class="card-body d-flex flex-column gap-2">
+            <span class="text-body-secondary">Compras</span>
+            <strong class="fs-4">{{ dados.quantidade_notas }}</strong>
+            <span class="small text-body-secondary"
+              >{{ dados.quantidade_itens }}
+              {{ dados.quantidade_itens === 1 ? 'item' : 'itens' }}</span
+            >
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card h-100">
+          <div class="card-body d-flex flex-column gap-2">
+            <span class="text-body-secondary">Descontos recebidos</span>
+            <strong class="fs-4">{{
+              +dados.total_desconto | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+            }}</strong>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card h-100">
+          <div class="card-body d-flex flex-column gap-2">
+            <span class="text-body-secondary">Total do mês anterior</span>
+            <strong class="fs-4">{{
+              +dados.total_mes_anterior | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+            }}</strong>
+            <span class="small text-body-secondary">
+              Diferença:
+              {{ diferencaMesAnterior() | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
+            </span>
+            @if (+dados.total_mes_anterior === 0) {
+              <span class="small text-body-secondary">Sem gasto registrado no mês anterior.</span>
+            }
+          </div>
+        </div>
+      </div>
+    </section>
+    @if (dados.quantidade_notas === 0) {
+      <div class="card">
+        <div class="card-body d-flex flex-column align-items-start gap-3 py-4">
+          <h2 class="h5 mb-0">Nenhuma compra neste mês</h2>
+          <p class="text-body-secondary mb-0">Importe uma nota ou selecione outro mês.</p>
+          <a class="btn btn-primary" routerLink="/ler">Ler nota</a>
+        </div>
+      </div>
+    } @else {
+      <div class="row g-3">
+        <section class="col-12 col-lg-6">
+          <div class="card h-100">
+            <div class="card-header"><h2 class="h5 mb-0">Por categoria</h2></div>
+            <div class="list-group list-group-flush">
+              @for (grupo of dados.categorias; track grupo.id) {
+                <button
+                  class="list-group-item list-group-item-action d-flex flex-column gap-2 py-3"
+                  type="button"
+                  (click)="selecionarGrupo('categoria', grupo)"
+                  [class.active]="
+                    filtro()?.tipo === 'categoria' && filtro()?.grupo?.id === grupo.id
+                  "
+                >
+                  <span class="d-flex flex-wrap justify-content-between gap-2">
+                    <strong class="text-break">{{ grupo.nome }}</strong>
+                    <span>{{
+                      +grupo.total_pago | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+                    }}</span>
+                  </span>
+                  <span class="small"
+                    >{{ grupo.quantidade_itens }}
+                    {{ grupo.quantidade_itens === 1 ? 'item' : 'itens' }} ·
+                    {{ percentual(grupo.total_pago) | number: '1.1-1' : 'pt-BR' }}%</span
+                  >
+                  <span
+                    class="progress"
+                    role="progressbar"
+                    [attr.aria-label]="grupo.nome"
+                    [attr.aria-valuenow]="percentual(grupo.total_pago)"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                  >
+                    <span
+                      class="progress-bar"
+                      [style.width.%]="percentual(grupo.total_pago)"
+                    ></span>
+                  </span>
+                </button>
+              }
+            </div>
+          </div>
+        </section>
+        <section class="col-12 col-lg-6">
+          <div class="card h-100">
+            <div class="card-header"><h2 class="h5 mb-0">Por tag</h2></div>
+            <div class="card-body">
+              <p class="small text-body-secondary mb-0">
+                Um item pode ter várias tags. Os valores podem se sobrepor e não devem ser somados.
+              </p>
+            </div>
+            <div class="list-group list-group-flush">
+              @for (grupo of dados.tags; track grupo.id) {
+                <button
+                  class="list-group-item list-group-item-action d-flex flex-wrap justify-content-between gap-2 py-3"
+                  type="button"
+                  (click)="selecionarGrupo('tag', grupo)"
+                  [class.active]="filtro()?.tipo === 'tag' && filtro()?.grupo?.id === grupo.id"
+                >
+                  <span class="d-flex flex-column gap-1">
+                    <strong class="text-break">{{ grupo.nome }}</strong>
+                    <span class="small"
+                      >{{ grupo.quantidade_itens }}
+                      {{ grupo.quantidade_itens === 1 ? 'item' : 'itens' }}</span
+                    >
+                  </span>
+                  <span>{{
+                    +grupo.total_pago | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+                  }}</span>
+                </button>
+              } @empty {
+                <div class="list-group-item text-body-secondary">
+                  Nenhum item marcado com tags neste mês.
+                </div>
+              }
+            </div>
+          </div>
+        </section>
+      </div>
+      <p class="small text-body-secondary mb-0">
+        Os descontos são distribuídos proporcionalmente entre os itens. Selecione uma categoria ou
+        tag para ver os detalhes.
+      </p>
+    }
+    @if (filtro(); as selecionado) {
+      <section class="card" aria-label="Itens do grupo selecionado" aria-live="polite">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <h2 class="h5 mb-0 text-break">{{ selecionado.grupo.nome }}</h2>
+          <button class="btn btn-sm btn-outline-secondary" type="button" (click)="limparFiltro()">
+            Fechar detalhes
+          </button>
+        </div>
+        @if (carregandoItens()) {
+          <div class="card-body" role="status">Carregando itens...</div>
+        } @else if (erroItens()) {
+          <div class="card-body d-flex flex-column align-items-start gap-2">
+            <span class="text-danger" role="alert">{{ erroItens() }}</span>
+            <button class="btn btn-outline-primary" type="button" (click)="carregarItens()">
+              Tentar novamente
+            </button>
+          </div>
+        } @else if (pagina(); as detalhes) {
+          <div class="list-group list-group-flush">
+            @for (item of detalhes.itens; track item.id) {
+              <div
+                class="list-group-item d-flex flex-column flex-md-row justify-content-between gap-3 py-3"
+              >
+                <div class="d-flex flex-column gap-1">
+                  <strong class="text-break">{{ item.produto }}</strong>
+                  <span class="small">{{ item.categoria }} · {{ item.estabelecimento }}</span>
+                  <span class="small text-body-secondary"
+                    >Emissão: {{ item.emissao | date: 'dd/MM/yyyy' }}</span
+                  >
+                  @if (item.considerar_proximo_mes) {
+                    <span class="small text-body-secondary"
+                      >Considerada no mês seguinte à emissão.</span
+                    >
+                  }
+                  <div class="d-flex flex-wrap gap-2">
+                    @for (tag of item.tags; track tag.id) {
+                      <span class="badge rounded-pill text-bg-secondary text-break">{{
+                        tag.nome
+                      }}</span>
+                    }
+                  </div>
+                </div>
+                <div class="d-flex flex-column align-items-md-end gap-1">
+                  <strong>{{
+                    +item.valor_pago | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+                  }}</strong>
+                  <span class="small text-body-secondary"
+                    >Bruto
+                    {{ +item.valor_bruto | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</span
+                  >
+                  <span class="small text-body-secondary"
+                    >Desconto
+                    {{
+                      +item.desconto_rateado | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+                    }}</span
+                  >
+                  <a [routerLink]="['/notas', item.chave_nota, 'revisao']"
+                    >Ver nota {{ item.numero_nota }}</a
+                  >
+                </div>
+              </div>
+            } @empty {
+              <div class="list-group-item">Nenhum item encontrado.</div>
+            }
+          </div>
+          <div
+            class="card-footer d-flex flex-wrap align-items-center justify-content-between gap-2"
+          >
+            <span class="small"
+              >{{ deslocamento() + (detalhes.total ? 1 : 0) }}–{{
+                deslocamento() + detalhes.itens.length
+              }}
+              de {{ detalhes.total }} {{ detalhes.total === 1 ? 'item' : 'itens' }}</span
+            >
+            <div class="d-flex gap-2">
+              <button
+                class="btn btn-sm btn-outline-secondary"
+                type="button"
+                [disabled]="deslocamento() === 0"
+                (click)="navegarItens(-1)"
+              >
+                Anterior
+              </button>
+              <button
+                class="btn btn-sm btn-outline-secondary"
+                type="button"
+                [disabled]="deslocamento() + limite >= detalhes.total"
+                (click)="navegarItens(1)"
+              >
+                Próxima
+              </button>
+            </div>
+          </div>
+        }
+      </section>
+    }
+  }
+</div>

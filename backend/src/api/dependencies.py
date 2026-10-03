@@ -5,6 +5,8 @@ from ..services.estabelecimento_service import EstabelecimentoService
 from ..services.leitura_nota_service import LeituraNotaService
 from ..services.marca_service import MarcaService
 from ..services.nota_service import NotaService
+from ..services.tag_service import TagService
+from ..services.relatorio_service import RelatorioService
 from ..services.produto_service import ProdutoService
 from ..services.revisao_nota_service import RevisaoNotaService
 from ..services.variacao_produto_service import VariacaoProdutoService
@@ -40,3 +42,11 @@ def obter_estabelecimento_service(request: Request) -> EstabelecimentoService:
 
 def obter_revisao_nota_service(request: Request) -> RevisaoNotaService:
     return request.app.state.revisao_nota_service
+
+
+def obter_tag_service(request: Request) -> TagService:
+    return request.app.state.tag_service
+
+
+def obter_relatorio_service(request: Request) -> RelatorioService:
+    return request.app.state.relatorio_service

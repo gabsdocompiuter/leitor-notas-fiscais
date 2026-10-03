@@ -5,7 +5,10 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from ..core.config import CAMINHO_BANCO, ORIGENS_CORS
+from ..core.config import CAMINHO_BANCO, ORIGENS_CORS, PERMITIR_IMPORTACAO_BANCO
+from ..core.persistence.coordenacao_banco import CoordenacaoBanco
+from ..services.banco_service import BancoService
+from .middleware_banco import MiddlewareBanco
 from ..core.version import __version__
 from ..core.persistence.banco_sqlite import BancoSQLite
 from ..services.categoria_service import CategoriaService
@@ -14,12 +17,17 @@ from ..services.estabelecimento_service import EstabelecimentoService
 from ..services.leitura_nota_service import LeituraNotaService
 from ..services.marca_service import MarcaService
 from ..services.nota_service import NotaService
+from ..services.tag_service import TagService
+from ..services.relatorio_service import RelatorioService
 from ..services.produto_service import ProdutoService
 from ..services.revisao_nota_service import RevisaoNotaService
 from ..services.variacao_produto_service import VariacaoProdutoService
 from .exception_handlers import registrar_tratadores
 from .routers import (
+    banco as banco_router,
     categorias,
+    tags,
+    relatorios,
     estabelecimentos,
     health,
     leituras,
@@ -36,6 +44,7 @@ def criar_app(
     caminho_banco: str | Path = CAMINHO_BANCO,
     consultar: Callable[[str], bytes] = ConsultaService.consultar_nota,
     origens_cors: list[str] = ORIGENS_CORS,
+    permitir_importacao_banco: bool = PERMITIR_IMPORTACAO_BANCO,
 ) -> FastAPI:
     banco = BancoSQLite(caminho_banco)
 
@@ -64,17 +73,25 @@ def criar_app(
             {"name": "Catálogos", "description": "Categorias, marcas e produtos reutilizáveis."},
         ],
     )
+    coordenacao = CoordenacaoBanco()
+    app.state.permitir_importacao_banco = permitir_importacao_banco
+    app.state.banco_service = BancoService(banco, coordenacao)
+    app.state.coordenacao_banco = coordenacao
+    app.add_middleware(MiddlewareBanco, coordenacao=coordenacao, permitir_importacao=permitir_importacao_banco)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origens_cors,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["Content-Disposition"],
     )
     nota_service = NotaService(banco.session_factory)
     revisao_service = RevisaoNotaService(banco.session_factory)
     app.state.banco = banco
     app.state.nota_service = nota_service
+    app.state.tag_service = TagService(banco.session_factory)
+    app.state.relatorio_service = RelatorioService(banco.session_factory)
     app.state.categoria_service = CategoriaService(banco.session_factory)
     app.state.marca_service = MarcaService(banco.session_factory)
     app.state.produto_service = ProdutoService(banco.session_factory)
@@ -85,10 +102,13 @@ def criar_app(
         banco.session_factory, consultar, revisao_service
     )
     registrar_tratadores(app)
+    app.include_router(banco_router.router)
     app.include_router(health.router)
     app.include_router(versao.router)
     app.include_router(leituras.router)
     app.include_router(notas.router)
+    app.include_router(tags.router)
+    app.include_router(relatorios.router)
     app.include_router(categorias.router)
     app.include_router(marcas.router)
     app.include_router(produtos.router)

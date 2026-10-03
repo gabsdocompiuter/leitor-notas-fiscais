@@ -2,6 +2,21 @@
 
 ## Não lançado
 
+- Menu Banco de dados com exportação, importação condicionada à API e confirmação antes de substituir os dados.
+
+- Diferencia tags selecionadas com primary e mantém as sugestões abertas ao escolher uma tag, ocultando apenas as selecionadas.
+
+- Exibe tags como badges arredondadas e busca no backend as cinco mais usadas, com filtro a partir de três caracteres.
+
+- Move as tags para o último campo do item e padroniza o espaçamento da revisão com contêineres flex e gap.
+
+- Alinha o link Relatórios ao padrão das opções do menu superior.
+- Corrige o envio manual do link da NFC-e para consultar a API sem recarregar a página.
+
+- Área de relatórios mensais com resumo, categorias, tags e consulta dos itens de cada grupo.
+- Seleção e criação de múltiplas tags nos itens, com aplicação em lote pelo cabeçalho.
+- Opção de considerar a nota no mês seguinte, disponível também após a importação.
+
 - Adiciona tipos de produto por unidade, a granel e com variações de peso ou volume.
 - Ajusta a revisão para confirmar quantidade inteira ou decimal e selecionar variações em modal.
 - Converte automaticamente KG/G e L/ML na sugestão de quantidade a granel.

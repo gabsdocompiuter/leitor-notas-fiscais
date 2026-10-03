@@ -1,0 +1,4 @@
+$kind: http-request
+name: Relatório mensal
+url: "{{baseUrl}}/relatorios/mensal?mes=2026-10"
+method: GET

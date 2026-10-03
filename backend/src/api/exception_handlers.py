@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 
 from ..core.exceptions import (
@@ -17,6 +17,11 @@ def _resposta(status: int, codigo: str, mensagem: str) -> JSONResponse:
 
 
 def registrar_tratadores(app: FastAPI) -> None:
+    @app.exception_handler(HTTPException)
+    async def tratar_http(_: Request, erro: HTTPException) -> JSONResponse:
+        conteudo = erro.detail if isinstance(erro.detail, dict) and "codigo" in erro.detail else {"detail": erro.detail}
+        return JSONResponse(status_code=erro.status_code, content=conteudo, headers=erro.headers)
+
     @app.exception_handler(DadosInvalidos)
     async def tratar_dados_invalidos(_: Request, erro: DadosInvalidos) -> JSONResponse:
         return _resposta(422, "dados_invalidos", str(erro))

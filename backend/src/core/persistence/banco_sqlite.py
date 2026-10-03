@@ -37,13 +37,21 @@ class BancoSQLite:
 
     def inicializar(self) -> None:
         """Atualiza um banco vazio até a revisão mais recente do Alembic."""
+        self.migrar(self.caminho)
+
+    @staticmethod
+    def configuracao_migrations(caminho: Path) -> Config:
         configuracao = Config(str(Path(__file__).resolve().parents[3] / "alembic.ini"))
         configuracao.set_main_option(
             "script_location", str(Path(__file__).with_name("migrations"))
         )
-        configuracao.set_main_option("sqlalchemy.url", f"sqlite:///{self.caminho.as_posix()}")
+        configuracao.set_main_option("sqlalchemy.url", f"sqlite:///{caminho.as_posix()}")
+        return configuracao
+
+    @staticmethod
+    def migrar(caminho: Path, revisao: str = "head") -> None:
         try:
-            command.upgrade(configuracao, "head")
+            command.upgrade(BancoSQLite.configuracao_migrations(caminho), revisao)
         except Exception as erro:
             raise ErroPersistencia(f"Falha ao migrar o SQLite: {erro}") from erro
 

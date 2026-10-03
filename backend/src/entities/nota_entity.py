@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, Integer, String, Uuid
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Index, Integer, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..enums.situacao_nota import SituacaoNota
@@ -37,6 +37,7 @@ class NotaEntity(BaseEntity):
         Enum(SituacaoNota, values_callable=lambda enum: [item.value for item in enum]),
         default=SituacaoNota.LIDA,
     )
+    considerar_proximo_mes: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     importada_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     estabelecimento: Mapped[EstabelecimentoEntity] = relationship(back_populates="notas")
     itens: Mapped[list[ItemEntity]] = relationship(

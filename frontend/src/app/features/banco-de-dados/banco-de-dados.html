@@ -1,0 +1,110 @@
+<div class="container py-4 py-md-5" [attr.aria-busy]="processando()">
+  <h1 class="h2 mb-4">Banco de dados</h1>
+  @if (erro()) {
+    <div class="alert alert-danger" role="alert">{{ erro() }}</div>
+  }
+  @if (sucesso()) {
+    <div class="alert alert-success" role="status">{{ sucesso() }}</div>
+  }
+  @if (processando()) {
+    <div class="alert alert-info" role="status">
+      <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+      Processando banco de dados. Aguarde…
+    </div>
+  }
+  <div class="row g-3">
+    <section class="col-12 col-md-6">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body p-4">
+          <h2 class="h5">Exportar banco</h2>
+          <p class="text-secondary">
+            Baixe uma cópia completa das notas, cadastros e demais dados.
+          </p>
+          <button
+            type="button"
+            class="btn btn-primary"
+            [disabled]="processando()"
+            (click)="exportar()"
+          >
+            <i class="bi bi-download me-2" aria-hidden="true"></i>Exportar banco
+          </button>
+        </div>
+      </div>
+    </section>
+    @if (permitirImportacao()) {
+      <section class="col-12 col-md-6">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body p-4">
+            <h2 class="h5">Importar banco</h2>
+            <p class="text-secondary">Substitua todos os dados atuais por uma cópia do banco.</p>
+            <label class="form-label" for="arquivo-banco">Arquivo SQLite</label>
+            <input
+              id="arquivo-banco"
+              class="form-control"
+              type="file"
+              accept=".sqlite3,.sqlite,.db"
+              [disabled]="processando()"
+              (change)="selecionar($event)"
+              aria-describedby="limite-banco"
+            />
+            <p id="limite-banco" class="form-text">Tamanho máximo: 100 MiB.</p>
+            @if (arquivo(); as selecionado) {
+              <p class="small text-break">{{ selecionado.name }} · {{ tamanhoArquivo() }}</p>
+            }
+            <button
+              #botaoImportar
+              type="button"
+              class="btn btn-danger"
+              [disabled]="!arquivo() || processando()"
+              (click)="pedirConfirmacao()"
+            >
+              Importar banco
+            </button>
+          </div>
+        </div>
+      </section>
+    }
+  </div>
+</div>
+@if (confirmando()) {
+  <div
+    #dialogo
+    class="modal fade show d-block"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="titulo-substituir-banco"
+    aria-describedby="descricao-substituir-banco"
+    (keydown)="tecladoDialogo($event)"
+    tabindex="-1"
+  >
+    <div class="modal-dialog modal-dialog-centered">
+      <section class="modal-content">
+        <header class="modal-header">
+          <h2 class="modal-title fs-5" id="titulo-substituir-banco">Substituir banco?</h2>
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Cancelar"
+            (click)="cancelar()"
+          ></button>
+        </header>
+        <div class="modal-body">
+          <p id="descricao-substituir-banco">
+            Tem certeza? Todos os dados atuais serão substituídos pelo banco selecionado. Uma cópia
+            do banco atual será guardada no servidor.
+          </p>
+          <p class="small text-break mb-0">{{ arquivo()?.name }}</p>
+        </div>
+        <footer class="modal-footer">
+          <button data-cancelar type="button" class="btn btn-secondary" (click)="cancelar()">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-danger" (click)="importar()">
+            Substituir banco
+          </button>
+        </footer>
+      </section>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

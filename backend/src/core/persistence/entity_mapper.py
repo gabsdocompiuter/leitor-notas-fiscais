@@ -7,6 +7,7 @@ from ...dtos.item_dto import ItemDTO
 from ...dtos.leitura_nota_dto import LeituraNotaDTO
 from ...dtos.marca_dto import MarcaDTO
 from ...dtos.nota_dto import NotaDTO
+from ...dtos.tag_dto import TagDTO
 from ...dtos.produto_dto import ProdutoDTO
 from ...dtos.variacao_produto_dto import VariacaoProdutoDTO
 from ...entities import (
@@ -17,6 +18,7 @@ from ...entities import (
     LeituraNotaEntity,
     MarcaEntity,
     NotaEntity,
+    TagEntity,
     ProdutoEntity,
     VariacaoProdutoEntity,
 )
@@ -24,6 +26,10 @@ from ...entities import (
 
 class EntityMapper:
     """Converte entidades persistentes em DTOs sem expor sessões ORM."""
+
+    @staticmethod
+    def tag(entidade: TagEntity) -> TagDTO:
+        return TagDTO(id=entidade.id, nome=entidade.nome)
 
     @staticmethod
     def categoria(entidade: CategoriaEntity) -> CategoriaDTO:
@@ -93,6 +99,7 @@ class EntityMapper:
             variacao=cls.variacao(entidade.variacao) if entidade.variacao else None,
             quantidade_confirmada=entidade.quantidade_confirmada,
             revisado=entidade.revisado,
+            tags=[cls.tag(tag) for tag in entidade.tags],
         )
 
     @classmethod
@@ -115,6 +122,7 @@ class EntityMapper:
             url_origem=entidade.url_origem,
             situacao=entidade.situacao,
             importada_em=importada_em,
+            considerar_proximo_mes=entidade.considerar_proximo_mes,
         )
 
     @classmethod

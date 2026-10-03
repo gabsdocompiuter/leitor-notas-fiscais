@@ -5,6 +5,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import joinedload, selectinload
 
 from ..core.exceptions import ErroPersistencia
+from ..core.utils import normalizar_nome
+from .tag_repository import TagRepository
 from ..dtos.nota_dto import NotaDTO
 from ..enums.situacao_nota import SituacaoNota
 from ..entities import (
@@ -14,6 +16,7 @@ from ..entities import (
     ItemEntity,
     MarcaEntity,
     NotaEntity,
+    TagEntity,
     ProdutoEntity,
     VariacaoProdutoEntity,
 )
@@ -22,12 +25,13 @@ from .base_repository import BaseRepository
 
 class NotaRepository(BaseRepository[NotaEntity]):
     @staticmethod
-    def _opcoes_carregamento() -> tuple[object, ...]:
+    def opcoes_carregamento() -> tuple[object, ...]:
         apresentacao = joinedload(ItemEntity.apresentacao)
         return (
             joinedload(NotaEntity.estabelecimento),
             selectinload(NotaEntity.itens)
             .options(
+                selectinload(ItemEntity.tags),
                 apresentacao.joinedload(ApresentacaoProdutoEntity.produto).joinedload(
                     ProdutoEntity.categoria
                 ),
@@ -41,14 +45,14 @@ class NotaRepository(BaseRepository[NotaEntity]):
     def obter(self, entidade_id: UUID) -> NotaEntity | None:
         return self.session.scalar(
             select(NotaEntity)
-            .options(*self._opcoes_carregamento())
+            .options(*self.opcoes_carregamento())
             .where(NotaEntity.id == entidade_id)
         )
 
     def obter_por_chave(self, chave: str) -> NotaEntity | None:
         return self.session.scalar(
             select(NotaEntity)
-            .options(*self._opcoes_carregamento())
+            .options(*self.opcoes_carregamento())
             .where(NotaEntity.chave == chave)
         )
 
@@ -58,7 +62,7 @@ class NotaRepository(BaseRepository[NotaEntity]):
         limite: int = 100,
         deslocamento: int = 0,
     ) -> list[NotaEntity]:
-        consulta = select(NotaEntity).options(*self._opcoes_carregamento())
+        consulta = select(NotaEntity).options(*self.opcoes_carregamento())
         if situacao is not None:
             consulta = consulta.where(NotaEntity.situacao == situacao)
         consulta = consulta.order_by(NotaEntity.emissao.desc(), NotaEntity.id)
@@ -101,6 +105,7 @@ class NotaRepository(BaseRepository[NotaEntity]):
             url_origem=nota.url_origem,
             situacao=nota.situacao,
             importada_em=nota.importada_em,
+            considerar_proximo_mes=nota.considerar_proximo_mes,
         )
         self.session.add(entidade)
         for item in nota.itens:
@@ -127,10 +132,21 @@ class NotaRepository(BaseRepository[NotaEntity]):
                     variacao=variacao,
                     quantidade_confirmada=item.quantidade_confirmada,
                     revisado=item.revisado,
+                    tags=[self._obter_ou_adicionar_tag(tag) for tag in item.tags],
                 )
             )
         self.session.flush()
         return self.obter(entidade.id) or entidade
+
+    def _obter_ou_adicionar_tag(self, modelo) -> TagEntity:
+        repositorio = TagRepository(self.session)
+        normalizado = normalizar_nome(modelo.nome)
+        existente = repositorio.obter_por_nome(normalizado)
+        if existente is not None:
+            return existente
+        return repositorio.adicionar(
+            TagEntity(id=modelo.id, nome=modelo.nome, nome_normalizado=normalizado)
+        )
 
     def _obter_ou_adicionar_apresentacao(self, modelo) -> ApresentacaoProdutoEntity:
         existente = self.session.get(ApresentacaoProdutoEntity, modelo.id)

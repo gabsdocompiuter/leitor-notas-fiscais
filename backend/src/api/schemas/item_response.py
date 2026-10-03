@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from ...dtos.item_dto import ItemDTO
 from .apresentacao_produto_response import ApresentacaoProdutoResponse
 from .variacao_produto_response import VariacaoProdutoResponse
+from .tag_response import TagResponse
 
 
 class ItemResponse(BaseModel):
@@ -20,6 +21,7 @@ class ItemResponse(BaseModel):
     apresentacao: ApresentacaoProdutoResponse | None
     variacao: VariacaoProdutoResponse | None
     quantidade_confirmada: str | None
+    tags: list[TagResponse]
     revisado: bool
 
     @classmethod
@@ -48,4 +50,5 @@ class ItemResponse(BaseModel):
                 else None
             ),
             revisado=item.revisado,
+            tags=[TagResponse.from_entity(tag) for tag in item.tags],
         )

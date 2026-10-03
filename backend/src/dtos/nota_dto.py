@@ -24,3 +24,4 @@ class NotaDTO:
     url_origem: str
     situacao: SituacaoNota = SituacaoNota.LIDA
     importada_em: datetime | None = None
+    considerar_proximo_mes: bool = False

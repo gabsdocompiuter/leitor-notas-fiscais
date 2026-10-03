@@ -14,6 +14,7 @@ from ..core.persistence.types.string_list import StringList
 if TYPE_CHECKING:
     from .apresentacao_produto_entity import ApresentacaoProdutoEntity
     from .nota_entity import NotaEntity
+    from .tag_entity import TagEntity
     from .variacao_produto_entity import VariacaoProdutoEntity
 
 
@@ -42,3 +43,6 @@ class ItemEntity(BaseEntity):
         back_populates="itens"
     )
     variacao: Mapped[VariacaoProdutoEntity | None] = relationship()
+    tags: Mapped[list[TagEntity]] = relationship(
+        secondary="itens_tags", back_populates="itens", order_by="TagEntity.nome"
+    )

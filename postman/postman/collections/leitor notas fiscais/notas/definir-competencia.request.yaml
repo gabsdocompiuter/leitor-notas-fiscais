@@ -1,0 +1,11 @@
+$kind: http-request
+name: Definir mês considerado
+url: "{{baseUrl}}/notas/{{chaveNfce}}"
+method: PATCH
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {"considerar_proximo_mes": true}

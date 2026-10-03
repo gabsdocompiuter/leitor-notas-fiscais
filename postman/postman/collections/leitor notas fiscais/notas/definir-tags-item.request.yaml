@@ -1,0 +1,11 @@
+$kind: http-request
+name: Definir tags do item
+url: "{{baseUrl}}/notas/{{chaveNfce}}/itens/{{itemId}}/tags"
+method: PUT
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {"tag_ids": ["{{tagId}}"]}

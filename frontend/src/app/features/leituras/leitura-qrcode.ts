@@ -1,5 +1,5 @@
 import { Component, ElementRef, OnDestroy, ViewChild, inject, signal } from '@angular/core';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { BrowserQRCodeReader, IScannerControls } from '@zxing/browser';
 import { finalize } from 'rxjs';
@@ -22,7 +22,10 @@ export class LeituraQrcode implements OnDestroy {
 
   @ViewChild('video') private video?: ElementRef<HTMLVideoElement>;
 
-  readonly url = new FormControl('', { nonNullable: true, validators: [Validators.required] });
+  readonly formulario = new FormGroup({
+    url: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+  });
+  readonly url = this.formulario.controls.url;
   readonly cameraAtiva = signal(false);
   readonly enviando = signal(false);
   readonly erro = signal<string | null>(null);
@@ -63,6 +66,7 @@ export class LeituraQrcode implements OnDestroy {
   }
 
   enviar(): void {
+    this.url.setValue(this.url.value.trim());
     this.url.markAsTouched();
     if (this.url.invalid || this.enviando()) return;
 

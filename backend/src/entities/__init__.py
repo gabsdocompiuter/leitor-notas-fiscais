@@ -6,6 +6,7 @@ from .item_entity import ItemEntity
 from .leitura_nota_entity import LeituraNotaEntity
 from .marca_entity import MarcaEntity
 from .nota_entity import NotaEntity
+from .tag_entity import TagEntity
 from .produto_entity import ProdutoEntity
 from .variacao_produto_entity import VariacaoProdutoEntity
 
@@ -18,6 +19,7 @@ __all__ = [
     "LeituraNotaEntity",
     "MarcaEntity",
     "NotaEntity",
+    "TagEntity",
     "ProdutoEntity",
     "VariacaoProdutoEntity",
 ]

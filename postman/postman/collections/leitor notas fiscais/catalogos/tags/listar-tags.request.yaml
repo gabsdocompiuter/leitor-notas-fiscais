@@ -1,0 +1,4 @@
+$kind: http-request
+name: Listar tags
+url: "{{baseUrl}}/tags"
+method: GET

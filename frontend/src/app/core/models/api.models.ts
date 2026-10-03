@@ -1,11 +1,23 @@
 export type SituacaoNota = 'lida' | 'em_revisao' | 'importada';
 export type UnidadeMedida = 'KG' | 'G' | 'L' | 'ML';
 
+export interface ConfiguracaoBanco {
+  permitir_importacao: boolean;
+}
+
+export interface ImportacaoBancoResponse {
+  mensagem: string;
+}
+
 export interface ErroApi {
   codigo: string;
   mensagem: string;
 }
 export interface Categoria {
+  id: string;
+  nome: string;
+}
+export interface Tag {
   id: string;
   nome: string;
 }
@@ -56,6 +68,7 @@ export interface ItemNota {
   variacao: VariacaoProduto | null;
   quantidade_confirmada: string | null;
   revisado: boolean;
+  tags: Tag[];
 }
 
 export interface Estabelecimento {
@@ -81,6 +94,7 @@ export interface Nota {
   url_origem: string;
   situacao: SituacaoNota;
   importada_em: string | null;
+  considerar_proximo_mes: boolean;
 }
 
 export interface Leitura {
@@ -110,4 +124,43 @@ export interface ProdutoRequest {
 export interface VariacaoProdutoRequest {
   quantidade: number;
   unidade_medida: UnidadeMedida;
+}
+
+export interface GrupoRelatorio {
+  id: string;
+  nome: string;
+  total_pago: string;
+  quantidade_itens: number;
+}
+
+export interface RelatorioMensal {
+  mes: string;
+  total_pago: string;
+  total_desconto: string;
+  quantidade_notas: number;
+  quantidade_itens: number;
+  total_mes_anterior: string;
+  categorias: GrupoRelatorio[];
+  tags: GrupoRelatorio[];
+}
+
+export interface ItemRelatorio {
+  id: string;
+  chave_nota: string;
+  numero_nota: string;
+  emissao: string;
+  estabelecimento: string;
+  produto: string;
+  categoria_id: string;
+  categoria: string;
+  valor_bruto: string;
+  desconto_rateado: string;
+  valor_pago: string;
+  tags: Tag[];
+  considerar_proximo_mes: boolean;
+}
+
+export interface ItensRelatorio {
+  itens: ItemRelatorio[];
+  total: number;
 }

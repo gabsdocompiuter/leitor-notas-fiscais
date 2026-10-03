@@ -1,7 +1,18 @@
 import { Routes } from '@angular/router';
 
 export const routes: Routes = [
+  {
+    path: 'banco-de-dados',
+    loadComponent: () =>
+      import('./features/banco-de-dados/banco-de-dados').then((m) => m.BancoDeDados),
+    title: 'Banco de dados · Minhas Compras',
+  },
   { path: '', pathMatch: 'full', redirectTo: 'notas' },
+  {
+    path: 'relatorios',
+    loadComponent: () => import('./features/relatorios/relatorios').then((m) => m.Relatorios),
+    title: 'Relatórios · Minhas Compras',
+  },
   {
     path: 'notas',
     loadComponent: () =>

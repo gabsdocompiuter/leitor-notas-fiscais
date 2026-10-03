@@ -1,0 +1,11 @@
+$kind: http-request
+name: Criar ou reutilizar tag
+url: "{{baseUrl}}/tags"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {"nome": "Festa"}

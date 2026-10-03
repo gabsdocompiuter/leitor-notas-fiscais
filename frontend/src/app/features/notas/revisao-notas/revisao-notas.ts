@@ -8,7 +8,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { forkJoin, Observable, switchMap } from 'rxjs';
 
 import { ApiService } from '../../../core/api/api.service';
 import {
@@ -22,6 +22,7 @@ import {
   UnidadeMedidaInfo,
   VariacaoProduto,
 } from '../../../core/models/api.models';
+import { deslocarMes } from '../../../core/utils/mes.utils';
 import { capitalizarIniciais } from '../../../core/utils/catalogo.utils';
 import { mensagemErro } from '../../../core/utils/erro-api';
 import { quantidadeItensPendentes, todosItensRevisados } from '../../../core/utils/nota.utils';
@@ -30,6 +31,8 @@ import { EstadoVazio } from '../../../shared/components/estado-vazio/estado-vazi
 import { PesquisaMarca } from '../../cadastros/marcas/pesquisa-marca/pesquisa-marca';
 import { PesquisaProduto } from '../../cadastros/produtos/pesquisa-produto/pesquisa-produto';
 import { PesquisaVariacao } from '../../cadastros/produtos/pesquisa-variacao/pesquisa-variacao';
+
+import { SeletorTags } from '../../../shared/components/seletor-tags/seletor-tags';
 
 type TipoModal = 'produto' | 'marca' | 'variacao';
 
@@ -45,6 +48,7 @@ type TipoModal = 'produto' | 'marca' | 'variacao';
     PesquisaMarca,
     PesquisaProduto,
     PesquisaVariacao,
+    SeletorTags,
   ],
   templateUrl: './revisao-notas.html',
 })
@@ -54,6 +58,8 @@ export class RevisaoNotas implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly chave = this.route.snapshot.paramMap.get('chave') ?? '';
   private readonly formularios = new Map<string, FormGroup>();
+
+  readonly salvandoMetadados = signal(false);
 
   readonly nota = signal<Nota | null>(null);
   readonly produtos = signal<Produto[]>([]);
@@ -101,6 +107,91 @@ export class RevisaoNotas implements OnInit {
       error: (e) => {
         this.erro.set(mensagemErro(e));
         this.carregando.set(false);
+      },
+    });
+  }
+
+  metadadosOcupados(): boolean {
+    return this.salvandoMetadados() || this.importando() || this.itemSalvando() !== null;
+  }
+
+  adicionarTag(nome: string, item?: ItemNota): void {
+    if (this.metadadosOcupados()) return;
+    const operacao = this.api
+      .criarTag(nome)
+      .pipe(
+        switchMap((tag) =>
+          item
+            ? this.api.definirTagsItem(this.chave, item.id, [
+                ...item.tags.map((atual) => atual.id),
+                tag.id,
+              ])
+            : this.api.adicionarTagsEmTodos(this.chave, [tag.id]),
+        ),
+      );
+    this.salvarMetadados(
+      operacao,
+      item ? 'Tag adicionada ao item.' : 'Tag aplicada a todos os itens.',
+    );
+  }
+
+  removerTag(item: ItemNota, tagId: string): void {
+    if (this.metadadosOcupados()) return;
+    this.salvarMetadados(
+      this.api.definirTagsItem(
+        this.chave,
+        item.id,
+        item.tags.filter((tag) => tag.id !== tagId).map((tag) => tag.id),
+      ),
+      'Tag removida do item.',
+    );
+  }
+
+  definirCompetencia(evento: Event): void {
+    const campo = evento.target as HTMLInputElement;
+    const proximoMes = campo.checked;
+    // Exibe o valor salvo até a confirmação e mantém a tela coerente se houver erro.
+    campo.checked = this.nota()?.considerar_proximo_mes ?? false;
+    if (this.metadadosOcupados()) return;
+    this.salvarMetadados(
+      this.api.definirCompetencia(this.chave, proximoMes),
+      'Mês considerado atualizado.',
+    );
+  }
+
+  mesConsiderado(): string {
+    const nota = this.nota();
+    if (!nota) return '';
+    const mes = deslocarMes(nota.emissao.slice(0, 7), Number(nota.considerar_proximo_mes));
+    const data = new Date(`${mes}-01T12:00:00`);
+    return data.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  }
+
+  private salvarMetadados(operacao: Observable<Nota>, mensagem: string): void {
+    this.salvandoMetadados.set(true);
+    this.erro.set(null);
+    this.sucesso.set(null);
+    operacao.subscribe({
+      next: (nota) => {
+        // Preserva os formulários de classificação que ainda estão em edição.
+        this.nota.update((atual) =>
+          atual
+            ? {
+                ...atual,
+                considerar_proximo_mes: nota.considerar_proximo_mes,
+                itens: atual.itens.map((item) => ({
+                  ...item,
+                  tags: nota.itens.find((salvo) => salvo.id === item.id)?.tags ?? item.tags,
+                })),
+              }
+            : nota,
+        );
+        this.salvandoMetadados.set(false);
+        this.sucesso.set(mensagem);
+      },
+      error: (erro) => {
+        this.erro.set(mensagemErro(erro));
+        this.salvandoMetadados.set(false);
       },
     });
   }
@@ -167,7 +258,7 @@ export class RevisaoNotas implements OnInit {
   }
   salvarItem(item: ItemNota): void {
     const form = this.formularios.get(item.id);
-    if (!form || !this.itemEstaEmEdicao(item)) return;
+    if (!form || !this.itemEstaEmEdicao(item) || this.metadadosOcupados()) return;
     form.markAllAsTouched();
     if (form.invalid) {
       this.erro.set('Revise os campos destacados antes de salvar o item.');
@@ -198,7 +289,7 @@ export class RevisaoNotas implements OnInit {
 
   concluirImportacao(): void {
     const nota = this.nota();
-    if (!nota || !todosItensRevisados(nota) || this.importando()) return;
+    if (!nota || !todosItensRevisados(nota) || this.metadadosOcupados()) return;
     this.importando.set(true);
     this.erro.set(null);
     this.api.concluirImportacao(this.chave).subscribe({

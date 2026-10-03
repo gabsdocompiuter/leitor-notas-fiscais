@@ -28,7 +28,8 @@ A API escuta em todas as interfaces na porta 8008. Na própria máquina, abra:
 
 Copie `.env.example` para `.env` na raiz do diretório `backend`. A aplicação Python carrega esse arquivo diretamente ao iniciar. No Docker Compose, ele é apenas montado como `/app/.env` em modo somente leitura; o Compose não interpreta nem injeta suas variáveis. `CORS_ALLOWED_ORIGINS` aceita uma lista de origens separada por vírgulas.
 
-Para recarregar o servidor automaticamente durante o desenvolvimento:
+Executar `python main.py` já habilita a recarga automática ao alterar arquivos Python.
+Também é possível iniciar diretamente pelo Uvicorn:
 
 ```bash
 uvicorn main:app --host 0.0.0.0 --port 8008 --reload
@@ -46,6 +47,12 @@ uvicorn main:app --host 0.0.0.0 --port 8008 --reload
 | `GET` | `/notas/{chave}` | Recupera uma nota e todos os itens |
 | `PATCH` | `/notas/{chave}/itens/{item_id}` | Revisa e classifica um item |
 | `POST` | `/notas/{chave}/importacao` | Importa uma nota totalmente revisada |
+| `PATCH` | `/notas/{chave}` | Define `considerar_proximo_mes` |
+| `PUT` | `/notas/{chave}/itens/{item_id}/tags` | Substitui as tags do item |
+| `POST` | `/notas/{chave}/itens/tags` | Adiciona tags a todos os itens, sem remover as existentes |
+| `GET/POST` | `/tags` | Sugere as cinco tags mais usadas, cria ou reutiliza tags |
+| `GET` | `/relatorios/mensal?mes=AAAA-MM` | Resumo, categorias e tags do mês |
+| `GET` | `/relatorios/mensal/itens?mes=AAAA-MM` | Detalha os itens, com paginação e filtros |
 | `GET/POST` | `/categorias` | Lista ou cria categorias |
 | `GET/PATCH` | `/categorias/{id}` | Consulta ou altera uma categoria |
 | `GET/POST` | `/marcas` | Lista ou cria marcas |
@@ -95,6 +102,32 @@ reclassificado sem alterar a situação nem a data da importação, e a associa�
 usada nas notas futuras acompanha o ajuste. Cadastros referenciados por notas
 importadas continuam imutáveis.
 
+## Tags e relatórios mensais
+
+Tags são opcionais, múltiplas e vinculadas somente aos itens. Nomes são limpos
+e comparados sem diferenças de maiúsculas, inclusive Unicode. O catálogo permanece
+disponível mesmo quando uma tag não estiver em uso. As operações de marcação
+recebem `{"tag_ids": ["UUID"]}`; uma lista vazia no PUT remove todas as tags do item.
+A aplicação em lote é transacional e não guarda vínculo entre tag e nota.
+Tags não participam das associações nem da classificação automática.
+`GET /tags` retorna no máximo cinco tags, ordenadas pela quantidade de itens
+marcados e, em caso de empate, pelo nome. O parâmetro `busca` filtra parte do
+nome somente a partir de três caracteres; filtros menores retornam as populares.
+
+O mês considerado usa a data local de emissão. Com
+`{"considerar_proximo_mes": true}`, a nota inteira passa para o próximo mês civil,
+incluindo dezembro para janeiro. Tags e mês podem ser ajustados antes ou depois
+da importação sem mudar `importada_em` ou a situação da nota.
+
+Os relatórios incluem apenas notas importadas. O resumo usa `valor_a_pagar`,
+apresenta descontos e compara com o mês anterior. O desconto da nota é rateado
+proporcionalmente em centavos inteiros, distribuindo o resto pelos maiores restos
+fracionários; empates seguem a ordem dos itens. Categorias fecham com o total pago.
+Um item marcado com várias tags aparece em cada uma delas: seus totais se
+sobrepõem e não devem ser somados. Os detalhes aceitam `categoria_id`, `tag_id`,
+`limite` (1–100, padrão 50) e `deslocamento`; os filtros são aplicados depois do rateio.
+As totalizações consultam o mês inteiro, independentemente da paginação de notas.
+
 ## Persistência, SQLAlchemy e Alembic
 
 O banco padrão fica em `backend/data/notas.sqlite3`, independentemente da pasta
@@ -105,12 +138,12 @@ sessão e controla `commit`/`rollback` por caso de uso com `sessionmaker`.
 
 As tabelas são `leituras`, `estabelecimentos`, `notas`, `itens`, `categorias`,
 `marcas`, `produtos`, `variacoes_produto`, `apresentacoes_produto` e
-`associacoes_produto`. A gravação de cada nota é
+`associacoes_produto`, `tags` e `itens_tags`. A gravação de cada nota é
 transacional, com chaves estrangeiras habilitadas. Notas são únicas por chave e
 estabelecimentos por CNPJ.
 
 O Alembic é a única fonte de criação e evolução do schema. Esta refatoração parte
-de um banco vazio e possui uma migration inicial (`0001`). Para aplicar as
+de um banco vazio e possui uma migration inicial (`0001`). A migration `0003` adiciona as tags e a opção de mês, preservando notas existentes com a opção desmarcada. Para aplicar as
 migrations manualmente, dentro de `backend/`, execute:
 
 ```bash
@@ -157,3 +190,33 @@ A versão atual do backend é **1.0.1**, definida somente em
 A versão só deve ser alterada quando o usuário solicitar explicitamente. Mudanças
 posteriores ficam em **Não lançado** no `CHANGELOG.md` até nova autorização.
 Não há criação automática de tags ou releases Git.
+
+
+## Importação e exportação do banco
+
+- `GET /banco/configuracao`: informa `permitir_importacao`.
+- `GET /banco/exportacao`: baixa uma cópia SQLite consistente de todos os dados.
+- `POST /banco/importacao`: recebe multipart com o campo `arquivo` (até 100 MiB).
+
+A importação substitui todos os dados. Configure `PERMITIR_IMPORTACAO_BANCO=true`
+no `.env` do backend somente em ambientes locais; o padrão é `false` e deve
+permanecer assim em produção. Reinicie a API depois de alterar a configuração.
+A permissão é verificada na API, independentemente do frontend.
+
+A API valida integridade, referências e estrutura, aceitando a versão atual e
+revisões anteriores conhecidas do Alembic. Migrations são executadas apenas na
+cópia recebida. Bancos antigos sem controle de versão Alembic não são aceitos.
+Antes da substituição, a API aguarda requisições em andamento por até 60 segundos,
+incluindo consultas à SEFAZ. Novas operações recebem 503 durante a troca;
+importações simultâneas recebem 409. Uploads e validação não bloqueiam consultas.
+
+O banco anterior é guardado em `data/notas.sqlite3.pre-importacao.bak`.
+Somente a última cópia é mantida. Se a troca ou reabertura falhar, o banco anterior
+é preservado/restaurado. Se a própria restauração falhar, o backup permanece
+disponível e a API bloqueia o acesso ao banco com 503 até a intervenção no servidor.
+Para restauração manual, pare a API antes de substituir
+arquivos; a tela não oferece um botão de restauração.
+
+Esta coordenação exige um único processo backend e nenhuma outra aplicação
+acessando diretamente o arquivo SQLite durante a troca. Não execute múltiplos
+workers/réplicas sobre este banco com importação habilitada.

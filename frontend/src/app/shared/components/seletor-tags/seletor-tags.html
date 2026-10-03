@@ -1,0 +1,62 @@
+<div class="d-flex flex-column gap-2">
+  <label class="d-flex flex-column gap-2">
+    <span class="small fw-semibold">{{ rotulo() }}</span>
+    <input
+      class="form-control"
+      type="text"
+      maxlength="100"
+      placeholder="Pesquisar ou criar tag"
+      autocomplete="off"
+      [ngModel]="busca()"
+      (ngModelChange)="atualizarBusca($event)"
+      [ngModelOptions]="{ standalone: true }"
+      [disabled]="ocupado()"
+      (focus)="abrirSugestoes()"
+      (keydown.enter)="confirmarBusca($event)"
+      (keydown.escape)="fecharSugestoes()"
+      [attr.aria-expanded]="aberto()"
+    />
+  </label>
+  @if (aberto()) {
+    <div class="d-flex flex-wrap gap-2" aria-label="Tags disponíveis">
+      @if (podeCriar()) {
+        <button
+          class="badge rounded-pill text-bg-secondary border-0 text-wrap text-break"
+          type="button"
+          [disabled]="ocupado()"
+          (click)="selecionar(nome())"
+        >
+          Criar “{{ nome() }}”
+        </button>
+      }
+      @for (tag of sugestoes(); track tag.id) {
+        <button
+          class="badge rounded-pill text-bg-secondary border-0 text-wrap text-break"
+          type="button"
+          [disabled]="ocupado()"
+          (click)="selecionar(tag.nome)"
+        >
+          {{ tag.nome }}
+        </button>
+      }
+    </div>
+    @if (erro()) {
+      <span class="small text-danger" role="alert">Não foi possível carregar as sugestões.</span>
+    }
+  }
+  @if (selecionadas().length) {
+    <div class="d-flex flex-wrap gap-2" aria-label="Tags selecionadas">
+      @for (tag of selecionadas(); track tag.id) {
+        <button
+          class="badge rounded-pill text-bg-primary border-0 d-inline-flex align-items-center gap-2 text-wrap text-break"
+          type="button"
+          [disabled]="ocupado()"
+          (click)="remover.emit(tag.id)"
+          [attr.aria-label]="'Remover tag ' + tag.nome"
+        >
+          {{ tag.nome }} <i class="bi bi-x" aria-hidden="true"></i>
+        </button>
+      }
+    </div>
+  }
+</div>

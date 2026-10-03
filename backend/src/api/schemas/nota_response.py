@@ -23,6 +23,7 @@ class NotaResponse(BaseModel):
     itens: list[ItemResponse]
     url_origem: str
     situacao: SituacaoNota
+    considerar_proximo_mes: bool
     importada_em: datetime | None
 
     @classmethod
@@ -42,4 +43,5 @@ class NotaResponse(BaseModel):
             url_origem=nota.url_origem,
             situacao=nota.situacao,
             importada_em=nota.importada_em,
+            considerar_proximo_mes=nota.considerar_proximo_mes,
         )

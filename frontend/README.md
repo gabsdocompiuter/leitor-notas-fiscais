@@ -45,7 +45,17 @@ Para usar a câmera pelo Android via HTTP, cadastre exatamente a origem do servi
 - Importação liberada somente depois da revisão de todos os itens.
 - Consulta e ajuste individual dos itens de notas importadas.
 
-O dashboard mensal será implementado depois da definição dos endpoints de totalização no backend.
+A área **Relatórios** reúne o resumo mensal e os gastos por categoria e por tag,
+com seleção de mês, comparação com o anterior e detalhes paginados dos itens.
+Ela inclui apenas notas importadas e distribui proporcionalmente os descontos.
+
+Na revisão, o campo **Considerar no próximo mês** move a nota inteira para o
+mês seguinte, sem alterar a emissão. Cada item aceita várias tags, exibidas como badges arredondadas. Ao abrir o
+campo, o backend sugere as cinco mais usadas; a busca por parte do nome começa
+com três caracteres. A opção de criar uma tag aparece antes das sugestões.
+**Aplicar tag a todos os itens** faz uma marcação em lote; depois, as tags podem
+ser removidas individualmente. Esses controles continuam disponíveis após a
+importação. As novas telas usam componentes e classes Bootstrap responsivos.
 
 ## Comandos
 
@@ -75,3 +85,14 @@ src/app/
   features/   # leitura de QR Code, lista e revisão das notas
   shared/     # componentes reutilizáveis
 ```
+
+
+## Banco de dados
+
+O menu **Banco de dados** abre `/banco-de-dados`. Exportação está disponível em
+todos os ambientes. A seção de importação só aparece quando
+`GET /banco/configuracao` retorna `permitir_importacao=true`; não há configuração
+nos environments Angular. Falha nessa consulta mantém apenas a exportação.
+A seleção aceita `.sqlite3`, `.sqlite` e `.db`, até 100 MiB. O modal de confirmação
+antecede o envio; cancelar não chama a API. Após sucesso, a aplicação recarrega
+em `/notas` para consultar os dados substituídos.

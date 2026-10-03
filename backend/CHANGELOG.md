@@ -4,7 +4,17 @@ As versões só são alteradas por solicitação explícita do usuário.
 
 ## Não lançado
 
+- Importação e exportação do SQLite, com permissão no backend, validação/migrations, backup anterior e substituição coordenada com recuperação de falhas.
+
+- Sugestões de tags limitadas às cinco mais usadas por item, com desempate por nome e filtro a partir de três caracteres.
+
 ### Adicionado
+
+- Recarga automática da API ao executar `python main.py`.
+
+- Tags reutilizáveis por item, marcação em lote e opção de considerar notas no mês seguinte.
+- Relatórios mensais de resumo, categorias e tags, com rateio proporcional de descontos em centavos e detalhes paginados.
+- Migration `0003` preservando notas existentes.
 
 - Modos de produto por unidade, a granel ou por variações de peso e volume.
 - Cadastro de variações e catálogo descritivo de unidades de medida.
@@ -87,6 +97,10 @@ A operação de revisão e a confirmação da importação continuam pendentes.
 ## 0.1.0 — 2026-09-09
 
 ### Adicionado
+
+- Tags reutilizáveis por item, marcação em lote e opção de considerar notas no mês seguinte.
+- Relatórios mensais de resumo, categorias e tags, com rateio proporcional de descontos em centavos e detalhes paginados.
+- Migration `0003` preservando notas existentes.
 
 - Consulta inicial da NFC-e do RS por URL fixa, com timeout e verificação TLS.
 - Extração dos itens, emitente, emissão, identificação e totais da nota.

@@ -1,10 +1,15 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import {
+  ConfiguracaoBanco,
+  ImportacaoBancoResponse,
   Categoria,
+  Tag,
+  RelatorioMensal,
+  ItensRelatorio,
   Estabelecimento,
   Leitura,
   Marca,
@@ -22,6 +27,23 @@ import {
 export class ApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = environment.apiUrl;
+
+  obterConfiguracaoBanco(): Observable<ConfiguracaoBanco> {
+    return this.http.get<ConfiguracaoBanco>(`${this.baseUrl}/banco/configuracao`);
+  }
+
+  exportarBanco(): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.baseUrl}/banco/exportacao`, {
+      responseType: 'blob',
+      observe: 'response',
+    });
+  }
+
+  importarBanco(arquivo: File): Observable<ImportacaoBancoResponse> {
+    const formulario = new FormData();
+    formulario.append('arquivo', arquivo);
+    return this.http.post<ImportacaoBancoResponse>(`${this.baseUrl}/banco/importacao`, formulario);
+  }
 
   listarNotas(situacao?: SituacaoNota): Observable<Nota[]> {
     const params = situacao ? new HttpParams().set('situacao', situacao) : undefined;
@@ -42,6 +64,51 @@ export class ApiService {
 
   concluirImportacao(chave: string): Observable<Nota> {
     return this.http.post<Nota>(`${this.baseUrl}/notas/${chave}/importacao`, {});
+  }
+
+  listarTags(busca?: string): Observable<Tag[]> {
+    const params = busca ? new HttpParams().set('busca', busca) : undefined;
+    return this.http.get<Tag[]>(`${this.baseUrl}/tags`, { params });
+  }
+
+  criarTag(nome: string): Observable<Tag> {
+    return this.http.post<Tag>(`${this.baseUrl}/tags`, { nome });
+  }
+
+  definirTagsItem(chave: string, itemId: string, tagIds: string[]): Observable<Nota> {
+    return this.http.put<Nota>(`${this.baseUrl}/notas/${chave}/itens/${itemId}/tags`, {
+      tag_ids: tagIds,
+    });
+  }
+
+  adicionarTagsEmTodos(chave: string, tagIds: string[]): Observable<Nota> {
+    return this.http.post<Nota>(`${this.baseUrl}/notas/${chave}/itens/tags`, {
+      tag_ids: tagIds,
+    });
+  }
+
+  definirCompetencia(chave: string, considerarProximoMes: boolean): Observable<Nota> {
+    return this.http.patch<Nota>(`${this.baseUrl}/notas/${chave}`, {
+      considerar_proximo_mes: considerarProximoMes,
+    });
+  }
+
+  obterRelatorioMensal(mes: string): Observable<RelatorioMensal> {
+    return this.http.get<RelatorioMensal>(`${this.baseUrl}/relatorios/mensal`, {
+      params: { mes },
+    });
+  }
+
+  listarItensRelatorio(
+    mes: string,
+    categoriaId?: string,
+    tagId?: string,
+    deslocamento = 0,
+  ): Observable<ItensRelatorio> {
+    let params = new HttpParams().set('mes', mes).set('deslocamento', deslocamento);
+    if (categoriaId) params = params.set('categoria_id', categoriaId);
+    if (tagId) params = params.set('tag_id', tagId);
+    return this.http.get<ItensRelatorio>(`${this.baseUrl}/relatorios/mensal/itens`, { params });
   }
 
   listarCategorias(busca?: string): Observable<Categoria[]> {

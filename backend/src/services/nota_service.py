@@ -34,6 +34,15 @@ class NotaService:
                 )
             ]
 
+    def definir_competencia(self, chave: str, considerar_proximo_mes: bool) -> NotaDTO:
+        with self.session_factory.begin() as session:
+            nota = NotaRepository(session).obter_por_chave(chave)
+            if nota is None:
+                raise NaoEncontrado("Nota não encontrada.")
+            nota.considerar_proximo_mes = considerar_proximo_mes
+            session.flush()
+            return EntityMapper.nota(nota)
+
     def obter_leitura_por_chave(self, chave: str) -> LeituraNotaDTO | None:
         with self.session_factory() as session:
             entidade = LeituraNotaRepository(session).obter_por_chave(chave)

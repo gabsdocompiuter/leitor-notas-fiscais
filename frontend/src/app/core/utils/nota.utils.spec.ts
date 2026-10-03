@@ -24,6 +24,7 @@ function criarNota(revisoes: boolean[]): Nota {
     url_origem: 'https://example.test',
     situacao: 'em_revisao',
     importada_em: null,
+    considerar_proximo_mes: false,
     itens: revisoes.map((revisado, numero) => ({
       id: String(numero),
       numero,
@@ -34,6 +35,7 @@ function criarNota(revisoes: boolean[]): Nota {
       valor_unitario: '10.00',
       valor_total: '10.00',
       alertas: [],
+      tags: [],
       apresentacao: null,
       variacao: null,
       quantidade_confirmada: null,

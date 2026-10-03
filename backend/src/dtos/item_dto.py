@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 
 from .apresentacao_produto_dto import ApresentacaoProdutoDTO
 from .variacao_produto_dto import VariacaoProdutoDTO
+from .tag_dto import TagDTO
 
 
 @dataclass
@@ -21,3 +22,4 @@ class ItemDTO:
     variacao: VariacaoProdutoDTO | None = None
     quantidade_confirmada: Decimal | None = None
     revisado: bool = False
+    tags: list[TagDTO] = field(default_factory=list)

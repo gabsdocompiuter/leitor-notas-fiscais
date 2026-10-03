@@ -1,0 +1,11 @@
+$kind: http-request
+name: Aplicar tags a todos os itens
+url: "{{baseUrl}}/notas/{{chaveNfce}}/itens/tags"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {"tag_ids": ["{{tagId}}"]}

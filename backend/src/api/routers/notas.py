@@ -6,11 +6,15 @@ from fastapi import APIRouter, Depends, Path, Query
 from ...core.exceptions import NaoEncontrado
 from ...enums.situacao_nota import SituacaoNota
 from ...services.nota_service import NotaService
+from ...services.tag_service import TagService
 from ...services.revisao_nota_service import RevisaoNotaService
 from ..dependencies import obter_nota_service, obter_revisao_nota_service
 from ..schemas.erro_response import ErroResponse
 from ..schemas.nota_response import NotaResponse
 from ..schemas.revisao_item_request import RevisaoItemRequest
+from ..schemas.competencia_nota_request import CompetenciaNotaRequest
+from ..schemas.tag_request import TagsItemRequest
+from ..dependencies import obter_tag_service
 
 
 router = APIRouter(prefix="/notas", tags=["Notas"])
@@ -86,3 +90,31 @@ def concluir_importacao(
     servico: Annotated[RevisaoNotaService, Depends(obter_revisao_nota_service)],
 ) -> NotaResponse:
     return NotaResponse.from_entity(servico.concluir_importacao(chave))
+
+
+@router.patch("/{chave}", response_model=NotaResponse, summary="Definir mês considerado da nota")
+def definir_competencia(
+    chave: Chave,
+    entrada: CompetenciaNotaRequest,
+    servico: Annotated[NotaService, Depends(obter_nota_service)],
+) -> NotaResponse:
+    return NotaResponse.from_entity(servico.definir_competencia(chave, entrada.considerar_proximo_mes))
+
+
+@router.put("/{chave}/itens/{item_id}/tags", response_model=NotaResponse, summary="Definir tags do item")
+def definir_tags_item(
+    chave: Chave,
+    item_id: UUID,
+    entrada: TagsItemRequest,
+    servico: Annotated[TagService, Depends(obter_tag_service)],
+) -> NotaResponse:
+    return NotaResponse.from_entity(servico.definir_no_item(chave, item_id, entrada.tag_ids))
+
+
+@router.post("/{chave}/itens/tags", response_model=NotaResponse, summary="Adicionar tags a todos os itens")
+def adicionar_tags_em_todos(
+    chave: Chave,
+    entrada: TagsItemRequest,
+    servico: Annotated[TagService, Depends(obter_tag_service)],
+) -> NotaResponse:
+    return NotaResponse.from_entity(servico.adicionar_em_todos(chave, entrada.tag_ids))

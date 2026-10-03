@@ -15,6 +15,9 @@ URL_NOTA = (
 LIMITE_HTML = 5 * 1024 * 1024
 CAMINHO_BANCO = RAIZ_BACKEND / "data" / "notas.sqlite3"
 
+PERMITIR_IMPORTACAO_BANCO = os.getenv("PERMITIR_IMPORTACAO_BANCO", "false").strip().lower() == "true"
+LIMITE_IMPORTACAO_BANCO = 100 * 1024 * 1024
+
 ORIGENS_CORS = [
     origem.strip()
     for origem in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
