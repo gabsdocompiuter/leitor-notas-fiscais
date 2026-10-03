@@ -13,14 +13,17 @@ import {
   UnidadeMedidaInfo,
   VariacaoProduto,
 } from '../../../../core/models/api.models';
+import { decimalValido, formatarVariacao } from '../../../../core/utils/decimal.utils';
+import { DecimalInput } from '../../../../shared/directives/decimal-input';
 import { mensagemErro } from '../../../../core/utils/erro-api';
 
 @Component({
   selector: 'lnf-cadastro-produto',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, DecimalInput],
   templateUrl: './cadastro-produto.html',
 })
 export class CadastroProduto implements OnInit {
+  readonly formatarVariacao = formatarVariacao;
   private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -139,7 +142,7 @@ export class CadastroProduto implements OnInit {
   }
 
   variacaoValida(): boolean {
-    return this.variacaoQuantidade !== null && this.variacaoQuantidade > 0;
+    return decimalValido(this.variacaoQuantidade) && this.variacaoQuantidade! >= 0.001;
   }
 
   salvarVariacao(): void {

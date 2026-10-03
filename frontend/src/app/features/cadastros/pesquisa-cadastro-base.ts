@@ -4,6 +4,7 @@ import {
   ElementRef,
   OnInit,
   computed,
+  effect,
   input,
   output,
   signal,
@@ -36,6 +37,14 @@ export abstract class PesquisaCadastroBase<T extends { id: string }>
   );
 
   private readonly campoBusca = viewChild<ElementRef<HTMLInputElement>>('campoBusca');
+  private readonly campoConfirmacao = viewChild<ElementRef<HTMLButtonElement>>('campoConfirmacao');
+
+  constructor() {
+    effect(() => {
+      const campo = this.campoConfirmacao();
+      if (campo) campo.nativeElement.focus();
+    });
+  }
 
   abstract readonly tituloPesquisa: string;
   abstract readonly tituloCadastro: string;
@@ -51,10 +60,12 @@ export abstract class PesquisaCadastroBase<T extends { id: string }>
   }
 
   atualizarBusca(evento: Event): void {
+    this.erro.set(null);
     this.busca.set((evento.target as HTMLInputElement).value);
   }
 
   abrirCadastro(): void {
+    if (this.salvando()) return;
     this.erro.set(null);
     this.prepararCadastro(this.busca().trim());
     this.cadastroAberto.set(true);
@@ -89,7 +100,7 @@ export abstract class PesquisaCadastroBase<T extends { id: string }>
   protected abstract textoPesquisa(registro: T): string;
   protected abstract prepararCadastro(nomeInicial: string): void;
 
-  private focarPesquisa(): void {
+  protected focarPesquisa(): void {
     setTimeout(() => {
       const campo = this.campoBusca()?.nativeElement;
       campo?.focus();

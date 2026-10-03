@@ -12,11 +12,11 @@
       (mousedown)="$event.stopPropagation()"
     >
       <section class="modal-content">
-        <header class="modal-header">
-          <div class="overflow-hidden">
+        <header class="modal-header lnf-modal-header">
+          <div class="lnf-modal-texto">
             <h2 class="modal-title fs-5" id="titulo-pesquisa-produto">{{ tituloPesquisa }}</h2>
             @if (contexto()) {
-              <p class="text-body-secondary small mb-0 text-truncate">{{ contexto() }}</p>
+              <p class="text-body-secondary small mb-0 lnf-modal-texto">{{ contexto() }}</p>
             }
           </div>
           <button
@@ -52,13 +52,13 @@
             @for (produto of resultados(); track produto.id) {
               <button
                 type="button"
-                class="list-group-item list-group-item-action d-flex align-items-center gap-3"
+                class="lnf-pesquisa-resultado list-group-item list-group-item-action d-flex align-items-center gap-3"
                 (click)="selecionar(produto)"
               >
                 <i class="bi bi-basket fs-4 text-primary"></i>
-                <span class="d-flex flex-column overflow-hidden">
-                  <strong class="text-truncate">{{ produto.nome }}</strong>
-                  <small class="text-body-secondary text-truncate"
+                <span class="d-flex flex-column lnf-modal-texto">
+                  <strong class="lnf-modal-texto">{{ produto.nome }}</strong>
+                  <small class="text-body-secondary lnf-modal-texto"
                     >{{ produto.categoria.nome }} ·
                     {{
                       produto.tratar_apenas_como_unidades ? 'unidades' : produto.unidade_medida
@@ -90,8 +90,13 @@
       (mousedown)="$event.stopPropagation()"
     >
       <section class="modal-content">
-        <header class="modal-header">
-          <h2 class="modal-title fs-5" id="titulo-cadastro-produto">{{ tituloCadastro }}</h2>
+        <header class="modal-header lnf-modal-header">
+          <div class="lnf-modal-texto">
+            <h2 class="modal-title fs-5" id="titulo-cadastro-produto">{{ tituloCadastro }}</h2>
+            @if (contexto()) {
+              <p class="text-body-secondary small mb-0 lnf-modal-texto">{{ contexto() }}</p>
+            }
+          </div>
           <button
             type="button"
             class="btn-close"
@@ -100,7 +105,7 @@
             (click)="voltarParaPesquisa()"
           ></button>
         </header>
-        <form [formGroup]="formulario" (ngSubmit)="criar()">
+        <form class="lnf-modal-form" [formGroup]="formulario" (ngSubmit)="criar()">
           <div class="modal-body">
             @if (erro()) {
               <div class="alert alert-danger" role="alert">{{ erro() }}</div>

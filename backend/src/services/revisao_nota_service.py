@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from uuid import UUID
 
 from sqlalchemy.orm import Session, sessionmaker
 
 from ..core.exceptions import Conflito, DadosInvalidos, NaoEncontrado
 from ..core.utils import normalizar_nome
+from ..core.decimais import validar_quantidade
 from ..dtos.nota_dto import NotaDTO
 from ..enums.situacao_nota import SituacaoNota
 from ..entities import (
@@ -42,8 +43,7 @@ class RevisaoNotaService:
         variacao_id: UUID | None,
         quantidade_confirmada: Decimal,
     ) -> NotaDTO:
-        if quantidade_confirmada <= 0:
-            raise DadosInvalidos("A quantidade confirmada deve ser maior que zero.")
+        validar_quantidade(quantidade_confirmada)
         with self.session_factory.begin() as session:
             notas = NotaRepository(session)
             nota = notas.obter_por_chave(chave)
@@ -81,9 +81,49 @@ class RevisaoNotaService:
                 variacao,
                 quantidade_confirmada / item.quantidade,
             )
+            if not importada:
+                self._revisar_pendentes_iguais(session, item)
             session.flush()
             session.expire_all()
             return EntityMapper.nota(notas.obter(nota.id) or nota)
+
+    def _revisar_pendentes_iguais(self, session: Session, origem: ItemEntity) -> None:
+        descricao = normalizar_nome(origem.descricao_original)
+        produto = origem.apresentacao.produto
+        for destino in ItemRepository(session).listar_pendentes_aguardando():
+            mesmo_codigo = (
+                destino.nota.estabelecimento_id == origem.nota.estabelecimento_id
+                and destino.codigo == origem.codigo
+            )
+            mesma_descricao = normalizar_nome(destino.descricao_original) == descricao
+            if not (mesmo_codigo or mesma_descricao):
+                continue
+            conversao = self._fator_unidade(destino.unidade_original, origem.unidade_original)
+            if conversao is None:
+                continue
+            quantidade = (destino.quantidade * conversao * origem.quantidade_confirmada) / origem.quantidade
+            if produto.tratar_apenas_como_unidades or produto.contem_variacoes:
+                if (destino.quantidade != destino.quantidade.to_integral_value()
+                        or quantidade != quantidade.to_integral_value()):
+                    continue
+            quantidade = quantidade.quantize(Decimal('0.001'), rounding=ROUND_HALF_UP)
+            if quantidade <= 0:
+                continue
+            destino.apresentacao = origem.apresentacao
+            destino.variacao = origem.variacao
+            destino.quantidade_confirmada = quantidade
+            destino.revisado = True
+            destino.nota.situacao = SituacaoNota.EM_REVISAO
+
+    @staticmethod
+    def _fator_unidade(origem: str, destino: str) -> Decimal | None:
+        origem, destino = origem.strip().upper(), destino.strip().upper()
+        if origem == destino:
+            return Decimal(1)
+        return {
+            ('KG', 'G'): Decimal(1000), ('G', 'KG'): Decimal('0.001'),
+            ('L', 'ML'): Decimal(1000), ('ML', 'L'): Decimal('0.001'),
+        }.get((origem, destino))
 
     def aplicar_classificacoes_automaticas(self, chave: str) -> NotaDTO:
         with self.session_factory.begin() as session:
@@ -107,7 +147,11 @@ class RevisaoNotaService:
                     associacao = candidatas[0] if len(candidatas) == 1 else None
                 if associacao is None or not self._associacao_valida(associacao):
                     continue
-                quantidade = item.quantidade * associacao.fator_conversao
+                quantidade = (item.quantidade * associacao.fator_conversao).quantize(
+                    Decimal('0.001'), rounding=ROUND_HALF_UP
+                )
+                if quantidade <= 0:
+                    continue
                 produto = associacao.apresentacao.produto
                 if (produto.tratar_apenas_como_unidades or produto.contem_variacoes) and (
                     item.quantidade != item.quantidade.to_integral_value()

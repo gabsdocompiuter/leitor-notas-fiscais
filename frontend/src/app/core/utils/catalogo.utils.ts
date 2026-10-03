@@ -15,13 +15,18 @@ export function capitalizarIniciais(valor: string): string {
     });
 }
 
-function pontuarBusca(termos: string[], texto: string): number {
+function pontuarBusca(termos: string[], texto: string, frase: boolean): number {
   if (termos.length === 0) return 1;
   const palavras = normalizar(texto).split(' ').filter(Boolean);
   return termos.reduce(
     (total, termo) =>
       total +
-      (palavras.some((palavra) => palavra.includes(termo) || termo.includes(palavra)) ? 1 : 0),
+      (palavras.some(
+        (palavra) =>
+          palavra.includes(termo) || ((!frase || palavra.length >= 3) && termo.includes(palavra)),
+      )
+        ? 1
+        : 0),
     0,
   );
 }
@@ -32,9 +37,11 @@ export function filtrarCatalogo<T>(
   obterTexto: (item: T) => string,
   limite = 30,
 ): T[] {
-  const termos = normalizar(busca).split(' ').filter(Boolean);
+  const palavras = normalizar(busca).split(' ').filter(Boolean);
+  const frase = palavras.length > 1;
+  const termos = frase ? palavras.filter((palavra) => palavra.length >= 3) : palavras;
   return itens
-    .map((item) => ({ item, pontos: pontuarBusca(termos, obterTexto(item)) }))
+    .map((item) => ({ item, pontos: pontuarBusca(termos, obterTexto(item), frase) }))
     .filter(({ pontos }) => termos.length === 0 || pontos > 0)
     .sort((a, b) => b.pontos - a.pontos || obterTexto(a.item).localeCompare(obterTexto(b.item)))
     .slice(0, limite)

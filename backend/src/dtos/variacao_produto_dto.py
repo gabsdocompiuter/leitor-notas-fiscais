@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 
 from .produto_dto import ProdutoDTO
 from ..enums.unidade_medida import UnidadeMedida
+from ..core.decimais import formatar_decimal
 
 
 @dataclass
@@ -15,4 +16,4 @@ class VariacaoProdutoDTO:
 
     @property
     def nome_exibicao(self) -> str:
-        return f"{self.quantidade:g} {self.unidade_medida.value}"
+        return f"{formatar_decimal(self.quantidade)} {self.unidade_medida.value}"

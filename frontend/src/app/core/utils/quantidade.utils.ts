@@ -10,7 +10,9 @@ export function sugerirQuantidade(
   if (produto.tratar_apenas_como_unidades || produto.contem_variacoes) {
     return Number.isInteger(quantidade) ? quantidade : null;
   }
-  return converterQuantidade(quantidade, unidadeOriginal, produto.unidade_medida);
+  return Number(
+    converterQuantidade(quantidade, unidadeOriginal, produto.unidade_medida).toFixed(3),
+  );
 }
 
 export function converterQuantidade(

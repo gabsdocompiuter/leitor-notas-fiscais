@@ -7,4 +7,4 @@ class RevisaoItemRequest(BaseModel):
     produto_id: UUID
     marca_id: UUID | None = None
     variacao_id: UUID | None = None
-    quantidade_confirmada: Decimal = Field(gt=0)
+    quantidade_confirmada: Decimal = Field(gt=0, decimal_places=3)

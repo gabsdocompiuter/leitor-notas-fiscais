@@ -102,3 +102,48 @@ a {
     border-color 160ms ease,
     transform 160ms ease;
 }
+
+.lnf-modal-header {
+  align-items: flex-start;
+  gap: 1rem;
+}
+.lnf-modal-header > :first-child {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.lnf-modal-header .btn-close {
+  flex: 0 0 auto;
+  margin: 0;
+}
+.lnf-modal-texto {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.lnf-pesquisa-resultado > .lnf-modal-texto {
+  flex: 1;
+}
+.lnf-pesquisa-resultado > i {
+  flex: 0 0 auto;
+}
+.lnf-modal-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.lnf-modal-form .modal-footer {
+  flex-shrink: 0;
+}
+.lnf-filtro-variacao {
+  flex-wrap: nowrap;
+}
+.lnf-filtro-variacao .form-control {
+  flex: 1 1 35%;
+  min-width: 0;
+}
+.lnf-filtro-variacao .form-select {
+  flex: 1 1 65%;
+  min-width: 0;
+}

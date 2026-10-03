@@ -8,6 +8,7 @@ from ..entities import VariacaoProdutoEntity
 from ..enums.unidade_medida import UnidadeMedida
 from ..repositories import ProdutoRepository, VariacaoProdutoRepository
 from .base_service import BaseService
+from ..core.decimais import validar_quantidade
 
 
 class VariacaoProdutoService(BaseService):
@@ -35,6 +36,7 @@ class VariacaoProdutoService(BaseService):
         quantidade: Decimal,
         unidade_medida: UnidadeMedida,
     ) -> VariacaoProdutoDTO:
+        validar_quantidade(quantidade)
         with self.session_factory.begin() as session:
             produto = ProdutoRepository(session).obter(produto_id)
             if produto is None:
@@ -61,6 +63,7 @@ class VariacaoProdutoService(BaseService):
         quantidade: Decimal,
         unidade_medida: UnidadeMedida,
     ) -> VariacaoProdutoDTO:
+        validar_quantidade(quantidade)
         with self.session_factory.begin() as session:
             repositorio = VariacaoProdutoRepository(session)
             entidade = repositorio.obter(variacao_id)

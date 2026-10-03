@@ -22,9 +22,20 @@ export class PesquisaCategoria extends PesquisaCadastroBase<Categoria> {
     nome: ['', [Validators.required, Validators.maxLength(100), Validators.pattern(/\S/)]],
   });
 
+  override abrirCadastro(): void {
+    if (this.salvando()) return;
+    this.prepararCadastro(this.busca().trim());
+    if (this.formulario.invalid) {
+      this.erro.set('Informe um nome com até 100 caracteres.');
+      this.focarPesquisa();
+      return;
+    }
+    super.abrirCadastro();
+  }
+
   criar(): void {
     this.formulario.markAllAsTouched();
-    if (this.formulario.invalid || this.salvando()) return;
+    if (!this.cadastroAberto() || this.formulario.invalid || this.salvando()) return;
 
     this.salvando.set(true);
     this.erro.set(null);

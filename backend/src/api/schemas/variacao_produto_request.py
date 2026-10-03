@@ -6,5 +6,5 @@ from ...enums.unidade_medida import UnidadeMedida
 
 
 class VariacaoProdutoRequest(BaseModel):
-    quantidade: Decimal = Field(gt=0)
+    quantidade: Decimal = Field(gt=0, decimal_places=3)
     unidade_medida: UnidadeMedida

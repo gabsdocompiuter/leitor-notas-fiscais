@@ -149,9 +149,7 @@
                     <input
                       id="quantidade-variacao"
                       class="form-control"
-                      type="number"
-                      min="0.000001"
-                      step="any"
+                      lnfDecimal
                       [(ngModel)]="variacaoQuantidade"
                     />
                   </div>
@@ -191,7 +189,7 @@
                   type="button"
                   (click)="editarVariacao(variacao)"
                 >
-                  <span>{{ variacao.nome_exibicao }}</span>
+                  <span>{{ formatarVariacao(variacao) }}</span>
                   <span class="text-primary">Editar</span>
                 </button>
               } @empty {

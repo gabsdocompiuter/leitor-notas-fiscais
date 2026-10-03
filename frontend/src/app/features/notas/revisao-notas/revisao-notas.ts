@@ -26,6 +26,12 @@ import { deslocarMes } from '../../../core/utils/mes.utils';
 import { capitalizarIniciais } from '../../../core/utils/catalogo.utils';
 import { mensagemErro } from '../../../core/utils/erro-api';
 import { quantidadeItensPendentes, todosItensRevisados } from '../../../core/utils/nota.utils';
+import {
+  formatarDecimal,
+  formatarVariacao,
+  validarDecimal,
+} from '../../../core/utils/decimal.utils';
+import { DecimalInput } from '../../../shared/directives/decimal-input';
 import { sugerirQuantidade } from '../../../core/utils/quantidade.utils';
 import { EstadoVazio } from '../../../shared/components/estado-vazio/estado-vazio';
 import { PesquisaMarca } from '../../cadastros/marcas/pesquisa-marca/pesquisa-marca';
@@ -40,6 +46,7 @@ type TipoModal = 'produto' | 'marca' | 'variacao';
   selector: 'lnf-revisao-notas',
   imports: [
     CurrencyPipe,
+    DecimalInput,
     DatePipe,
     FormsModule,
     ReactiveFormsModule,
@@ -53,6 +60,7 @@ type TipoModal = 'produto' | 'marca' | 'variacao';
   templateUrl: './revisao-notas.html',
 })
 export class RevisaoNotas implements OnInit {
+  readonly formatarDecimal = formatarDecimal;
   private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
@@ -232,9 +240,13 @@ export class RevisaoNotas implements OnInit {
     const item = this.nota()?.itens.find((i) => i.id === id);
     const variacaoSalva = item?.variacao;
     const nomeSalvo =
-      variacaoSalva && variacaoSalva.id === variacaoId ? variacaoSalva.nome_exibicao : undefined;
+      variacaoSalva && variacaoSalva.id === variacaoId
+        ? formatarVariacao(variacaoSalva)
+        : undefined;
     return (
-      this.variacoes().find((v) => v.id === variacaoId)?.nome_exibicao ??
+      this.variacoes()
+        .filter((v) => v.id === variacaoId)
+        .map(formatarVariacao)[0] ??
       nomeSalvo ??
       'Selecionar variação'
     );
@@ -274,11 +286,24 @@ export class RevisaoNotas implements OnInit {
     this.itemSalvando.set(item.id);
     this.erro.set(null);
     this.sucesso.set(null);
+    const pendentesAntes = new Set(
+      this.nota()
+        ?.itens.filter((atual) => !atual.revisado && atual.id !== item.id)
+        .map((atual) => atual.id),
+    );
     this.api.revisarItem(this.chave, item.id, revisao).subscribe({
       next: (nota) => {
+        const automaticos = nota.itens.filter(
+          (atual) => atual.revisado && pendentesAntes.has(atual.id),
+        ).length;
         this.definirNota(nota);
         this.itemSalvando.set(null);
-        this.sucesso.set(`Item ${item.numero} revisado.`);
+        this.sucesso.set(
+          `Item ${item.numero} revisado.` +
+            (automaticos
+              ? ` Mais ${automaticos} ${automaticos === 1 ? 'item igual revisado automaticamente' : 'itens iguais revisados automaticamente'} nesta nota.`
+              : ''),
+        );
       },
       error: (e) => {
         this.erro.set(mensagemErro(e));
@@ -466,7 +491,7 @@ export class RevisaoNotas implements OnInit {
     }
     variacao?.updateValueAndValidity({ emitEvent: false });
     const quantidade = form.get('quantidade_confirmada');
-    const validadores = [Validators.required, Validators.min(0.000001)];
+    const validadores = [Validators.required, Validators.min(0.001), validarDecimal];
     if (produto?.tratar_apenas_como_unidades || produto?.contem_variacoes)
       validadores.push(Validators.pattern(/^\d+$/));
     quantidade?.setValidators(validadores);

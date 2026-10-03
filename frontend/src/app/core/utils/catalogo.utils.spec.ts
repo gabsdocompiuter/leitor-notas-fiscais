@@ -13,6 +13,20 @@ const opcoes: Opcao[] = [
 ];
 
 describe('busca de catálogos', () => {
+  it('ignora termos curtos em frases e palavras curtas na comparação inversa', () => {
+    const itens = [{ nome: 'Bandeja de Ovos' }, { nome: 'Café' }, { nome: 'De' }];
+    expect(filtrarCatalogo(itens, 'cafe de minas', (item) => item.nome)).toEqual([
+      { nome: 'Café' },
+    ]);
+    expect(filtrarCatalogo([{ nome: 'De' }], 'bandeja grande', (item) => item.nome)).toEqual([]);
+  });
+
+  it('preserva palavra única curta e mostra catálogo se todos os termos forem descartados', () => {
+    const itens = [{ nome: '3M' }, { nome: 'Café' }];
+    expect(filtrarCatalogo(itens, '3M', (item) => item.nome)).toEqual([{ nome: '3M' }]);
+    expect(filtrarCatalogo(itens, 'a de', (item) => item.nome)).toEqual(itens);
+  });
+
   it('formata a descrição fiscal com as iniciais em maiúsculas', () => {
     expect(capitalizarIniciais('LEIT INT UHT 1L')).toBe('Leit Int Uht 1l');
     expect(capitalizarIniciais('CAFÉ TORRADO-EXTRAFORTE')).toBe('Café Torrado-Extraforte');
