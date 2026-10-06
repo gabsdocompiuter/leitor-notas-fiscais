@@ -89,6 +89,14 @@ obrigatória, exceto quando o produto estiver cadastrado com
 quantidade inteira. Produtos com variações também exigem quantidade inteira e
 uma variação do próprio produto. Produtos a granel aceitam quantidade decimal.
 
+Produtos tratados somente como unidades também podem ser revisados em pacotes.
+Envie `quantidade_pacotes` e `unidades_por_pacote` como inteiros positivos, junto
+de `quantidade_confirmada` igual ao produto dos dois valores. Por exemplo, dois
+pacotes com 30 unidades têm `quantidade_confirmada=60`. As respostas retornam as
+três quantidades como strings decimais. Para unidades avulsas, omita os campos
+de pacote ou envie ambos como `null`. O conteúdo da embalagem é lembrado na
+associação do item para futuras revisões automáticas.
+
 A primeira revisão cria uma associação com o código interno do produto naquele
 estabelecimento e guarda o fator usado na conversão da quantidade. Novas notas
 aplicam essa classificação automaticamente. Quando não houver associação por

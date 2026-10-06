@@ -11,6 +11,19 @@ function produto(opcoes: Partial<Produto>): Produto {
 }
 
 describe('sugestão da quantidade na importação', () => {
+  it.each([['0.350', 'KG'], ['2', ' kg '], ['500', ' g ']])(
+    'sugere uma unidade para peso %s %s', (quantidade, unidade) => {
+      expect(sugerirQuantidade(quantidade, unidade, produto({
+        tratar_apenas_como_unidades: true, unidade_medida: null,
+      }))).toBe(1);
+    },
+  );
+
+  it('preserva quantidades inteiras de unidades e não altera produtos com variações', () => {
+    expect(sugerirQuantidade('3', 'UN', produto({ tratar_apenas_como_unidades: true }))).toBe(3);
+    expect(sugerirQuantidade('2', 'KG', produto({ contem_variacoes: true }))).toBe(2);
+    expect(sugerirQuantidade('0.350', 'KG', produto({ contem_variacoes: true }))).toBeNull();
+  });
   it('deixa em branco uma quantidade fracionária para produto por unidade', () => {
     expect(sugerirQuantidade('1.5', 'UN', produto({ tratar_apenas_como_unidades: true, unidade_medida: null }))).toBeNull();
   });

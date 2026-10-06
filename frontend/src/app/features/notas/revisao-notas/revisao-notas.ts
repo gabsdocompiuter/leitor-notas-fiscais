@@ -231,6 +231,33 @@ export class RevisaoNotas implements OnInit {
     const produto = this.produtoSelecionado(id);
     return produto?.tratar_apenas_como_unidades || produto?.contem_variacoes ? '1' : 'any';
   }
+  permitePacotes(id: string): boolean {
+    return !!this.produtoSelecionado(id)?.tratar_apenas_como_unidades;
+  }
+  usaPacotes(id: string): boolean {
+    return this.permitePacotes(id) && this.formularios.get(id)?.get('tipo_quantidade')?.value === 'pacotes';
+  }
+  totalUnidades(id: string): number | null {
+    const form = this.formularios.get(id);
+    const quantidade = Number(form?.get('quantidade_confirmada')?.value);
+    const unidades = Number(form?.get('unidades_por_pacote')?.value);
+    const total = quantidade * unidades;
+    return Number.isSafeInteger(quantidade) && quantidade > 0 &&
+      Number.isSafeInteger(unidades) && unidades > 0 && Number.isSafeInteger(total)
+      ? total : null;
+  }
+  private configurarPacotes(form: FormGroup, produto: Produto | null): void {
+    const unidades = form.get('unidades_por_pacote');
+    if (produto?.tratar_apenas_como_unidades && form.get('tipo_quantidade')?.value === 'pacotes') {
+      unidades?.setValidators([
+        Validators.required, Validators.min(1), Validators.max(Number.MAX_SAFE_INTEGER),
+        Validators.pattern(/^\d+$/), validarDecimal,
+      ]);
+    } else {
+      unidades?.clearValidators();
+    }
+    unidades?.updateValueAndValidity({ emitEvent: false });
+  }
   nomeMarcaSelecionada(id: string): string {
     const marcaId = this.formularios.get(id)?.get('marca_id')?.value;
     return this.marcas().find((m) => m.id === marcaId)?.nome ?? 'Selecionar marca';
@@ -259,14 +286,19 @@ export class RevisaoNotas implements OnInit {
     const itemAnterior = this.nota()?.itens.find((atual) => atual.id === this.itemEditando());
     if (itemAnterior && itemAnterior.id !== item.id) {
       const formularioAnterior = this.formularios.get(itemAnterior.id);
-      if (formularioAnterior) this.restaurarFormulario(itemAnterior, formularioAnterior);
+      if (formularioAnterior) {
+        this.restaurarFormulario(itemAnterior, formularioAnterior);
+        this.configurarEdicaoQuantidade(formularioAnterior, false);
+      }
     }
     this.itemEditando.set(item.id);
+    const form = this.formularios.get(item.id);
+    if (form) this.configurarEdicaoQuantidade(form, true);
   }
   cancelarEdicao(item: ItemNota): void {
+    this.itemEditando.set(null);
     const form = this.formularios.get(item.id);
     if (form) this.restaurarFormulario(item, form);
-    this.itemEditando.set(null);
   }
   salvarItem(item: ItemNota): void {
     const form = this.formularios.get(item.id);
@@ -276,10 +308,18 @@ export class RevisaoNotas implements OnInit {
       this.erro.set('Revise os campos destacados antes de salvar o item.');
       return;
     }
+    const pacotes = this.usaPacotes(item.id);
+    const total = pacotes ? this.totalUnidades(item.id) : Number(form.get('quantidade_confirmada')?.value);
+    if (total === null) {
+      this.erro.set('Informe uma quantidade válida de pacotes e unidades por pacote.');
+      return;
+    }
     const valor = form.getRawValue();
     const revisao: RevisaoItem = {
       produto_id: valor.produto_id,
-      quantidade_confirmada: Number(valor.quantidade_confirmada),
+      quantidade_confirmada: total,
+      quantidade_pacotes: pacotes ? Number(valor.quantidade_confirmada) : null,
+      unidades_por_pacote: pacotes ? Number(valor.unidades_por_pacote) : null,
       variacao_id: valor.variacao_id || null,
     };
     if (this.deveSolicitarMarca(item.id)) revisao.marca_id = valor.marca_id;
@@ -399,8 +439,9 @@ export class RevisaoNotas implements OnInit {
       produto_id: produto.id,
       variacao_id: mudou ? null : form.get('variacao_id')?.value,
     });
+    if (mudou) form.patchValue({ tipo_quantidade: 'unidades', unidades_por_pacote: null });
     this.configurarCamposProduto(form, produto, mudou ? null : form.get('marca_id')?.value);
-    this.preencherQuantidade(item, form, produto);
+    if (mudou) this.preencherQuantidade(item, form, produto);
     this.fecharSeletor();
   }
   selecionarMarca(marca: Marca): void {
@@ -444,9 +485,14 @@ export class RevisaoNotas implements OnInit {
         marca_id: [null as string | null],
         variacao_id: [null as string | null],
         quantidade_confirmada: [null as number | null],
+        tipo_quantidade: ['unidades'],
+        unidades_por_pacote: [null as number | null],
       });
       this.restaurarFormulario(item, form);
       this.formularios.set(item.id, form);
+      form.get('tipo_quantidade')?.valueChanges.subscribe(() =>
+        this.configurarPacotes(form, this.produtoSelecionado(item.id)),
+      );
     });
   }
   private restaurarFormulario(item: ItemNota, form: FormGroup): void {
@@ -455,11 +501,22 @@ export class RevisaoNotas implements OnInit {
       produto_id: produto?.id ?? '',
       marca_id: item.apresentacao?.marca?.id ?? null,
       variacao_id: item.variacao?.id ?? null,
-      quantidade_confirmada: this.numero(item.quantidade_confirmada),
+      quantidade_confirmada: this.numero(item.quantidade_pacotes ?? item.quantidade_confirmada),
+      tipo_quantidade: item.quantidade_pacotes != null && item.unidades_por_pacote != null
+        ? 'pacotes' : 'unidades',
+      unidades_por_pacote: this.numero(item.unidades_por_pacote),
     });
     this.configurarCamposProduto(form, produto, item.apresentacao?.marca?.id ?? null);
     if (item.quantidade_confirmada === null && produto)
       this.preencherQuantidade(item, form, produto);
+    this.configurarEdicaoQuantidade(form, this.itemEstaEmEdicao(item));
+  }
+  private configurarEdicaoQuantidade(form: FormGroup, editando: boolean): void {
+    for (const nome of ['quantidade_confirmada', 'tipo_quantidade', 'unidades_por_pacote']) {
+      const controle = form.get(nome);
+      if (editando) controle?.enable({ emitEvent: false });
+      else controle?.disable({ emitEvent: false });
+    }
   }
   private atualizarEstabelecimentoNaNota(estabelecimento: Estabelecimento): void {
     this.nota.update((nota) => (nota ? { ...nota, estabelecimento } : nota));
@@ -496,9 +553,10 @@ export class RevisaoNotas implements OnInit {
       validadores.push(Validators.pattern(/^\d+$/));
     quantidade?.setValidators(validadores);
     quantidade?.updateValueAndValidity({ emitEvent: false });
+    this.configurarPacotes(form, produto);
   }
-  private numero(valor: string | null): number | null {
-    const n = valor === null ? NaN : Number(valor);
+  private numero(valor: string | null | undefined): number | null {
+    const n = valor == null ? NaN : Number(valor);
     return Number.isFinite(n) ? n : null;
   }
   private adicionarOrdenado<T extends { id: string }>(

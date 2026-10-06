@@ -131,6 +131,8 @@ class NotaRepository(BaseRepository[NotaEntity]):
                     apresentacao=apresentacao,
                     variacao=variacao,
                     quantidade_confirmada=item.quantidade_confirmada,
+                    quantidade_pacotes=item.quantidade_pacotes,
+                    unidades_por_pacote=item.unidades_por_pacote,
                     revisado=item.revisado,
                     tags=[self._obter_ou_adicionar_tag(tag) for tag in item.tags],
                 )

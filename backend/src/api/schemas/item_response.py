@@ -21,6 +21,8 @@ class ItemResponse(BaseModel):
     apresentacao: ApresentacaoProdutoResponse | None
     variacao: VariacaoProdutoResponse | None
     quantidade_confirmada: str | None
+    quantidade_pacotes: str | None
+    unidades_por_pacote: str | None
     tags: list[TagResponse]
     revisado: bool
 
@@ -50,5 +52,11 @@ class ItemResponse(BaseModel):
                 else None
             ),
             revisado=item.revisado,
+            quantidade_pacotes=(
+                str(item.quantidade_pacotes) if item.quantidade_pacotes is not None else None
+            ),
+            unidades_por_pacote=(
+                str(item.unidades_por_pacote) if item.unidades_por_pacote is not None else None
+            ),
             tags=[TagResponse.from_entity(tag) for tag in item.tags],
         )

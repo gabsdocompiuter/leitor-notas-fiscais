@@ -72,6 +72,8 @@ def revisar_item(
         entrada.marca_id,
         entrada.variacao_id,
         entrada.quantidade_confirmada,
+        entrada.quantidade_pacotes,
+        entrada.unidades_por_pacote,
     )
     return NotaResponse.from_entity(nota)
 

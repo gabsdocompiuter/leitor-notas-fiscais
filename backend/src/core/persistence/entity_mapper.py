@@ -98,6 +98,8 @@ class EntityMapper:
             ),
             variacao=cls.variacao(entidade.variacao) if entidade.variacao else None,
             quantidade_confirmada=entidade.quantidade_confirmada,
+            quantidade_pacotes=entidade.quantidade_pacotes,
+            unidades_por_pacote=entidade.unidades_por_pacote,
             revisado=entidade.revisado,
             tags=[cls.tag(tag) for tag in entidade.tags],
         )

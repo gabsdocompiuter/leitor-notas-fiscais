@@ -37,6 +37,8 @@ class ItemEntity(BaseEntity):
     )
     variacao_id: Mapped[UUID | None] = mapped_column(ForeignKey("variacoes_produto.id"))
     quantidade_confirmada: Mapped[Decimal | None] = mapped_column(DecimalText)
+    quantidade_pacotes: Mapped[Decimal | None] = mapped_column(DecimalText)
+    unidades_por_pacote: Mapped[Decimal | None] = mapped_column(DecimalText)
     revisado: Mapped[bool] = mapped_column(Boolean, default=False)
     nota: Mapped[NotaEntity] = relationship(back_populates="itens")
     apresentacao: Mapped[ApresentacaoProdutoEntity | None] = relationship(

@@ -173,6 +173,50 @@ class CatalogoRevisaoApiTests(unittest.TestCase):
         )
         self.assertEqual(ausente.status_code, 404)
 
+    def test_api_salva_e_reabre_pacotes(self):
+        nota = self.ler()
+        produto = self.produto("Filtro", tratar_apenas_como_unidades=True, unidade_medida=None)
+        item = nota["itens"][0]
+        url = f"/notas/{CHAVE}/itens/{item['id']}"
+        for pacotes in (1, 2):
+            resposta = self.cliente.patch(url, json={
+                "produto_id": produto["id"], "marca_id": self.marca["id"],
+                "quantidade_confirmada": pacotes * 30,
+                "quantidade_pacotes": pacotes, "unidades_por_pacote": 30,
+            })
+            self.assertEqual(resposta.status_code, 200, resposta.text)
+            salvo = self.cliente.get(f"/notas/{CHAVE}").json()["itens"][0]
+            self.assertEqual(salvo["quantidade_confirmada"], str(pacotes * 30))
+            self.assertEqual(salvo["quantidade_pacotes"], str(pacotes))
+            self.assertEqual(salvo["unidades_por_pacote"], "30")
+            self.assertEqual(salvo["quantidade"], item["quantidade"])
+            self.assertEqual(salvo["valor_total"], item["valor_total"])
+        resposta = self.revisar(item, produto, 3)
+        self.assertEqual(resposta.status_code, 200, resposta.text)
+        self.assertIsNone(resposta.json()["itens"][0]["quantidade_pacotes"])
+        self.assertIsNone(resposta.json()["itens"][0]["unidades_por_pacote"])
+
+    def test_api_rejeita_pacotes_incompletos_fracionarios_e_inconsistentes(self):
+        nota = self.ler()
+        produto = self.produto("Filtro", tratar_apenas_como_unidades=True, unidade_medida=None)
+        url = f"/notas/{CHAVE}/itens/{nota['itens'][0]['id']}"
+        for campos in [
+            {"quantidade_pacotes": 1}, {"unidades_por_pacote": 30},
+            {"quantidade_pacotes": 0, "unidades_por_pacote": 30},
+            {"quantidade_pacotes": 1, "unidades_por_pacote": -1},
+            {"quantidade_pacotes": 1.5, "unidades_por_pacote": 20},
+            {"quantidade_pacotes": 1, "unidades_por_pacote": 30.5},
+            {"quantidade_pacotes": 2, "unidades_por_pacote": 30},
+        ]:
+            with self.subTest(campos=campos):
+                resposta = self.cliente.patch(url, json={
+                    "produto_id": produto["id"], "marca_id": self.marca["id"],
+                    "quantidade_confirmada": 30, **campos,
+                })
+                self.assertEqual(resposta.status_code, 422, resposta.text)
+        salvo = self.cliente.get(f"/notas/{CHAVE}").json()["itens"][0]
+        self.assertFalse(salvo["revisado"])
+
 
 class MigracaoTests(unittest.TestCase):
     def test_migracao_inicial_cria_schema_e_pode_ser_reexecutada(self):
@@ -183,7 +227,7 @@ class MigracaoTests(unittest.TestCase):
             with closing(sqlite3.connect(caminho)) as conexao:
                 self.assertEqual(
                     conexao.execute("SELECT version_num FROM alembic_version").fetchone(),
-                    ("0003",),
+                    ("0004",),
                 )
                 tabelas = {
                     linha[0]
@@ -249,7 +293,7 @@ class MigracaoTests(unittest.TestCase):
                 ).fetchone()
             self.assertNotIn("descricao", colunas)
             self.assertEqual(variacao, ("200", "ML"))
-            self.assertEqual(revisao, ("0003",))
+            self.assertEqual(revisao, ("0004",))
 
 
 if __name__ == "__main__":

@@ -33,6 +33,7 @@ class AssociacaoProdutoEntity(BaseEntity):
     apresentacao_id: Mapped[UUID] = mapped_column(ForeignKey("apresentacoes_produto.id"))
     variacao_id: Mapped[UUID | None] = mapped_column(ForeignKey("variacoes_produto.id"))
     fator_conversao: Mapped[Decimal] = mapped_column(DecimalText)
+    unidades_por_pacote: Mapped[Decimal | None] = mapped_column(DecimalText)
     estabelecimento: Mapped[EstabelecimentoEntity] = relationship(
         back_populates="associacoes"
     )

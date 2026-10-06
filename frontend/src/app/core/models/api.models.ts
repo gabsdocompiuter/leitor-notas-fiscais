@@ -67,6 +67,8 @@ export interface ItemNota {
   apresentacao: ApresentacaoProduto | null;
   variacao: VariacaoProduto | null;
   quantidade_confirmada: string | null;
+  quantidade_pacotes: string | null;
+  unidades_por_pacote: string | null;
   revisado: boolean;
   tags: Tag[];
 }
@@ -110,6 +112,8 @@ export interface RevisaoItem {
   marca_id?: string | null;
   variacao_id?: string | null;
   quantidade_confirmada: number;
+  quantidade_pacotes?: number | null;
+  unidades_por_pacote?: number | null;
 }
 
 export interface ProdutoRequest {

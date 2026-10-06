@@ -7,6 +7,10 @@ export function sugerirQuantidade(
 ): number | null {
   const quantidade = Number(quantidadeOriginal);
   if (!Number.isFinite(quantidade)) return null;
+  const origem = unidadeOriginal.trim().toUpperCase();
+  if (produto.tratar_apenas_como_unidades && (origem === 'KG' || origem === 'G')) {
+    return 1;
+  }
   if (produto.tratar_apenas_como_unidades || produto.contem_variacoes) {
     return Number.isInteger(quantidade) ? quantidade : null;
   }

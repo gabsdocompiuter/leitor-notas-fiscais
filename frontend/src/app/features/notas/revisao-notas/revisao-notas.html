@@ -278,26 +278,68 @@
                   @if (nomeProdutoSelecionado(item.id)) {
                     <div class="col-12 col-lg-4">
                       <label class="form-label" [for]="'quantidade-' + item.id">Quantidade</label>
-                      <div class="input-group">
-                        <input
-                          class="form-control"
-                          [id]="'quantidade-' + item.id"
-                          lnfDecimal
-                          formControlName="quantidade_confirmada"
-                          [attr.disabled]="itemEstaEmEdicao(item) ? null : true"
-                        />
-                        <span class="input-group-text">{{ unidadeQuantidade(item.id) }}</span>
-                      </div>
-                      @if (
-                        formulario.get('quantidade_confirmada')?.invalid &&
-                        formulario.get('quantidade_confirmada')?.touched
-                      ) {
-                        <div class="text-danger small mt-1">
-                          Informe uma quantidade válida{{
-                            passoQuantidade(item.id) === '1' ? ' e inteira' : ''
-                          }}.
+                      <div class="d-flex flex-column gap-1">
+                        <div class="input-group">
+                          <input
+                            class="form-control"
+                            [id]="'quantidade-' + item.id"
+                            lnfDecimal
+                            formControlName="quantidade_confirmada"
+                            [attr.disabled]="itemEstaEmEdicao(item) ? null : true"
+                          />
+                          @if (permitePacotes(item.id)) {
+                            <select
+                              class="form-select flex-grow-0 w-auto"
+                              formControlName="tipo_quantidade"
+                              [attr.disabled]="itemEstaEmEdicao(item) ? null : true"
+                              [attr.aria-label]="'Tipo de quantidade do item ' + item.numero"
+                            >
+                              <option value="unidades">Unidades</option>
+                              <option value="pacotes">Pacotes</option>
+                            </select>
+                          } @else {
+                            <span class="input-group-text">{{ unidadeQuantidade(item.id) }}</span>
+                          }
                         </div>
-                      }
+                        @if (
+                          formulario.get('quantidade_confirmada')?.invalid &&
+                          formulario.get('quantidade_confirmada')?.touched
+                        ) {
+                          <div class="text-danger small">
+                            Informe uma quantidade válida{{
+                              passoQuantidade(item.id) === '1' ? ' e inteira' : ''
+                            }}.
+                          </div>
+                        }
+                        @if (usaPacotes(item.id)) {
+                          <div class="input-group">
+                            <input
+                              class="form-control"
+                              [id]="'unidades-pacote-' + item.id"
+                              aria-label="Unidades por pacote"
+                              lnfDecimal
+                              formControlName="unidades_por_pacote"
+                              [attr.disabled]="itemEstaEmEdicao(item) ? null : true"
+                            />
+                            <span class="input-group-text">unidades por pacote</span>
+                          </div>
+                          @if (
+                            formulario.get('unidades_por_pacote')?.invalid &&
+                            formulario.get('unidades_por_pacote')?.touched
+                          ) {
+                            <div class="text-danger small">
+                              Informe um número inteiro maior que zero.
+                            </div>
+                          }
+                          @if (totalUnidades(item.id); as total) {
+                            <div class="small text-body-secondary" aria-live="polite">
+                              {{ formulario.get('quantidade_confirmada')?.value }} pacotes ×
+                              {{ formulario.get('unidades_por_pacote')?.value }} unidades =
+                              <strong>{{ total }} unidades</strong>
+                            </div>
+                          }
+                        }
+                      </div>
                     </div>
                   }
                 </div>

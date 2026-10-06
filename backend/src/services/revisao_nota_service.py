@@ -42,6 +42,8 @@ class RevisaoNotaService:
         marca_id: UUID | None,
         variacao_id: UUID | None,
         quantidade_confirmada: Decimal,
+        quantidade_pacotes: Decimal | None = None,
+        unidades_por_pacote: Decimal | None = None,
     ) -> NotaDTO:
         validar_quantidade(quantidade_confirmada)
         with self.session_factory.begin() as session:
@@ -57,6 +59,9 @@ class RevisaoNotaService:
             produto, variacao = self._validar_classificacao(
                 session, produto_id, marca_id, variacao_id, quantidade_confirmada
             )
+            self._validar_pacotes(
+                produto, quantidade_confirmada, quantidade_pacotes, unidades_por_pacote
+            )
             apresentacoes = ApresentacaoProdutoRepository(session)
             apresentacao = apresentacoes.obter_por_produto_marca(produto_id, marca_id)
             if apresentacao is None:
@@ -70,6 +75,8 @@ class RevisaoNotaService:
             item.apresentacao = apresentacao
             item.variacao = variacao
             item.quantidade_confirmada = quantidade_confirmada
+            item.quantidade_pacotes = quantidade_pacotes
+            item.unidades_por_pacote = unidades_por_pacote
             item.revisado = True
             if not importada:
                 nota.situacao = SituacaoNota.EM_REVISAO
@@ -80,6 +87,7 @@ class RevisaoNotaService:
                 apresentacao,
                 variacao,
                 quantidade_confirmada / item.quantidade,
+                unidades_por_pacote,
             )
             if not importada:
                 self._revisar_pendentes_iguais(session, item)
@@ -109,9 +117,14 @@ class RevisaoNotaService:
             quantidade = quantidade.quantize(Decimal('0.001'), rounding=ROUND_HALF_UP)
             if quantidade <= 0:
                 continue
+            pacotes = self._calcular_pacotes(quantidade, origem.unidades_por_pacote)
+            if origem.unidades_por_pacote is not None and pacotes is None:
+                continue
             destino.apresentacao = origem.apresentacao
             destino.variacao = origem.variacao
             destino.quantidade_confirmada = quantidade
+            destino.quantidade_pacotes = pacotes
+            destino.unidades_por_pacote = origem.unidades_por_pacote
             destino.revisado = True
             destino.nota.situacao = SituacaoNota.EM_REVISAO
 
@@ -158,9 +171,14 @@ class RevisaoNotaService:
                     or quantidade != quantidade.to_integral_value()
                 ):
                     continue
+                pacotes = self._calcular_pacotes(quantidade, associacao.unidades_por_pacote)
+                if associacao.unidades_por_pacote is not None and pacotes is None:
+                    continue
                 item.apresentacao = associacao.apresentacao
                 item.variacao = associacao.variacao
                 item.quantidade_confirmada = quantidade
+                item.quantidade_pacotes = pacotes
+                item.unidades_por_pacote = associacao.unidades_por_pacote
                 item.revisado = True
                 alterados += 1
             if alterados:
@@ -219,6 +237,34 @@ class RevisaoNotaService:
         return produto, variacao
 
     @staticmethod
+    def _validar_pacotes(
+        produto: ProdutoEntity,
+        quantidade: Decimal,
+        pacotes: Decimal | None,
+        unidades: Decimal | None,
+    ) -> None:
+        if pacotes is None and unidades is None:
+            return
+        if pacotes is None or unidades is None:
+            raise DadosInvalidos("Informe a quantidade de pacotes e as unidades por pacote.")
+        if not produto.tratar_apenas_como_unidades:
+            raise DadosInvalidos("Pacotes só são aceitos para produtos tratados como unidades.")
+        for valor in (pacotes, unidades):
+            if not valor.is_finite() or valor <= 0 or valor != valor.to_integral_value():
+                raise DadosInvalidos("Pacotes e unidades por pacote devem ser inteiros positivos.")
+        if pacotes * unidades != quantidade:
+            raise DadosInvalidos("O total de unidades não corresponde ao conteúdo dos pacotes.")
+
+    @staticmethod
+    def _calcular_pacotes(quantidade: Decimal, unidades: Decimal | None) -> Decimal | None:
+        if unidades is None or not unidades.is_finite() or unidades <= 0:
+            return None
+        if unidades != unidades.to_integral_value():
+            return None
+        pacotes = quantidade / unidades
+        return pacotes if pacotes > 0 and pacotes == pacotes.to_integral_value() else None
+
+    @staticmethod
     def _item_completo(item: ItemEntity) -> bool:
         if (
             not item.revisado
@@ -228,6 +274,13 @@ class RevisaoNotaService:
         ):
             return False
         produto = item.apresentacao.produto
+        try:
+            RevisaoNotaService._validar_pacotes(
+                produto, item.quantidade_confirmada, item.quantidade_pacotes,
+                item.unidades_por_pacote,
+            )
+        except DadosInvalidos:
+            return False
         if not produto.nao_solicitar_marca and item.apresentacao.marca is None:
             return False
         if (produto.tratar_apenas_como_unidades or produto.contem_variacoes) and (
@@ -241,6 +294,13 @@ class RevisaoNotaService:
     @staticmethod
     def _associacao_valida(associacao: AssociacaoProdutoEntity) -> bool:
         produto = associacao.apresentacao.produto
+        if associacao.unidades_por_pacote is not None and (
+            not produto.tratar_apenas_como_unidades
+            or RevisaoNotaService._calcular_pacotes(
+                associacao.unidades_por_pacote, associacao.unidades_por_pacote
+            ) is None
+        ):
+            return False
         if not produto.nao_solicitar_marca and associacao.apresentacao.marca_id is None:
             return False
         if produto.contem_variacoes:
@@ -258,6 +318,7 @@ class RevisaoNotaService:
         apresentacao: ApresentacaoProdutoEntity,
         variacao: VariacaoProdutoEntity | None,
         fator: Decimal,
+        unidades_por_pacote: Decimal | None,
     ) -> None:
         repositorio = AssociacaoProdutoRepository(session)
         associacao = repositorio.obter_por_codigo(estabelecimento_id, item.codigo)
@@ -270,6 +331,7 @@ class RevisaoNotaService:
                 apresentacao=apresentacao,
                 variacao=variacao,
                 fator_conversao=fator,
+                unidades_por_pacote=unidades_por_pacote,
             )
             repositorio.adicionar(associacao)
             return
@@ -278,3 +340,4 @@ class RevisaoNotaService:
         associacao.apresentacao = apresentacao
         associacao.variacao = variacao
         associacao.fator_conversao = fator
+        associacao.unidades_por_pacote = unidades_por_pacote

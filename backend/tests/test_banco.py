@@ -107,7 +107,7 @@ class BancoTests(unittest.TestCase):
         self.assert_sem_temporarios()
 
     def test_migra_revisoes_anteriores(self):
-        for revisao in ("0001", "0002"):
+        for revisao in ("0001", "0002", "0003"):
             with self.subTest(revisao=revisao):
                 caminho = self.pasta / "recebido.sqlite3"
                 caminho.unlink(missing_ok=True)
@@ -115,7 +115,7 @@ class BancoTests(unittest.TestCase):
                 resposta = self.importar(novo.read_bytes())
                 self.assertEqual(resposta.status_code, 200, resposta.text)
                 with closing(sqlite3.connect(self.caminho)) as conexao:
-                    self.assertEqual(conexao.execute("SELECT version_num FROM alembic_version").fetchone(), ("0003",))
+                    self.assertEqual(conexao.execute("SELECT version_num FROM alembic_version").fetchone(), ("0004",))
                     self.assertIn("considerar_proximo_mes", [r[1] for r in conexao.execute("PRAGMA table_info(notas)")])
                 # O arquivo original fornecido não é migrado.
                 with closing(sqlite3.connect(novo)) as conexao:
