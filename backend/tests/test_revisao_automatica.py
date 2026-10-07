@@ -3,7 +3,7 @@ import unittest
 from decimal import Decimal
 from pathlib import Path
 
-from src.core.exceptions import DadosInvalidos
+from src.core.exceptions import Conflito, DadosInvalidos
 from src.core.persistence.banco_sqlite import BancoSQLite
 from src.entities import CategoriaEntity, ProdutoEntity, NotaEntity, TagEntity
 from src.enums.situacao_nota import SituacaoNota
@@ -141,3 +141,84 @@ class RevisaoAutomaticaTests(unittest.TestCase):
             session.get(NotaEntity, origem.id).situacao = SituacaoNota.IMPORTADA
         self.confirmar(origem)
         self.assertFalse(self.consultar(outra).itens[0].revisado)
+
+    def produto_unidades(self):
+        with self.banco.session_factory.begin() as session:
+            produto = session.get(ProdutoEntity, self.produto_id)
+            produto.tratar_apenas_como_unidades = True
+            produto.unidade_medida = None
+
+    def test_peso_reconhece_produto_sem_confirmar_contagem_mesmo_com_resultado_inteiro(self):
+        self.produto_unidades()
+        origem = self.criar_nota(1, unidade='KG', quantidade='0.194')
+        self.confirmar(origem, '1')
+        for numero, unidade, quantidade in [(2, 'KG', '0.148'), (3, ' g ', '148'), (4, 'KG', '0.388')]:
+            with self.subTest(unidade=unidade, quantidade=quantidade):
+                nota = self.criar_nota(numero, unidade=unidade, quantidade=quantidade)
+                for _ in range(2):
+                    resultado = self.revisao.aplicar_classificacoes_automaticas(nota.chave)
+                    item = resultado.itens[0]
+                    self.assertEqual(item.apresentacao.produto.id, self.produto_id)
+                    self.assertFalse(item.revisado)
+                    self.assertIsNone(item.quantidade_confirmada)
+                    self.assertIsNone(item.quantidade_pacotes)
+                    self.assertIsNone(item.unidades_por_pacote)
+                    self.assertEqual(resultado.situacao, SituacaoNota.EM_REVISAO)
+                with self.assertRaises(Conflito):
+                    self.revisao.concluir_importacao(nota.chave)
+                for invalida in ['0', '-1', '1.5']:
+                    with self.assertRaises(DadosInvalidos):
+                        self.confirmar(nota, invalida)
+                self.confirmar(nota, '2')
+                atual = self.revisao.aplicar_classificacoes_automaticas(nota.chave).itens[0]
+                self.assertTrue(atual.revisado)
+                self.assertEqual(atual.quantidade_confirmada, Decimal('2'))
+
+    def test_propagacao_de_peso_preenche_produto_mas_exige_contagem_individual(self):
+        self.produto_unidades()
+        origem = self.criar_nota(1, unidade='KG', quantidade='0.194')
+        igual = self.criar_nota(2, unidade='KG', quantidade='0.194')
+        outra_loja = self.criar_nota(3, ['  pao KG ', 'QUEIJO'], cnpj='22222222222222',
+                                     unidade='G', quantidade='148')
+        self.confirmar(origem, '1')
+        for nota in [igual, outra_loja]:
+            item = self.consultar(nota).itens[0]
+            self.assertEqual(item.apresentacao.produto.id, self.produto_id)
+            self.assertFalse(item.revisado)
+            self.assertIsNone(item.quantidade_confirmada)
+
+    def test_reconhecimento_peso_preserva_marca_e_nota_importada(self):
+        from src.entities import MarcaEntity
+        self.produto_unidades()
+        with self.banco.session_factory.begin() as session:
+            produto = session.get(ProdutoEntity, self.produto_id)
+            produto.nao_solicitar_marca = False
+            marca = MarcaEntity(nome='Padaria')
+            session.add(marca)
+            session.flush()
+            marca_id = marca.id
+        origem = self.criar_nota(1, unidade='KG', quantidade='0.194')
+        self.revisao.revisar_item(origem.chave, origem.itens[0].id, self.produto_id,
+                                 marca_id, None, Decimal('1'))
+        nota = self.criar_nota(2, unidade='KG', quantidade='0.148')
+        item = self.revisao.aplicar_classificacoes_automaticas(nota.chave).itens[0]
+        self.assertEqual(item.apresentacao.marca.id, marca_id)
+        self.assertIsNone(item.variacao)
+        self.assertFalse(item.revisado)
+        with self.banco.session_factory.begin() as session:
+            session.get(NotaEntity, nota.id).situacao = SituacaoNota.IMPORTADA
+        self.assertEqual(self.revisao.aplicar_classificacoes_automaticas(nota.chave), self.consultar(nota))
+
+    def test_associacao_ausente_ambigua_ou_invalida_nao_reconhece_peso(self):
+        self.produto_unidades()
+        origem = self.criar_nota(1, unidade='KG')
+        self.assertIsNone(self.revisao.aplicar_classificacoes_automaticas(origem.chave).itens[0].apresentacao)
+        self.confirmar(origem, '1')
+        segunda = self.criar_nota(2, cnpj='22222222222222', unidade='KG')
+        self.confirmar(segunda, '1')
+        ambigua = self.criar_nota(3, cnpj='33333333333333', unidade='KG')
+        self.assertIsNone(self.revisao.aplicar_classificacoes_automaticas(ambigua.chave).itens[0].apresentacao)
+        with self.banco.session_factory.begin() as session:
+            session.get(ProdutoEntity, self.produto_id).nao_solicitar_marca = False
+        invalida = self.criar_nota(4, unidade='KG')
+        self.assertIsNone(self.revisao.aplicar_classificacoes_automaticas(invalida.chave).itens[0].apresentacao)

@@ -98,7 +98,7 @@ export class RevisaoNotas implements OnInit {
   carregar(): void {
     this.carregando.set(true);
     forkJoin({
-      nota: this.api.obterNota(this.chave),
+      nota: this.api.aplicarClassificacoesAutomaticas(this.chave),
       produtos: this.api.listarProdutos(),
       categorias: this.api.listarCategorias(),
       marcas: this.api.listarMarcas(),
@@ -280,6 +280,12 @@ export class RevisaoNotas implements OnInit {
   }
   itemEstaEmEdicao(item: ItemNota): boolean {
     return !item.revisado || this.itemEditando() === item.id;
+  }
+  requerConfirmacaoUnidades(item: ItemNota): boolean {
+    return !item.revisado && item.quantidade_confirmada === null &&
+      !!item.apresentacao?.produto.tratar_apenas_como_unidades &&
+      ['KG', 'G'].includes(item.unidade_original.trim().toUpperCase()) &&
+      this.produtoSelecionado(item.id)?.id === item.apresentacao.produto.id;
   }
   editarItem(item: ItemNota): void {
     if (!item.revisado || this.itemSalvando() !== null) return;

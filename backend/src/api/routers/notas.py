@@ -50,6 +50,19 @@ def obter_nota(
     return NotaResponse.from_entity(nota)
 
 
+@router.post(
+    "/{chave}/classificacoes-automaticas",
+    response_model=NotaResponse,
+    summary="Reconhecer os produtos pelo histórico de revisão",
+    responses={404: {"model": ErroResponse, "description": "Nota não encontrada"}},
+)
+def aplicar_classificacoes_automaticas(
+    chave: Chave,
+    servico: Annotated[RevisaoNotaService, Depends(obter_revisao_nota_service)],
+) -> NotaResponse:
+    return NotaResponse.from_entity(servico.aplicar_classificacoes_automaticas(chave))
+
+
 @router.patch(
     "/{chave}/itens/{item_id}",
     response_model=NotaResponse,

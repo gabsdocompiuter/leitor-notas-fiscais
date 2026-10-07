@@ -68,6 +68,7 @@ describe('metadados na revisão', () => {
     const resposta = new Subject<Nota>();
     const api = {
       obterNota: () => of(nota),
+      aplicarClassificacoesAutomaticas: vi.fn(() => of(nota)),
       listarProdutos: () => of([produto, produtoPeso]),
       listarCategorias: () => of([]),
       listarMarcas: () => of([]),
@@ -98,6 +99,37 @@ describe('metadados na revisão', () => {
     fixture.detectChanges();
     return fixture.componentInstance.formularioItem('item')!;
   }
+
+  it.each(['KG', 'G'])('reconhece produto em %s e sugere 1 sem confirmar automaticamente', (unidade) => {
+    const { fixture, nota, api, resposta } = criar({
+      apresentacao: { id: 'ap', produto, marca: null },
+      unidade_original: unidade, quantidade: '0.148',
+    });
+    expect(api.aplicarClassificacoesAutomaticas).toHaveBeenCalledWith(nota.chave);
+    const form = fixture.componentInstance.formularioItem('item')!;
+    expect(form.get('produto_id')?.value).toBe(produto.id);
+    expect(form.get('quantidade_confirmada')?.value).toBe(1);
+    expect(nota.itens[0].quantidade_confirmada).toBeNull();
+    expect(api.revisarItem).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.podeImportar(nota)).toBe(false);
+    expect(fixture.nativeElement.textContent).toContain(
+      'Produto reconhecido pelo histórico. Confira a quantidade de unidades; a nota informa peso.',
+    );
+    for (const invalida of [0, -1, 1.5]) {
+      form.patchValue({ quantidade_confirmada: invalida });
+      fixture.componentInstance.salvarItem(nota.itens[0]);
+      expect(api.revisarItem).not.toHaveBeenCalled();
+    }
+    form.patchValue({ quantidade_confirmada: 2 });
+    fixture.componentInstance.salvarItem(nota.itens[0]);
+    expect(api.revisarItem).toHaveBeenCalledWith(nota.chave, 'item', expect.objectContaining({
+      produto_id: produto.id, quantidade_confirmada: 2,
+    }));
+    resposta.next({ ...nota, itens: [{ ...nota.itens[0], revisado: true, quantidade_confirmada: '2' }] });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain('Produto reconhecido pelo histórico.');
+    expect(fixture.componentInstance.podeImportar(fixture.componentInstance.nota()!)).toBe(true);
+  });
 
   it.each([1, 2])('salva %s pacotes e restaura o conteúdo ao receber a nota', (quantidade) => {
     const { fixture, nota, resposta, api } = criar();

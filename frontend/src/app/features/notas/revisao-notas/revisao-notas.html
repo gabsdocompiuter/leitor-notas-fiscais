@@ -283,6 +283,11 @@
                   }
 
                   @if (nomeProdutoSelecionado(item.id)) {
+                    @if (requerConfirmacaoUnidades(item)) {
+                      <div class="col-12 text-warning-emphasis" role="status">
+                        Produto reconhecido pelo histórico. Confira a quantidade de unidades; a nota informa peso.
+                      </div>
+                    }
                     <div class="col-12 col-lg-4">
                       <label class="form-label" [for]="'quantidade-' + item.id">Quantidade</label>
                       <div class="d-flex flex-column gap-1">

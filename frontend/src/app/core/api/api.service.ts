@@ -55,6 +55,10 @@ export class ApiService {
     return this.http.get<Nota>(`${this.baseUrl}/notas/${chave}`);
   }
 
+  aplicarClassificacoesAutomaticas(chave: string): Observable<Nota> {
+    return this.http.post<Nota>(`${this.baseUrl}/notas/${chave}/classificacoes-automaticas`, {});
+  }
+
   criarLeitura(url: string): Observable<Leitura> {
     return this.http.post<Leitura>(`${this.baseUrl}/leituras`, { url });
   }

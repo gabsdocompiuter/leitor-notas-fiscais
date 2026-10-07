@@ -41,6 +41,7 @@ class ApiTests(unittest.TestCase):
         self.assertIn("/notas/{chave}", especificacao["paths"])
         self.assertIn("/notas/{chave}/itens/{item_id}", especificacao["paths"])
         self.assertIn("/notas/{chave}/importacao", especificacao["paths"])
+        self.assertIn("/notas/{chave}/classificacoes-automaticas", especificacao["paths"])
         self.assertIn("/categorias", especificacao["paths"])
         self.assertIn("/marcas", especificacao["paths"])
         self.assertIn("/produtos", especificacao["paths"])
@@ -100,6 +101,14 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(resposta.status_code, 422)
         self.assertEqual(resposta.json()["codigo"], "qrcode_invalido")
         self.assertEqual(self.consultas, 0)
+
+    def test_reconhecimento_de_nota_existente_sem_nova_consulta(self):
+        nota = self.cliente.post('/leituras', json={'url': URL_TESTE}).json()['nota']
+        resposta = self.cliente.post(f'/notas/{CHAVE}/classificacoes-automaticas')
+        self.assertEqual(resposta.status_code, 200)
+        self.assertEqual(resposta.json(), nota)
+        self.assertEqual(self.consultas, 1)
+        self.assertEqual(self.cliente.post(f"/notas/{'0' * 44}/classificacoes-automaticas").status_code, 404)
 
     def test_chave_consulta_e_salva_url_normalizada(self):
         self.verificar_leitura_normalizada(CHAVE)

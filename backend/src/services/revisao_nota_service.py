@@ -106,6 +106,10 @@ class RevisaoNotaService:
             mesma_descricao = normalizar_nome(destino.descricao_original) == descricao
             if not (mesmo_codigo or mesma_descricao):
                 continue
+            if self._peso_para_unidades(destino, produto):
+                self._preencher_classificacao_pendente(destino, origem.apresentacao, origem.variacao)
+                destino.nota.situacao = SituacaoNota.EM_REVISAO
+                continue
             conversao = self._fator_unidade(destino.unidade_original, origem.unidade_original)
             if conversao is None:
                 continue
@@ -127,6 +131,23 @@ class RevisaoNotaService:
             destino.unidades_por_pacote = origem.unidades_por_pacote
             destino.revisado = True
             destino.nota.situacao = SituacaoNota.EM_REVISAO
+
+    @staticmethod
+    def _peso_para_unidades(item: ItemEntity, produto: ProdutoEntity) -> bool:
+        return produto.tratar_apenas_como_unidades and item.unidade_original.strip().upper() in ('KG', 'G')
+
+    @staticmethod
+    def _preencher_classificacao_pendente(
+        item: ItemEntity,
+        apresentacao: ApresentacaoProdutoEntity,
+        variacao: VariacaoProdutoEntity | None,
+    ) -> None:
+        item.apresentacao = apresentacao
+        item.variacao = variacao
+        item.quantidade_confirmada = None
+        item.quantidade_pacotes = None
+        item.unidades_por_pacote = None
+        item.revisado = False
 
     @staticmethod
     def _fator_unidade(origem: str, destino: str) -> Decimal | None:
@@ -159,6 +180,11 @@ class RevisaoNotaService:
                     )
                     associacao = candidatas[0] if len(candidatas) == 1 else None
                 if associacao is None or not self._associacao_valida(associacao):
+                    continue
+                produto = associacao.apresentacao.produto
+                if self._peso_para_unidades(item, produto):
+                    self._preencher_classificacao_pendente(item, associacao.apresentacao, associacao.variacao)
+                    alterados += 1
                     continue
                 quantidade = (item.quantidade * associacao.fator_conversao).quantize(
                     Decimal('0.001'), rounding=ROUND_HALF_UP
