@@ -1,25 +1,111 @@
-<header class="app-header sticky-top">
-  <nav
-    class="container d-flex flex-wrap align-items-center justify-content-between gap-3 py-3"
-    aria-label="Navegação principal"
-  >
-    <a class="brand d-flex align-items-center gap-2 text-decoration-none" routerLink="/notas">
-      <span class="brand-mark"><i class="bi bi-receipt-cutoff" aria-hidden="true"></i></span>
+<header class="sticky-top bg-body border-bottom">
+  <nav class="container navbar navbar-expand-lg gap-3 px-3 py-3" aria-label="Navegação principal">
+    <button
+      class="navbar-toggler flex-shrink-0"
+      type="button"
+      data-bs-toggle="offcanvas"
+      data-bs-target="#menu-principal"
+      aria-controls="menu-principal"
+      [attr.aria-expanded]="menuAberto()"
+      aria-label="Abrir menu de navegação"
+    >
+      <span class="navbar-toggler-icon" aria-hidden="true"></span>
+    </button>
+    <a
+      class="d-flex align-items-center gap-2 me-auto me-lg-0 text-decoration-none text-body"
+      routerLink="/notas"
+    >
+      <span
+        class="d-inline-flex align-items-center justify-content-center text-bg-primary rounded-3 p-2 shadow-sm"
+        ><i class="bi bi-receipt-cutoff fs-5" aria-hidden="true"></i
+      ></span>
       <span>
         <strong class="d-block">Minhas Compras</strong>
-        <small class="d-none d-sm-block">Notas fiscais organizadas</small>
+        <small class="d-none d-sm-block text-body-secondary">Notas fiscais organizadas</small>
       </span>
     </a>
-    <div class="d-flex flex-wrap align-items-center gap-2">
-      <a class="nav-link-custom" routerLink="/relatorios" routerLinkActive="active">Relatórios</a>
-      <a class="nav-link-custom" routerLink="/notas" routerLinkActive="active">Notas</a>
-      <a class="nav-link-custom" routerLink="/cadastros" routerLinkActive="active">Cadastros</a>
-      <a class="nav-link-custom" routerLink="/banco-de-dados" routerLinkActive="active"
-        >Banco de dados</a
-      >
-      <a class="btn btn-primary rounded-pill px-3" routerLink="/ler">
-        <i class="bi bi-qr-code-scan me-2" aria-hidden="true"></i>Ler nota
-      </a>
+    <div
+      #menu
+      class="offcanvas-lg offcanvas-start ms-lg-auto"
+      style="--bs-offcanvas-width: min(85vw, 20rem)"
+      tabindex="-1"
+      id="menu-principal"
+      aria-labelledby="titulo-menu"
+    >
+      <div class="offcanvas-header">
+        <h2 class="offcanvas-title h5" id="titulo-menu">Minhas Compras</h2>
+        <button
+          type="button"
+          class="btn-close"
+          (click)="fecharMenu()"
+          aria-label="Fechar menu"
+        ></button>
+      </div>
+      <div class="offcanvas-body align-items-lg-center gap-3">
+        <div class="navbar-nav gap-2 align-items-lg-center">
+          <a
+            class="nav-link fw-semibold"
+            routerLink="/relatorios"
+            routerLinkActive="active"
+            ariaCurrentWhenActive="page"
+            (click)="fecharMenu()"
+            >Relatórios</a
+          >
+          <a
+            class="nav-link fw-semibold"
+            routerLink="/notas"
+            routerLinkActive="active"
+            ariaCurrentWhenActive="page"
+            (click)="fecharMenu()"
+            >Notas</a
+          >
+          <a
+            class="nav-link fw-semibold"
+            routerLink="/cadastros"
+            routerLinkActive="active"
+            ariaCurrentWhenActive="page"
+            (click)="fecharMenu()"
+            >Cadastros</a
+          >
+          <a
+            class="nav-link fw-semibold"
+            routerLink="/banco-de-dados"
+            routerLinkActive="active"
+            ariaCurrentWhenActive="page"
+            (click)="fecharMenu()"
+            >Banco de dados</a
+          >
+          <a
+            class="nav-link fw-semibold d-lg-none"
+            routerLink="/ler"
+            routerLinkActive="active"
+            ariaCurrentWhenActive="page"
+            (click)="fecharMenu()"
+            >Ler nota</a
+          >
+          <a
+            class="btn btn-primary rounded-pill px-3 d-none d-lg-inline-flex align-items-center"
+            routerLink="/ler"
+            (click)="fecharMenu()"
+          >
+            <i class="bi bi-qr-code-scan me-2" aria-hidden="true"></i>Ler nota
+          </a>
+        </div>
+        <div class="d-flex align-items-center gap-2 mt-3 mt-lg-0">
+          <label for="tema" class="form-label mb-0 small">Tema</label>
+          <select
+            #seletorTema
+            id="tema"
+            class="form-select form-select-sm w-auto"
+            [value]="tema.preferencia()"
+            (change)="tema.definirPreferencia(seletorTema.value)"
+          >
+            <option value="sistema">Sistema</option>
+            <option value="claro">Claro</option>
+            <option value="escuro">Escuro</option>
+          </select>
+        </div>
+      </div>
     </div>
   </nav>
 </header>
@@ -28,6 +114,6 @@
   <router-outlet />
 </main>
 
-<footer class="container py-4 text-center text-secondary small">
+<footer class="container py-4 text-center text-body-secondary small">
   Minhas Compras · frontend 0.1.0
 </footer>

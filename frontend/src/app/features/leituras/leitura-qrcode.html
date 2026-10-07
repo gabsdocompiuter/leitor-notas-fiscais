@@ -1,27 +1,41 @@
-<div class="container page-section">
+<div class="container py-4 py-md-5">
   <div class="mb-4">
-    <a class="back-link" routerLink="/notas"
+    <a
+      class="link-body-emphasis link-opacity-75 link-opacity-100-hover text-decoration-none small fw-semibold"
+      routerLink="/notas"
       ><i class="bi bi-arrow-left me-2"></i>Voltar para notas</a
     >
-    <span class="eyebrow d-block mt-4">Nova leitura</span>
+    <span class="text-primary-emphasis text-uppercase small fw-bold d-block mt-4"
+      >Nova leitura</span
+    >
     <h1 class="h2 mt-1 mb-2">Aponte para o QR Code</h1>
-    <p class="text-secondary mb-0">Posicione o código da NFC-e dentro da área indicada.</p>
+    <p class="text-body-secondary mb-0">Posicione o código da NFC-e dentro da área indicada.</p>
   </div>
 
   <div class="row g-4 justify-content-center">
     <div class="col-12 col-lg-7">
-      <section class="scanner-card">
-        <div class="video-frame" [class.camera-off]="!cameraAtiva()">
+      <section class="card p-3 rounded-4 shadow-sm">
+        <div
+          class="video-frame position-relative overflow-hidden bg-dark rounded-4"
+          data-bs-theme="dark"
+        >
           <video
             #video
+            class="w-100 h-100 object-fit-cover"
+            [class.invisible]="!cameraAtiva()"
             muted
             playsinline
             aria-label="Imagem da câmera para leitura do QR Code"
           ></video>
-          <div class="scan-guide" aria-hidden="true"><span></span></div>
+          <div
+            class="scan-guide position-absolute top-50 start-50 translate-middle border border-2 border-white border-opacity-75 rounded-4"
+            aria-hidden="true"
+          ></div>
           @if (!cameraAtiva()) {
-            <div class="camera-placeholder text-center">
-              <i class="bi bi-camera"></i>
+            <div
+              class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-white text-opacity-75 text-center"
+            >
+              <i class="bi bi-camera display-5 mb-3" aria-hidden="true"></i>
               <p class="mb-3">A câmera será usada somente durante a leitura.</p>
               <button
                 type="button"
@@ -61,12 +75,15 @@
         </div>
       }
 
-      <section class="surface-card p-4">
+      <section class="card shadow-sm rounded-4 p-4">
         <div class="d-flex align-items-center gap-3 mb-3">
-          <span class="alternative-icon"><i class="bi bi-link-45deg"></i></span>
+          <span
+            class="d-inline-flex align-items-center justify-content-center flex-shrink-0 p-2 rounded-3 bg-primary-subtle text-primary-emphasis fs-4"
+            ><i class="bi bi-link-45deg" aria-hidden="true"></i
+          ></span>
           <div>
             <h2 class="h6 mb-0">Usar o link</h2>
-            <small class="text-secondary">Opção para computador ou testes</small>
+            <small class="text-body-secondary">Opção para computador ou testes</small>
           </div>
         </div>
         <form class="d-flex flex-column gap-3" [formGroup]="formulario" (ngSubmit)="enviar()">

@@ -8,7 +8,8 @@
     "start:proxy": "ng serve --configuration development --proxy-config proxy.conf.json",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test --watch=false"
+    "test": "ng test --watch=false",
+    "test:tema-inicial": "node --test tests/tema-inicial.test.cjs"
   },
   "private": true,
   "license": "WTFPL",

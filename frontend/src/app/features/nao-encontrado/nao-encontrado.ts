@@ -5,7 +5,7 @@ import { EstadoVazio } from '../../shared/components/estado-vazio/estado-vazio';
   selector: 'lnf-nao-encontrado',
   imports: [EstadoVazio],
   template: `
-    <div class="container page-section">
+    <div class="container py-4 py-md-5">
       <lnf-estado-vazio
         titulo="Página não encontrada"
         mensagem="O endereço informado não existe nesta aplicação."

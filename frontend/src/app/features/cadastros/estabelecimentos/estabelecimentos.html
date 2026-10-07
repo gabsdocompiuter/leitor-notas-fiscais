@@ -1,9 +1,13 @@
 <div class="container py-4 py-md-5">
-  <a routerLink="/cadastros" class="link-secondary text-decoration-none">← Cadastros</a>
+  <a
+    routerLink="/cadastros"
+    class="link-body-emphasis link-opacity-75 link-opacity-100-hover text-decoration-none"
+    >← Cadastros</a
+  >
 
   <div class="my-4">
     <h1 class="h2">Estabelecimentos</h1>
-    <p class="text-secondary mb-0">
+    <p class="text-body-secondary mb-0">
       Os estabelecimentos são incluídos pelas notas fiscais. Você pode editar o apelido de cada um.
     </p>
   </div>
@@ -33,12 +37,14 @@
         >
           <span>
             <strong class="d-block">{{ loja.nome_exibicao }}</strong>
-            <small class="text-secondary">{{ loja.razao_social }} · CNPJ {{ loja.cnpj }}</small>
+            <small class="text-body-secondary"
+              >{{ loja.razao_social }} · CNPJ {{ loja.cnpj }}</small
+            >
           </span>
-          <span class="text-primary">Editar</span>
+          <span class="text-primary-emphasis">Editar</span>
         </a>
       } @empty {
-        <div class="card-body py-5 text-center text-secondary">
+        <div class="card-body py-5 text-center text-body-secondary">
           Nenhum estabelecimento encontrado.
         </div>
       }

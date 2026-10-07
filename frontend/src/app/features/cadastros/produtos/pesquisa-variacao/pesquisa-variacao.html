@@ -12,22 +12,24 @@
       (mousedown)="$event.stopPropagation()"
     >
       <section class="modal-content">
-        <header class="modal-header lnf-modal-header">
-          <div class="lnf-modal-texto">
-            <h2 class="modal-title fs-5" id="titulo-pesquisa-variacao">{{ tituloPesquisa }}</h2>
+        <header class="modal-header lnf-modal-header align-items-start gap-3">
+          <div class="lnf-modal-texto flex-fill text-wrap">
+            <h2 class="modal-title fs-5 flex-fill" id="titulo-pesquisa-variacao">
+              {{ tituloPesquisa }}
+            </h2>
             @if (contexto()) {
               <p class="text-body-secondary small mb-0 lnf-modal-texto">{{ contexto() }}</p>
             }
           </div>
           <button
             type="button"
-            class="btn-close"
+            class="btn-close flex-shrink-0 m-0"
             aria-label="Fechar"
             (click)="solicitarFechamento()"
           ></button>
         </header>
         <div class="modal-body">
-          <div class="input-group mb-3 lnf-filtro-variacao">
+          <div class="input-group mb-3 lnf-filtro-variacao flex-nowrap">
             <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
             <input
               #campoBusca
@@ -65,12 +67,14 @@
             @for (variacao of resultados(); track variacao.id) {
               <button
                 type="button"
-                class="lnf-pesquisa-resultado list-group-item list-group-item-action d-flex align-items-center gap-3"
+                class="list-group-item list-group-item-action d-flex align-items-center gap-3"
                 (click)="selecionar(variacao)"
               >
-                <i class="bi bi-box fs-4 text-primary"></i>
-                <span class="fw-semibold lnf-modal-texto">{{ formatarVariacao(variacao) }}</span>
-                <i class="bi bi-chevron-right ms-auto"></i>
+                <i class="bi bi-box fs-4 text-primary-emphasis flex-shrink-0"></i>
+                <span class="fw-semibold lnf-modal-texto flex-fill text-wrap">{{
+                  formatarVariacao(variacao)
+                }}</span>
+                <i class="bi bi-chevron-right ms-auto flex-shrink-0"></i>
               </button>
             } @empty {
               <p class="text-body-secondary text-center py-4 mb-0">{{ mensagemSemResultados }}</p>
@@ -94,14 +98,16 @@
       (mousedown)="$event.stopPropagation()"
     >
       <section class="modal-content">
-        <header class="modal-header lnf-modal-header">
-          <div class="lnf-modal-texto">
-            <h2 class="modal-title fs-5" id="titulo-cadastro-variacao">{{ tituloCadastro }}</h2>
+        <header class="modal-header lnf-modal-header align-items-start gap-3">
+          <div class="lnf-modal-texto flex-fill text-wrap">
+            <h2 class="modal-title fs-5 flex-fill" id="titulo-cadastro-variacao">
+              {{ tituloCadastro }}
+            </h2>
             <p class="text-body-secondary small mb-0">{{ produto().nome }}</p>
           </div>
           <button
             type="button"
-            class="btn-close"
+            class="btn-close flex-shrink-0 m-0"
             aria-label="Voltar para pesquisa"
             [disabled]="salvando()"
             (click)="voltarParaPesquisa()"
@@ -117,7 +123,7 @@
             }}”?
           </p>
         </div>
-        <footer class="modal-footer">
+        <footer class="modal-footer flex-shrink-0">
           <button
             type="button"
             class="btn btn-outline-secondary"

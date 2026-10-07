@@ -35,6 +35,10 @@ Para usar a câmera pelo Android via HTTP, cadastre exatamente a origem do servi
 
 ## Funcionalidades
 
+- Menu lateral à esquerda em telas menores que 992 px, com largura de 85% da tela
+  limitada a 320 px. No celular, “Ler nota” segue o formato dos outros links.
+- Tema Sistema, Claro ou Escuro, com preferência salva neste navegador.
+
 - Lista e filtro de notas aguardando revisão, em revisão e importadas.
 - Leitura do QR Code pela câmera com `@zxing/browser`.
 - Campo alternativo para colar o conteúdo do QR Code.
@@ -59,13 +63,33 @@ importação. As novas telas usam componentes e classes Bootstrap responsivos.
 
 ## Comandos
 
+Para abrir uma prévia sem conflitar com a porta padrão de outra aplicação, use
+`node node_modules/@angular/cli/bin/ng.js serve --configuration development --port 4201`.
+
 ```bash
 npm start
 npm run start:network
 npm run start:proxy
 npm test
+npm run test:tema-inicial
 npm run build
 ```
+
+## Estilos e temas
+
+A interface usa a paleta e os componentes padrão do Bootstrap 5.3, com
+`data-bs-theme` aplicado ao documento. O arquivo `public/tema-inicial.js` resolve
+a preferência antes de carregar os estilos; o serviço Angular acompanha mudanças
+do sistema e grava a escolha em `localStorage` (`lnf-tema`). Sem escolha válida,
+o padrão é Sistema. O armazenamento pode ser bloqueado sem impedir a alternância.
+
+O CSS próprio restante tem funções específicas: encolhimento e quebra de textos
+longos nos modais, rolagem dos formulários, proporção dos filtros de variação e
+dimensões/animação da guia do scanner. A câmera mantém fundo escuro nos dois temas
+e a animação respeita a preferência por movimento reduzido. As larguras inline das
+barras de progresso continuam dinâmicas porque representam valores dos dados.
+O menu usa apenas uma variável CSS nativa do Bootstrap (`--bs-offcanvas-width`)
+para reduzir o painel sem afetar a navegação horizontal no desktop.
 
 ## Docker
 
