@@ -376,9 +376,7 @@ export class RevisaoNotas implements OnInit {
     if (!form || !this.itemEstaEmEdicao(item)) return;
     this.tipoModal.set(tipo);
     this.itemModal.set(item);
-    this.buscaInicialModal.set(
-      tipo === 'produto' ? capitalizarIniciais(item.descricao_original) : '',
-    );
+    this.buscaInicialModal.set(capitalizarIniciais(item.descricao_original));
     if (tipo === 'variacao') {
       const produto = this.produtoSelecionado(item.id);
       if (!produto) return;
