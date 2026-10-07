@@ -2,6 +2,9 @@
 
 ## Não lançado
 
+- Edição dos dados de produtos utilizados, com motivos para os bloqueios estruturais e orientação sobre o efeito nas compras antigas.
+- Exclusão de produtos sem uso pela tela de edição, com confirmação da limpeza de vínculos e atualização das restrições após conflitos.
+
 - Menu Banco de dados com exportação, importação condicionada à API e confirmação antes de substituir os dados.
 
 - Diferencia tags selecionadas com primary e mantém as sugestões abertas ao escolher uma tag, ocultando apenas as selecionadas.

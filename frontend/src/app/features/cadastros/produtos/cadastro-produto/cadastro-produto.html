@@ -20,6 +20,16 @@
           </div>
         </div>
       } @else {
+        @if (!novo) {
+          <div class="alert alert-info">
+            Correções de nome e categoria aparecem também nas compras antigas e nos relatórios.
+            Exigir marca preserva as notas já importadas; itens sem marca em notas ainda não
+            importadas precisarão de revisão.
+          </div>
+        }
+        @if (restricoes()?.motivo_alteracao_estrutura; as motivo) {
+          <div class="alert alert-secondary">{{ motivo }}</div>
+        }
         <form class="card" #formulario="ngForm" (ngSubmit)="salvarProduto()">
           <div class="card-body">
             <div class="row g-3">
@@ -59,6 +69,7 @@
                     class="form-check-input"
                     type="checkbox"
                     name="tratarUnidades"
+                    [disabled]="estruturaBloqueada()"
                     [(ngModel)]="modelo.tratar_apenas_como_unidades"
                     (ngModelChange)="ajustarTipo()"
                   />
@@ -75,6 +86,7 @@
                     id="unidade-medida"
                     class="form-select"
                     name="unidadeMedida"
+                    [disabled]="estruturaBloqueada()"
                     required
                     [(ngModel)]="modelo.unidade_medida"
                   >
@@ -93,6 +105,7 @@
                       class="form-check-input"
                       type="checkbox"
                       name="contemVariacoes"
+                      [disabled]="estruturaBloqueada()"
                       [(ngModel)]="modelo.contem_variacoes"
                     />
                     <label class="form-check-label" for="contem-variacoes">
@@ -124,12 +137,32 @@
             <button
               class="btn btn-primary"
               type="submit"
-              [disabled]="salvando() || formulario.invalid || !valido()"
+              [disabled]="
+                salvando() || salvandoVariacao() || excluindo() || formulario.invalid || !valido()
+              "
             >
               {{ salvando() ? 'Salvando...' : 'Salvar' }}
             </button>
           </div>
         </form>
+
+        @if (!novo) {
+          <div class="mt-3">
+            <button
+              class="btn btn-outline-danger"
+              type="button"
+              (click)="excluirProduto()"
+              [disabled]="
+                !restricoes()?.pode_excluir || salvando() || salvandoVariacao() || excluindo()
+              "
+            >
+              {{ excluindo() ? 'Excluindo...' : 'Excluir produto' }}
+            </button>
+            @if (restricoes()?.motivo_exclusao; as motivo) {
+              <p class="text-body-secondary mt-2 mb-0">{{ motivo }}</p>
+            }
+          </div>
+        }
 
         @if (produto()?.contem_variacoes) {
           <section class="card mt-4">
@@ -175,7 +208,9 @@
                     <button
                       class="btn btn-primary"
                       type="button"
-                      [disabled]="salvandoVariacao() || !variacaoValida()"
+                      [disabled]="
+                        salvandoVariacao() || salvando() || excluindo() || !variacaoValida()
+                      "
                       (click)="salvarVariacao()"
                     >
                       {{ salvandoVariacao() ? 'Salvando...' : 'Salvar variação' }}

@@ -44,6 +44,8 @@ Para usar a câmera pelo Android via HTTP, cadastre exatamente a origem do servi
 - Campo alternativo para colar o conteúdo do QR Code.
 - Revisão de produto, marca quando exigida, quantidade e variação de peso ou volume.
 - Cadastros de categorias, marcas, produtos, variações e apelidos de estabelecimentos.
+- Edição de nome, categoria e exigência de marca de produtos já utilizados; a tela explica os bloqueios de unidade e modo de quantidade.
+- Exclusão de produtos sem itens em notas, com confirmação da remoção de variações, apresentações e associações automáticas.
 - Cadastros rápidos de categorias, marcas e produtos.
 - Alertas e progresso da revisão.
 - Importação liberada somente depois da revisão de todos os itens.
@@ -52,6 +54,10 @@ Para usar a câmera pelo Android via HTTP, cadastre exatamente a origem do servi
 A área **Relatórios** reúne o resumo mensal e os gastos por categoria e por tag,
 com seleção de mês, comparação com o anterior e detalhes paginados dos itens.
 Ela inclui apenas notas importadas e distribui proporcionalmente os descontos.
+
+Corrigir nome ou categoria de um produto também atualiza as compras antigas e
+os relatórios. Passar a exigir marca preserva notas importadas; os itens sem
+marca em notas ainda não importadas voltam a precisar de revisão.
 
 Na revisão, o campo **Considerar no próximo mês** move a nota inteira para o
 mês seguinte, sem alterar a emissão. Cada item aceita várias tags, exibidas como badges arredondadas. Ao abrir o

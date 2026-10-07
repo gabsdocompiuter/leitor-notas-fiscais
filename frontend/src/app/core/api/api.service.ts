@@ -16,6 +16,7 @@ import {
   Nota,
   Produto,
   ProdutoRequest,
+  RestricoesProduto,
   RevisaoItem,
   SituacaoNota,
   UnidadeMedidaInfo,
@@ -152,6 +153,14 @@ export class ApiService {
 
   obterProduto(id: string): Observable<Produto> {
     return this.http.get<Produto>(`${this.baseUrl}/produtos/${id}`);
+  }
+
+  obterRestricoesProduto(id: string): Observable<RestricoesProduto> {
+    return this.http.get<RestricoesProduto>(`${this.baseUrl}/produtos/${id}/restricoes`);
+  }
+
+  excluirProduto(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/produtos/${id}`);
   }
 
   criarProduto(produto: ProdutoRequest): Observable<Produto> {

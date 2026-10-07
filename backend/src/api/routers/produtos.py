@@ -1,17 +1,36 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Response, status
 
 from ...services.produto_service import ProdutoService
 from ..dependencies import obter_produto_service
 from ..schemas.erro_response import ErroResponse
 from ..schemas.produto_request import ProdutoRequest
 from ..schemas.produto_response import ProdutoResponse
+from ..schemas.restricoes_produto_response import RestricoesProdutoResponse
 
 
 router = APIRouter(prefix="/produtos", tags=["Catálogos"])
 Servico = Annotated[ProdutoService, Depends(obter_produto_service)]
+
+
+@router.get(
+    "/{produto_id}/restricoes", response_model=RestricoesProdutoResponse,
+    responses={404: {"model": ErroResponse}}, summary="Consultar restrições do produto",
+)
+def obter_restricoes(produto_id: UUID, servico: Servico) -> RestricoesProdutoResponse:
+    return RestricoesProdutoResponse.model_validate(servico.obter_restricoes(produto_id))
+
+
+@router.delete(
+    "/{produto_id}", status_code=status.HTTP_204_NO_CONTENT,
+    responses={404: {"model": ErroResponse}, 409: {"model": ErroResponse}},
+    summary="Excluir produto sem uso",
+)
+def excluir_produto(produto_id: UUID, servico: Servico) -> Response:
+    servico.excluir(produto_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("", response_model=list[ProdutoResponse], summary="Listar produtos")

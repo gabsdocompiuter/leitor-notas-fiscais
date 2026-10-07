@@ -9,6 +9,7 @@ import {
   Categoria,
   Produto,
   ProdutoRequest,
+  RestricoesProduto,
   UnidadeMedida,
   UnidadeMedidaInfo,
   VariacaoProduto,
@@ -29,6 +30,8 @@ export class CadastroProduto implements OnInit {
   private readonly router = inject(Router);
 
   readonly produto = signal<Produto | null>(null);
+  readonly restricoes = signal<RestricoesProduto | null>(null);
+  readonly excluindo = signal(false);
   readonly categorias = signal<Categoria[]>([]);
   readonly unidades = signal<UnidadeMedidaInfo[]>([]);
   readonly variacoes = signal<VariacaoProduto[]>([]);
@@ -66,11 +69,13 @@ export class CadastroProduto implements OnInit {
 
     forkJoin({
       produto: this.api.obterProduto(this.id!),
+      restricoes: this.api.obterRestricoesProduto(this.id!),
       categorias: this.api.listarCategorias(),
       unidades: this.api.listarUnidadesMedida(),
     }).subscribe({
-      next: ({ produto, categorias, unidades }) => {
+      next: ({ produto, restricoes, categorias, unidades }) => {
         this.produto.set(produto);
+        this.restricoes.set(restricoes);
         this.categorias.set(categorias);
         this.unidades.set(unidades);
         this.modelo = {
@@ -97,6 +102,58 @@ export class CadastroProduto implements OnInit {
     }
   }
 
+  estruturaBloqueada(): boolean {
+    return !this.novo && this.restricoes()?.pode_alterar_estrutura !== true;
+  }
+
+  private atualizarRestricoes(): void {
+    if (!this.id) return;
+    forkJoin({
+      restricoes: this.api.obterRestricoesProduto(this.id),
+      produto: this.api.obterProduto(this.id),
+    }).subscribe({
+      next: ({ restricoes, produto }) => {
+        this.restricoes.set(restricoes);
+        this.produto.set(produto);
+        if (!restricoes.pode_alterar_estrutura) {
+          // Descarta apenas a mudança estrutural recusada; preserva as correções.
+          this.modelo.tratar_apenas_como_unidades = produto.tratar_apenas_como_unidades;
+          this.modelo.contem_variacoes = produto.contem_variacoes;
+          this.modelo.unidade_medida = produto.unidade_medida;
+        }
+      },
+      error: () => this.restricoes.set(null),
+    });
+  }
+
+  excluirProduto(): void {
+    if (
+      !this.id ||
+      !this.restricoes()?.pode_excluir ||
+      this.salvando() ||
+      this.salvandoVariacao() ||
+      this.excluindo()
+    )
+      return;
+    if (
+      !window.confirm(
+        `Excluir o produto "${this.produto()?.nome}"? Suas variações, apresentações e ` +
+          'associações de classificação automática também serão removidas. Esta ação não pode ser desfeita.',
+      )
+    )
+      return;
+    this.erro.set(null);
+    this.excluindo.set(true);
+    this.api.excluirProduto(this.id).subscribe({
+      next: () => void this.router.navigateByUrl('/cadastros/produtos'),
+      error: (erro) => {
+        this.excluindo.set(false);
+        this.erro.set(mensagemErro(erro));
+        this.atualizarRestricoes();
+      },
+    });
+  }
+
   valido(): boolean {
     return (
       !!this.modelo.nome.trim() &&
@@ -106,7 +163,7 @@ export class CadastroProduto implements OnInit {
   }
 
   salvarProduto(): void {
-    if (!this.valido()) return;
+    if (!this.valido() || this.salvando() || this.salvandoVariacao() || this.excluindo()) return;
 
     this.erro.set(null);
     this.salvando.set(true);
@@ -119,6 +176,7 @@ export class CadastroProduto implements OnInit {
       error: (erro) => {
         this.salvando.set(false);
         this.erro.set(mensagemErro(erro));
+        this.atualizarRestricoes();
       },
     });
   }
@@ -146,7 +204,14 @@ export class CadastroProduto implements OnInit {
   }
 
   salvarVariacao(): void {
-    if (!this.id || !this.variacaoValida()) return;
+    if (
+      !this.id ||
+      !this.variacaoValida() ||
+      this.salvando() ||
+      this.salvandoVariacao() ||
+      this.excluindo()
+    )
+      return;
 
     const valor = {
       quantidade: this.variacaoQuantidade!,

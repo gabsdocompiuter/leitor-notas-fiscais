@@ -1,0 +1,8 @@
+$kind: http-request
+name: Consultar restrições do produto
+url: "{{baseUrl}}/produtos/:produtoId/restricoes"
+method: GET
+pathVariables:
+  - key: produtoId
+    value: "{{produtoId}}"
+order: 5000

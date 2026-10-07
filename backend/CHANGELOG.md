@@ -4,6 +4,9 @@ As versões só são alteradas por solicitação explícita do usuário.
 
 ## Não lançado
 
+- Edição de nome, categoria e exigência de marca em produtos utilizados, com proteção dos campos estruturais e retorno à revisão dos itens sem marca em notas não importadas.
+- Consulta das restrições do produto e exclusão de produtos sem itens vinculados, com limpeza transacional de associações, apresentações e variações.
+
 - Importação e exportação do SQLite, com permissão no backend, validação/migrations, backup anterior e substituição coordenada com recuperação de falhas.
 
 - Sugestões de tags limitadas às cinco mais usadas por item, com desempate por nome e filtro a partir de três caracteres.

@@ -58,7 +58,8 @@ uvicorn main:app --host 0.0.0.0 --port 8008 --reload
 | `GET/POST` | `/marcas` | Lista ou cria marcas |
 | `GET/PATCH` | `/marcas/{id}` | Consulta ou altera uma marca |
 | `GET/POST` | `/produtos` | Lista ou cria produtos |
-| `GET/PATCH` | `/produtos/{id}` | Consulta ou altera um produto |
+| `GET/PATCH/DELETE` | `/produtos/{id}` | Consulta, altera ou exclui um produto sem uso |
+| `GET` | `/produtos/{id}/restricoes` | Informa permissões de alteração estrutural e exclusão, com os motivos |
 | `GET` | `/unidades-medida` | Lista unidades de peso e volume com descrição |
 | `GET/POST` | `/produtos/{id}/variacoes` | Lista ou cria variações de peso ou volume |
 | `PATCH` | `/variacoes/{id}` | Altera uma variação |
@@ -108,7 +109,30 @@ Uma nota só pode ser importada quando todos os itens estiverem revisados. A
 importação grava `importada_em` em UTC. Depois disso, cada item ainda pode ser
 reclassificado sem alterar a situação nem a data da importação, e a associação
 usada nas notas futuras acompanha o ajuste. Cadastros referenciados por notas
-importadas continuam imutáveis.
+importadas possuem restrições específicas: produtos permitem corrigir nome,
+categoria e exigência de marca; categorias, marcas e variações mantêm seus
+bloqueios atuais.
+
+Correções de nome e categoria do produto aparecem também nas compras antigas
+e nos relatórios, reagrupando gastos sem alterar valores financeiros. Unidade,
+tratamento como unidades e uso de variações não podem mudar enquanto houver
+itens de qualquer nota ou associações automáticas vinculados ao produto. Sem
+esses vínculos, a estrutura pode mudar; desativar variações exige que não haja
+variações cadastradas.
+
+Passar a exigir marca preserva os itens e a situação/data das notas importadas.
+Itens sem marca em notas ainda não importadas voltam a ficar não revisados,
+preservando sua classificação e quantidades. Novas classificações e correções
+manuais cumprem a regra atual; associações sem marca obrigatória não são
+reaproveitadas automaticamente.
+
+`GET /produtos/{id}/restricoes` retorna `pode_alterar_estrutura`, `pode_excluir`,
+`motivo_alteracao_estrutura` e `motivo_exclusao` (motivos nulos quando permitido).
+As restrições são verificadas novamente ao alterar ou excluir.
+`DELETE /produtos/{id}` retorna 204 sem corpo, 404 para produto inexistente ou
+409 se qualquer item referenciar sua apresentação ou variação. Quando permitido,
+remove também associações, apresentações e variações em uma única transação,
+preservando categorias, marcas e estabelecimentos. Falhas desfazem toda a limpeza.
 
 ## Tags e relatórios mensais
 

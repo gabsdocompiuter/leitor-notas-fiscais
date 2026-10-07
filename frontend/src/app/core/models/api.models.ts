@@ -116,6 +116,13 @@ export interface RevisaoItem {
   unidades_por_pacote?: number | null;
 }
 
+export interface RestricoesProduto {
+  pode_alterar_estrutura: boolean;
+  pode_excluir: boolean;
+  motivo_alteracao_estrutura: string | null;
+  motivo_exclusao: string | null;
+}
+
 export interface ProdutoRequest {
   nome: string;
   categoria_id: string;
