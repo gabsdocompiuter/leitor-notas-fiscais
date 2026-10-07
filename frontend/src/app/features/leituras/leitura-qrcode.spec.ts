@@ -59,7 +59,9 @@ describe('leitura manual de nota', () => {
     fixture.detectChanges();
     http.expectNone((request) => request.url.endsWith('/leituras'));
     expect(fixture.componentInstance.url.hasError('required')).toBe(true);
-    expect(fixture.nativeElement.textContent).toContain('Informe o link lido no QR Code.');
+    expect(fixture.nativeElement.textContent).toContain(
+      'Informe o link da nota ou a chave de acesso de 44 dígitos.',
+    );
   });
 
   it('bloqueia envios repetidos e permite tentar novamente depois de um erro', () => {
@@ -103,5 +105,23 @@ describe('leitura manual de nota', () => {
     expect(navegar).not.toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain('Nota não encontrada.');
     expect(fixture.componentInstance.enviando()).toBe(false);
+  });
+
+  it.each([
+    '43261008593122000302650530001850701977539572',
+    'https://www.sefaz.rs.gov.br/NFE/NFE-NFC.aspx?chaveNFe=43261008593122000302650530001850701977539572',
+  ])('envia a entrada %s para normalização no backend e abre a revisão', (entrada) => {
+    const { fixture, http, navegar, botao, preencher } = criar();
+    expect(fixture.nativeElement.textContent).toContain('Link ou chave de acesso');
+    preencher('  ' + entrada + '  ');
+    botao.click();
+    const consulta = http.expectOne((request) => request.url.endsWith('/leituras'));
+    expect(consulta.request.body).toEqual({ url: entrada });
+    consulta.flush({ nota: { chave: '43261008593122000302650530001850701977539572' } });
+    expect(navegar).toHaveBeenCalledWith([
+      '/notas',
+      '43261008593122000302650530001850701977539572',
+      'revisao',
+    ]);
   });
 });

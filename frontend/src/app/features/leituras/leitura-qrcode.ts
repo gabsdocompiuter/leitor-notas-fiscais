@@ -34,7 +34,9 @@ export class LeituraQrcode implements OnDestroy {
   async iniciarCamera(): Promise<void> {
     this.erro.set(null);
     if (!navigator.mediaDevices?.getUserMedia) {
-      this.erro.set('A câmera não está disponível neste navegador. Use o campo para colar o link.');
+      this.erro.set(
+        'A câmera não está disponível neste navegador. Cole o link ou a chave de acesso no campo abaixo.',
+      );
       return;
     }
     if (!this.video) return;
@@ -102,6 +104,6 @@ export class LeituraQrcode implements OnDestroy {
     if (erro instanceof DOMException && erro.name === 'NotAllowedError') {
       return 'O acesso à câmera foi negado. Autorize a câmera no navegador e tente novamente.';
     }
-    return 'Não foi possível iniciar a câmera. Verifique as permissões ou cole o link abaixo.';
+    return 'Não foi possível iniciar a câmera. Verifique as permissões ou cole o link ou a chave de acesso abaixo.';
   }
 }

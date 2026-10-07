@@ -13,6 +13,40 @@ extrair_chave = QRCodeService.extrair_chave
 
 
 class ConsultaTests(unittest.TestCase):
+    def test_normaliza_exemplos_de_chave_e_link_sefaz(self):
+        chave = "43261008593122000302650530001850701977539572"
+        link = f"https://www.sefaz.rs.gov.br/NFE/NFE-NFC.aspx?chaveNFe={chave}"
+        esperado = f"https://dfe-portal.svrs.rs.gov.br/Dfe/QrCodeNFce?p={chave}|3|1"
+        for entrada in (chave, link, f"  {chave}\n", f"\n{link}  "):
+            with self.subTest(entrada=entrada):
+                self.assertEqual(QRCodeService.normalizar_url(entrada), esperado)
+
+    def test_normalizacao_preserva_qrcodes_existentes(self):
+        original = URL_TESTE.replace(
+            "https://dfe-portal.svrs.rs.gov.br/Dfe/QrCodeNFce",
+            "https://www.sefaz.rs.gov.br/NFCE/NFCE-COM.aspx",
+        )
+        for url in (URL_TESTE, original, URL_TESTE.replace("|", "%7C")):
+            with self.subTest(url=url):
+                self.assertEqual(QRCodeService.normalizar_url(f"  {url}  "), url)
+
+    def test_normalizacao_rejeita_chaves_e_links_invalidos(self):
+        chave = "43261008593122000302650530001850701977539572"
+        base = "https://www.sefaz.rs.gov.br/NFE/NFE-NFC.aspx"
+        link = f"{base}?chaveNFe={chave}"
+        invalidas = [
+            "", "   ", chave[:-1], chave + "0", chave[:-1] + "x", "35" + chave[2:],
+            base, base + "?chaveNFe=", link + "&chaveNFe=" + chave,
+            base + "?chaveNFe=" + chave[:-1], base + "?chaveNFe=35" + chave[2:],
+            link.replace("https:", "http:"), link.replace(".br/", ".br:1234/"),
+            link.replace(".br/", ".br:invalid/"),
+            link.replace("https://", "https://usuario:senha@"), link + "#fragmento",
+            link.replace("www.sefaz.rs.gov.br", "example.com"),
+        ]
+        for entrada in invalidas:
+            with self.subTest(entrada=entrada), self.assertRaises(ErroConsulta):
+                QRCodeService.normalizar_url(entrada)
+
     def test_consulta_usa_url_recebida_em_vez_da_constante(self):
         outra_url = URL_TESTE.replace("432609", "432608").replace("|", "%7C")
         resposta = MagicMock()

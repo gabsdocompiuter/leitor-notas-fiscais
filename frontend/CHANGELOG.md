@@ -2,6 +2,8 @@
 
 ## Não lançado
 
+- Campo de leitura manual aceita link do QR Code, chave de acesso de 44 dígitos ou link de consulta da SEFAZ RS.
+
 - Edição dos dados de produtos utilizados, com motivos para os bloqueios estruturais e orientação sobre o efeito nas compras antigas.
 - Exclusão de produtos sem uso pela tela de edição, com confirmação da limpeza de vínculos e atualização das restrições após conflitos.
 

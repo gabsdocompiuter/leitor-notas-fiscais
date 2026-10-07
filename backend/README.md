@@ -1,6 +1,7 @@
 # Backend do leitor de NFC-e
 
-API FastAPI que recebe o conteúdo do QR Code de uma NFC-e do Rio Grande do Sul,
+API FastAPI que recebe o link do QR Code, a chave de acesso de 44 dígitos ou o
+link de consulta da SEFAZ RS de uma NFC-e do Rio Grande do Sul,
 consulta a SVRS e salva a leitura, o estabelecimento, a nota e seus itens no
 SQLite. A API também permite classificar os itens e concluir a importação depois
 que todos estiverem revisados.
@@ -41,7 +42,7 @@ uvicorn main:app --host 0.0.0.0 --port 8008 --reload
 | --- | --- | --- |
 | `GET` | `/health` | Verifica se a API está disponível |
 | `GET` | `/version` | Retorna a versão do backend |
-| `POST` | `/leituras` | Recebe a URL do QR Code, consulta e salva a nota |
+| `POST` | `/leituras` | Recebe link ou chave de acesso, consulta e salva a nota |
 | `GET` | `/leituras/{chave}` | Recupera a captura, inclusive quando a consulta falhou |
 | `GET` | `/notas` | Lista notas, com paginação e filtro por situação |
 | `GET` | `/notas/{chave}` | Recupera uma nota e todos os itens |
@@ -74,7 +75,17 @@ curl -X POST http://localhost:8008/leituras \
   -d '{"url":"https://dfe-portal.svrs.rs.gov.br/Dfe/QrCodeNFce?p=CHAVE|3|1"}'
 ```
 
-Repetir a leitura da mesma chave retorna os registros existentes e não consulta
+O campo `url` também aceita `43261008593122000302650530001850701977539572` ou
+`https://www.sefaz.rs.gov.br/NFE/NFE-NFC.aspx?chaveNFe=43261008593122000302650530001850701977539572`.
+Para essas entradas, a API monta
+`https://dfe-portal.svrs.rs.gov.br/Dfe/QrCodeNFce?p={CHAVE}|3|1` e usa esse endereço
+para consultar e salvar a origem da nota. Espaços nas extremidades são removidos.
+Links de QR Code já suportados preservam seus parâmetros. Chaves devem conter
+44 dígitos e começar com `43`; o link da SEFAZ deve usar HTTPS e conter um único
+parâmetro `chaveNFe` válido. Entradas inválidas retornam HTTP 422 com
+`qrcode_invalido` antes de consultar a rede.
+
+Repetir a leitura da mesma chave, em qualquer um dos três formatos, retorna os registros existentes e não consulta
 a SEFAZ novamente. Isso evita duplicatas e preserva IDs, apelidos e revisões.
 Falhas na SEFAZ deixam a captura salva com `erro_consulta`, permitindo uma nova
 tentativa posterior.

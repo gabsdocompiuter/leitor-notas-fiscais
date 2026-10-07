@@ -20,7 +20,7 @@ Chave = Annotated[str, Path(pattern=r"^\d{44}$", description="Chave de acesso da
     response_model=LeituraResponse,
     summary="Ler e salvar uma NFC-e",
     responses={
-        422: {"model": ErroResponse, "description": "QR Code inválido ou não suportado"},
+        422: {"model": ErroResponse, "description": "Link ou chave de acesso inválido ou não suportado"},
         502: {"model": ErroResponse, "description": "Falha ou resposta inválida da SEFAZ"},
         500: {"model": ErroResponse, "description": "Falha ao acessar o SQLite"},
     },

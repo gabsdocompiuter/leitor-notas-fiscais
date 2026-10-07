@@ -40,7 +40,7 @@ python main.py
 
 No Windows, ative o ambiente virtual com `venv\Scripts\Activate.ps1`.
 
-A documentação Swagger fica em `http://localhost:8008/docs`. A API recebe a URL do QR Code, consulta a NFC-e do RS, valida os dados e persiste a leitura no SQLite. Também oferece catálogos, revisão dos itens, classificação automática e confirmação da importação.
+A documentação Swagger fica em `http://localhost:8008/docs`. A API recebe o link do QR Code, a chave de acesso de 44 dígitos ou o link de consulta da SEFAZ RS, consulta a NFC-e do RS, valida os dados e persiste a leitura no SQLite. Também oferece catálogos, revisão dos itens, classificação automática e confirmação da importação.
 
 ## Frontend 0.1.0
 

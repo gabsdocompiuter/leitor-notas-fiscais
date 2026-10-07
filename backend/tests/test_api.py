@@ -16,9 +16,11 @@ class ApiTests(unittest.TestCase):
     def setUp(self):
         self.temporario = tempfile.TemporaryDirectory()
         self.consultas = 0
+        self.urls_consultadas = []
 
-        def consultar(_: str) -> bytes:
+        def consultar(url: str) -> bytes:
             self.consultas += 1
+            self.urls_consultadas.append(url)
             return HTML.encode("utf-8")
 
         app = criar_app(
@@ -97,6 +99,41 @@ class ApiTests(unittest.TestCase):
         )
         self.assertEqual(resposta.status_code, 422)
         self.assertEqual(resposta.json()["codigo"], "qrcode_invalido")
+        self.assertEqual(self.consultas, 0)
+
+    def test_chave_consulta_e_salva_url_normalizada(self):
+        self.verificar_leitura_normalizada(CHAVE)
+
+    def test_link_sefaz_consulta_e_salva_url_normalizada(self):
+        self.verificar_leitura_normalizada(
+            f"https://www.sefaz.rs.gov.br/NFE/NFE-NFC.aspx?chaveNFe={CHAVE}"
+        )
+
+    def verificar_leitura_normalizada(self, entrada):
+        link = f"https://www.sefaz.rs.gov.br/NFE/NFE-NFC.aspx?chaveNFe={CHAVE}"
+        resposta = self.cliente.post("/leituras", json={"url": f"  {entrada}  "})
+        self.assertEqual(resposta.status_code, 200)
+        dados = resposta.json()
+        self.assertEqual(self.urls_consultadas, [URL_TESTE])
+        self.assertEqual(dados["url"], URL_TESTE)
+        self.assertEqual(dados["nota"]["url_origem"], URL_TESTE)
+        for formato in (CHAVE, link, URL_TESTE):
+            repetida = self.cliente.post("/leituras", json={"url": formato})
+            self.assertEqual(repetida.status_code, 200)
+            self.assertEqual(repetida.json()["id"], dados["id"])
+            self.assertEqual(repetida.json()["nota"]["id"], dados["nota"]["id"])
+        self.assertEqual(self.consultas, 1)
+
+    def test_novas_entradas_invalidas_nao_consultam_sefaz(self):
+        base = "https://www.sefaz.rs.gov.br/NFE/NFE-NFC.aspx"
+        for entrada in (
+            "   ", CHAVE[:-1], CHAVE[:-1] + "x", "35" + CHAVE[2:],
+            base, base + "?chaveNFe=", base + f"?chaveNFe={CHAVE}&chaveNFe={CHAVE}",
+        ):
+            with self.subTest(entrada=entrada):
+                resposta = self.cliente.post("/leituras", json={"url": entrada})
+                self.assertEqual(resposta.status_code, 422)
+                self.assertEqual(resposta.json()["codigo"], "qrcode_invalido")
         self.assertEqual(self.consultas, 0)
 
     def test_recursos_ausentes_retorna_erro_documentado(self):

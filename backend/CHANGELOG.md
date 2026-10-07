@@ -4,6 +4,8 @@ As versões só são alteradas por solicitação explícita do usuário.
 
 ## Não lançado
 
+- Leitura por chave de acesso de 44 dígitos ou link de consulta da SEFAZ RS, com conversão para a URL de QR Code da SVRS e suporte no campo manual e na API.
+
 - Edição de nome, categoria e exigência de marca em produtos utilizados, com proteção dos campos estruturais e retorno à revisão dos itens sem marca em notas não importadas.
 - Consulta das restrições do produto e exclusão de produtos sem itens vinculados, com limpeza transacional de associações, apresentações e variações.
 

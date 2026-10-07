@@ -2,6 +2,10 @@
 
 Aplicação Angular para ler o QR Code de NFC-e, revisar a classificação dos itens e concluir a importação. A versão atual do frontend é **0.1.0**.
 
+Na tela de nova leitura, o campo manual aceita o link do QR Code, a chave de
+acesso de 44 dígitos ou o link de consulta da SEFAZ RS com `chaveNFe`.
+A conversão para a URL de QR Code da SVRS é feita pelo backend.
+
 ## Requisitos
 
 - Node.js 20.19.6, gerenciado pelo NVM

@@ -45,6 +45,7 @@ class LeituraNotaService:
             raise ErroPersistencia(f"Falha ao registrar a leitura: {erro}") from erro
 
     def ler(self, url: str) -> LeituraNotaDTO:
+        url = QRCodeService.normalizar_url(url)
         chave = QRCodeService.extrair_chave(url)
         leitura = self.registrar_leitura(url, chave)
         if leitura.nota is not None:
