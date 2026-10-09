@@ -1,0 +1,92 @@
+@if (carregando()) {
+  <div class="card-body" role="status">Carregando produtos...</div>
+} @else if (erro()) {
+  <div class="card-body d-flex flex-column align-items-start gap-2">
+    <span class="text-danger" role="alert">{{ erro() }}</span>
+    <button class="btn btn-outline-primary" type="button" (click)="carregar()">
+      Tentar novamente
+    </button>
+  </div>
+} @else {
+  <section class="card-body border-bottom" aria-label="Distribuição por produto">
+    <h3 class="h6 mb-3">Por produto</h3>
+    <lnf-apex-donut
+      [grupos]="produtos()"
+      [total]="categoria().total_pago"
+      [externos]="true"
+      tituloTotal="Total da categoria"
+    />
+  </section>
+  <div class="list-group list-group-flush">
+    @for (produto of visiveis(); track produto.id) {
+      <div class="list-group-item py-3">
+        <button
+          class="btn text-start p-0 w-100 d-flex align-items-start gap-3"
+          type="button"
+          [attr.data-produto]="produto.id"
+          [attr.aria-expanded]="expandido() === produto.id"
+          [attr.aria-controls]="'compras-produto-' + produto.id"
+          (click)="alternar(produto)"
+        >
+          <i
+            class="bi mt-1 flex-shrink-0"
+            [class.bi-chevron-down]="expandido() === produto.id"
+            [class.bi-chevron-right]="expandido() !== produto.id"
+            aria-hidden="true"
+          ></i>
+          <span class="d-flex flex-column gap-1 flex-grow-1 text-break">
+            <span
+              ><strong>{{ produto.nome }}</strong> ·
+              {{ percentual(produto.total_pago) | number: '1.1-1' : 'pt-BR' }}%</span
+            >
+            <span
+              >{{ +produto.total_pago | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }} ·
+              <span class="text-body-secondary">{{
+                produto.quantidade_comprada | quantidadeComprada: produto.unidade_quantidade
+              }}</span></span
+            >
+          </span>
+        </button>
+        <div [id]="'compras-produto-' + produto.id" [hidden]="expandido() !== produto.id">
+          @if (expandido() === produto.id) {
+            <div class="card mt-3" aria-live="polite">
+              <lnf-grupos-produto
+                [mes]="mes()"
+                [categoriaId]="categoria().id"
+                [produtoId]="produto.id"
+              />
+            </div>
+          }
+        </div>
+      </div>
+    } @empty {
+      <div class="list-group-item">Nenhum produto encontrado.</div>
+    }
+  </div>
+  <footer class="card-footer d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <span class="small"
+      >{{ deslocamento() + (produtos().length ? 1 : 0) }}–{{
+        deslocamento() + visiveis().length
+      }}
+      de {{ produtos().length }} {{ produtos().length === 1 ? 'produto' : 'produtos' }}</span
+    >
+    <div class="d-flex gap-2">
+      <button
+        class="btn btn-sm btn-outline-secondary"
+        type="button"
+        [disabled]="deslocamento() === 0"
+        (click)="navegar(-1)"
+      >
+        Anterior
+      </button>
+      <button
+        class="btn btn-sm btn-outline-secondary"
+        type="button"
+        [disabled]="deslocamento() + limite >= produtos().length"
+        (click)="navegar(1)"
+      >
+        Próxima
+      </button>
+    </div>
+  </footer>
+}

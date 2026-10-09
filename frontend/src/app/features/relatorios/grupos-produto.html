@@ -1,0 +1,119 @@
+<div
+  class="d-flex flex-wrap justify-content-center gap-2 p-3 border-bottom"
+  role="group"
+  aria-label="Agrupar compras por"
+>
+  @for (opcao of opcoes; track opcao.valor) {
+    <button
+      type="button"
+      class="btn btn-sm"
+      [class.btn-primary]="agrupador() === opcao.valor"
+      [class.btn-outline-secondary]="agrupador() !== opcao.valor"
+      [attr.aria-pressed]="agrupador() === opcao.valor"
+      [attr.data-agrupador]="opcao.valor"
+      (click)="selecionar(opcao.valor)"
+    >
+      {{ opcao.nome }}
+    </button>
+  }
+</div>
+@if (carregando()) {
+  <div class="card-body" role="status">Carregando grupos...</div>
+} @else if (erro()) {
+  <div class="card-body d-flex flex-column align-items-start gap-2">
+    <span class="text-danger" role="alert">{{ erro() }}</span>
+    <button type="button" class="btn btn-outline-primary" (click)="carregar()">
+      Tentar novamente
+    </button>
+  </div>
+} @else {
+  <div class="list-group list-group-flush">
+    @for (grupo of visiveis(); track chave(grupo)) {
+      <div class="list-group-item py-3">
+        <button
+          class="btn p-0 text-start w-100 d-flex flex-column flex-md-row justify-content-between gap-2"
+          type="button"
+          [attr.data-grupo]="chave(grupo)"
+          [attr.aria-expanded]="expandido() === grupo"
+          [attr.aria-controls]="idCompras(grupo)"
+          (click)="alternar(grupo)"
+        >
+          <span class="d-flex align-items-start gap-2">
+            <i
+              class="bi mt-1 flex-shrink-0"
+              [class.bi-chevron-down]="expandido() === grupo"
+              [class.bi-chevron-right]="expandido() !== grupo"
+              aria-hidden="true"
+            ></i>
+            <span class="d-flex flex-column gap-1 text-break">
+              <span>
+                @if (grupo.quantidade_unidades != null) {
+                  <span class="small me-2"
+                    >{{ grupo.quantidade_unidades | number: '1.0-0' : 'pt-BR' }}x</span
+                  >
+                }
+                <strong>{{ grupo.nome }}</strong></span
+              >
+              <span class="small text-body-secondary">{{
+                grupo.quantidade_comprada | quantidadeComprada: grupo.unidade_quantidade
+              }}</span>
+            </span>
+          </span>
+          <span class="d-flex flex-column align-items-md-end gap-1">
+            @if (grupo.quantidade_registros > 1) {
+              <span class="small text-body-secondary"
+                >Média por compra:
+                {{ +grupo.media_por_compra | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</span
+              >
+            }
+            <strong>{{
+              +grupo.total_pago | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+            }}</strong>
+          </span>
+        </button>
+        <div [id]="idCompras(grupo)" [hidden]="expandido() !== grupo">
+          @if (expandido() === grupo) {
+            <div class="card mt-3" aria-live="polite">
+              <lnf-itens-relatorio
+                [compacto]="true"
+                [agrupador]="agrupador()"
+                [pagina]="paginaItens()"
+                [carregando]="carregandoItens()"
+                [erro]="erroItens()"
+                [deslocamento]="deslocamentoItens()"
+                (tentar)="carregarItens()"
+                (navegar)="navegarItens($event)"
+              />
+            </div>
+          }
+        </div>
+      </div>
+    } @empty {
+      <div class="list-group-item">Nenhum grupo encontrado.</div>
+    }
+  </div>
+  <footer class="card-footer d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <span class="small"
+      >{{ deslocamento() + (grupos().length ? 1 : 0) }}–{{ deslocamento() + visiveis().length }} de
+      {{ grupos().length }} {{ grupos().length === 1 ? 'grupo' : 'grupos' }}</span
+    >
+    <div class="d-flex gap-2">
+      <button
+        type="button"
+        class="btn btn-sm btn-outline-secondary"
+        [disabled]="deslocamento() === 0"
+        (click)="navegar(-1)"
+      >
+        Anterior
+      </button>
+      <button
+        type="button"
+        class="btn btn-sm btn-outline-secondary"
+        [disabled]="deslocamento() + limite >= grupos().length"
+        (click)="navegar(1)"
+      >
+        Próxima
+      </button>
+    </div>
+  </footer>
+}

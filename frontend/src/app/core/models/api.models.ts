@@ -137,11 +137,19 @@ export interface VariacaoProdutoRequest {
   unidade_medida: UnidadeMedida;
 }
 
+export type UnidadeQuantidade = 'UN' | UnidadeMedida;
+
+export interface QuantidadeRelatorio {
+  quantidade: string;
+  unidade: UnidadeQuantidade;
+}
+
 export interface GrupoRelatorio {
   id: string;
   nome: string;
   total_pago: string;
   quantidade_itens: number;
+  quantidades_compradas?: QuantidadeRelatorio[];
 }
 
 export interface RelatorioMensal {
@@ -150,6 +158,7 @@ export interface RelatorioMensal {
   total_desconto: string;
   quantidade_notas: number;
   quantidade_itens: number;
+  quantidades_compradas?: QuantidadeRelatorio[];
   total_mes_anterior: string;
   categorias: GrupoRelatorio[];
   tags: GrupoRelatorio[];
@@ -162,6 +171,7 @@ export interface ItemRelatorio {
   emissao: string;
   estabelecimento: string;
   produto: string;
+  produto_id: string;
   categoria_id: string;
   categoria: string;
   valor_bruto: string;
@@ -169,9 +179,37 @@ export interface ItemRelatorio {
   valor_pago: string;
   tags: Tag[];
   considerar_proximo_mes: boolean;
+  quantidade_comprada?: string | null;
+  unidade_quantidade?: UnidadeQuantidade | null;
+  estabelecimento_id?: string | null;
+  marca_id?: string | null;
+  marca?: string | null;
+  variacao_id?: string | null;
+  variacao?: string | null;
+  quantidade_unidades?: string | null;
 }
 
 export interface ItensRelatorio {
   itens: ItemRelatorio[];
   total: number;
+}
+
+export interface ProdutoRelatorio extends GrupoRelatorio {
+  valor_bruto: string;
+  desconto_rateado: string;
+  quantidade_comprada?: string | null;
+  unidade_quantidade?: UnidadeQuantidade | null;
+}
+
+export type AgrupadorRelatorio = 'marca' | 'estabelecimento' | 'variacao';
+
+export interface AgrupamentoRelatorio {
+  id: string | null;
+  nome: string;
+  quantidade_registros: number;
+  quantidade_comprada: string | null;
+  unidade_quantidade: UnidadeQuantidade | null;
+  total_pago: string;
+  media_por_compra: string;
+  quantidade_unidades: string | null;
 }

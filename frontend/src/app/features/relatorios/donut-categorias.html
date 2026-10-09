@@ -1,0 +1,26 @@
+<lnf-apex-donut [grupos]="categorias()" [total]="total()" (selecionar)="selecionar.emit($event)" />
+<div class="legenda">
+  @for (entrada of grupos(); track entrada.grupo.id) {
+    <button
+      class="btn text-start w-100 d-flex flex-column gap-1"
+      type="button"
+      aria-haspopup="dialog"
+      (click)="escolher(entrada.grupo, $event)"
+    >
+      <span class="d-flex align-items-start gap-2 w-100">
+        <span class="cor mt-1" [style.background]="entrada.cor" aria-hidden="true"></span>
+        <strong class="nome">{{ entrada.grupo.nome }}</strong>
+      </span>
+      <span class="small"
+        >{{ entrada.percentual | number: '1.1-1' : 'pt-BR' }}% ·
+        {{ +entrada.grupo.total_pago | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</span
+      >
+      <span class="small text-body-secondary text-break"
+        >{{ entrada.grupo.quantidades_compradas | quantidadesCompradas }}</span
+      >
+    </button>
+  }
+</div>
+<p class="small text-body-secondary mt-3 mb-0">
+  Selecione uma fatia ou categoria para ver os detalhes.
+</p>

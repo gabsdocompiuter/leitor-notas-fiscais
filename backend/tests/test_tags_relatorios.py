@@ -210,7 +210,7 @@ class TagsRelatoriosTests(unittest.TestCase):
             self.assertEqual(self.cliente.get("/relatorios/mensal", params={"mes": mes}).status_code, 422)
 
     def test_relatorio_nao_depende_do_limite_da_listagem_de_notas(self):
-        self.importar()
+        _, categorias = self.importar()
         # Copia 51 compras importadas com IDs próprios, mantendo o catálogo.
         original = self.app.state.nota_service.obter_por_chave(CHAVE)
         from copy import deepcopy
@@ -233,6 +233,61 @@ class TagsRelatoriosTests(unittest.TestCase):
         self.assertEqual(len(primeira["itens"]), 50)
         self.assertFalse({item["id"] for item in primeira["itens"]} &
                          {item["id"] for item in segunda["itens"]})
+        produtos = self.cliente.get("/relatorios/mensal/produtos", params={
+            "mes": "2026-09", "categoria_id": categorias[0]["id"],
+        })
+        self.assertEqual(produtos.status_code, 200, produtos.text)
+        produto = produtos.json()[0]
+        self.assertEqual(produto["quantidade_itens"], 52)
+        self.assertEqual(produto["quantidade_comprada"], "52")
+        self.assertEqual(produto["unidade_quantidade"], "KG")
+        grupos = self.cliente.get("/relatorios/mensal/agrupamentos", params={
+            "mes": "2026-09", "categoria_id": categorias[0]["id"],
+            "produto_id": produto["id"], "agrupador": "marca",
+        })
+        self.assertEqual(grupos.status_code, 200, grupos.text)
+        self.assertEqual(grupos.json()[0]["quantidade_registros"], 52)
+        self.assertEqual(grupos.json()[0]["id"], None)
+        compras_sem_marca = self.cliente.get("/relatorios/mensal/itens", params={
+            "mes": "2026-09", "categoria_id": categorias[0]["id"], "produto_id": produto["id"],
+            "agrupador": "marca", "grupo_id": "sem_grupo", "deslocamento": 50,
+        })
+        self.assertEqual(compras_sem_marca.status_code, 200, compras_sem_marca.text)
+        self.assertEqual(len(compras_sem_marca.json()["itens"]), 2)
+        categoria = next(grupo for grupo in self.relatorio("2026-09")["categorias"]
+                         if grupo["id"] == categorias[0]["id"])
+        self.assertEqual(produto["total_pago"], categoria["total_pago"])
+        compras = self.cliente.get("/relatorios/mensal/itens", params={
+            "mes": "2026-09", "categoria_id": categorias[0]["id"],
+            "produto_id": produto["id"], "deslocamento": 50,
+        }).json()
+        self.assertEqual(compras["total"], 52)
+        self.assertEqual(len(compras["itens"]), 2)
+        self.assertTrue(all(item["produto_id"] == produto["id"] for item in compras["itens"]))
+
+    def test_produtos_validam_filtros_e_categoria_sem_compras(self):
+        base = {"mes": "2026-10", "categoria_id": str(uuid4()), "produto_id": str(uuid4())}
+        for params in [base, {**base, "agrupador": "invalido"}, {**base, "agrupador": "marca", "produto_id": "errado"}]:
+            self.assertEqual(self.cliente.get("/relatorios/mensal/agrupamentos", params=params).status_code, 422)
+        self.assertEqual(self.cliente.get("/relatorios/mensal/agrupamentos", params={**base, "agrupador": "marca"}).json(), [])
+        for params in [
+            {"mes": "2026-10", "agrupador": "marca"},
+            {"mes": "2026-10", "grupo_id": "sem_grupo"},
+            {"mes": "2026-10", "agrupador": "estabelecimento", "grupo_id": "sem_grupo"},
+            {"mes": "2026-10", "agrupador": "marca", "grupo_id": "invalido"},
+        ]:
+            self.assertEqual(self.cliente.get("/relatorios/mensal/itens", params=params).status_code, 422)
+        _, categorias = self.importar()
+        self.assertEqual(self.cliente.get("/relatorios/mensal/produtos", params={
+            "mes": "2026-08", "categoria_id": categorias[0]["id"],
+        }).json(), [])
+        for params in [{"mes": "2026-13", "categoria_id": categorias[0]["id"]},
+                       {"mes": "2026-09", "categoria_id": "invalido"},
+                       {"mes": "2026-09"}]:
+            self.assertEqual(self.cliente.get("/relatorios/mensal/produtos", params=params).status_code, 422)
+        self.assertEqual(self.cliente.get("/relatorios/mensal/itens", params={
+            "mes": "2026-09", "produto_id": "invalido",
+        }).status_code, 422)
 
     def test_migration_preserva_nota_existente_e_flag_desmarcada(self):
         self.importar()

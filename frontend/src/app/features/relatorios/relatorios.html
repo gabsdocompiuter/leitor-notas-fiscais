@@ -1,4 +1,7 @@
-<div class="container py-4 py-md-5 d-flex flex-column gap-4">
+<div
+  class="container py-4 py-md-5 d-flex flex-column gap-4"
+  [attr.inert]="filtro()?.tipo === 'categoria' ? '' : null"
+>
   <header class="d-flex flex-column flex-md-row justify-content-between gap-3">
     <div class="d-flex flex-column gap-2">
       <h1 class="h3 mb-0">Relatórios</h1>
@@ -68,8 +71,7 @@
             <span class="text-body-secondary">Compras</span>
             <strong class="fs-4">{{ dados.quantidade_notas }}</strong>
             <span class="small text-body-secondary"
-              >{{ dados.quantidade_itens }}
-              {{ dados.quantidade_itens === 1 ? 'item' : 'itens' }}</span
+              >{{ dados.quantidades_compradas | quantidadesCompradas }}</span
             >
           </div>
         </div>
@@ -115,42 +117,12 @@
         <section class="col-12 col-lg-6">
           <div class="card h-100">
             <div class="card-header"><h2 class="h5 mb-0">Por categoria</h2></div>
-            <div class="list-group list-group-flush">
-              @for (grupo of dados.categorias; track grupo.id) {
-                <button
-                  class="list-group-item list-group-item-action d-flex flex-column gap-2 py-3"
-                  type="button"
-                  (click)="selecionarGrupo('categoria', grupo)"
-                  [class.active]="
-                    filtro()?.tipo === 'categoria' && filtro()?.grupo?.id === grupo.id
-                  "
-                >
-                  <span class="d-flex flex-wrap justify-content-between gap-2">
-                    <strong class="text-break">{{ grupo.nome }}</strong>
-                    <span>{{
-                      +grupo.total_pago | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
-                    }}</span>
-                  </span>
-                  <span class="small"
-                    >{{ grupo.quantidade_itens }}
-                    {{ grupo.quantidade_itens === 1 ? 'item' : 'itens' }} ·
-                    {{ percentual(grupo.total_pago) | number: '1.1-1' : 'pt-BR' }}%</span
-                  >
-                  <span
-                    class="progress"
-                    role="progressbar"
-                    [attr.aria-label]="grupo.nome"
-                    [attr.aria-valuenow]="percentual(grupo.total_pago)"
-                    aria-valuemin="0"
-                    aria-valuemax="100"
-                  >
-                    <span
-                      class="progress-bar"
-                      [style.width.%]="percentual(grupo.total_pago)"
-                    ></span>
-                  </span>
-                </button>
-              }
+            <div class="card-body">
+              <lnf-donut-categorias
+                [categorias]="dados.categorias"
+                [total]="dados.total_pago"
+                (selecionar)="selecionarGrupo('categoria', $event)"
+              />
             </div>
           </div>
         </section>
@@ -173,8 +145,7 @@
                   <span class="d-flex flex-column gap-1">
                     <strong class="text-break">{{ grupo.nome }}</strong>
                     <span class="small"
-                      >{{ grupo.quantidade_itens }}
-                      {{ grupo.quantidade_itens === 1 ? 'item' : 'itens' }}</span
+                      >{{ grupo.quantidades_compradas | quantidadesCompradas }}</span
                     >
                   </span>
                   <span>{{
@@ -195,101 +166,75 @@
         tag para ver os detalhes.
       </p>
     }
-    @if (filtro(); as selecionado) {
-      <section class="card" aria-label="Itens do grupo selecionado" aria-live="polite">
-        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-          <h2 class="h5 mb-0 text-break">{{ selecionado.grupo.nome }}</h2>
-          <button class="btn btn-sm btn-outline-secondary" type="button" (click)="limparFiltro()">
-            Fechar detalhes
-          </button>
-        </div>
-        @if (carregandoItens()) {
-          <div class="card-body" role="status">Carregando itens...</div>
-        } @else if (erroItens()) {
-          <div class="card-body d-flex flex-column align-items-start gap-2">
-            <span class="text-danger" role="alert">{{ erroItens() }}</span>
-            <button class="btn btn-outline-primary" type="button" (click)="carregarItens()">
-              Tentar novamente
+    @if (filtro()?.tipo === 'tag') {
+      @if (filtro(); as selecionado) {
+        <section class="card" aria-label="Itens do grupo selecionado" aria-live="polite">
+          <div
+            class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2"
+          >
+            <h2 class="h5 mb-0 text-break">{{ selecionado.grupo.nome }}</h2>
+            <button class="btn btn-sm btn-outline-secondary" type="button" (click)="limparFiltro()">
+              Fechar detalhes
             </button>
           </div>
-        } @else if (pagina(); as detalhes) {
-          <div class="list-group list-group-flush">
-            @for (item of detalhes.itens; track item.id) {
-              <div
-                class="list-group-item d-flex flex-column flex-md-row justify-content-between gap-3 py-3"
-              >
-                <div class="d-flex flex-column gap-1">
-                  <strong class="text-break">{{ item.produto }}</strong>
-                  <span class="small">{{ item.categoria }} · {{ item.estabelecimento }}</span>
-                  <span class="small text-body-secondary"
-                    >Emissão: {{ item.emissao | date: 'dd/MM/yyyy' }}</span
-                  >
-                  @if (item.considerar_proximo_mes) {
-                    <span class="small text-body-secondary"
-                      >Considerada no mês seguinte à emissão.</span
-                    >
-                  }
-                  <div class="d-flex flex-wrap gap-2">
-                    @for (tag of item.tags; track tag.id) {
-                      <span class="badge rounded-pill text-bg-secondary text-break">{{
-                        tag.nome
-                      }}</span>
-                    }
-                  </div>
-                </div>
-                <div class="d-flex flex-column align-items-md-end gap-1">
-                  <strong>{{
-                    +item.valor_pago | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
-                  }}</strong>
-                  <span class="small text-body-secondary"
-                    >Bruto
-                    {{ +item.valor_bruto | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</span
-                  >
-                  <span class="small text-body-secondary"
-                    >Desconto
-                    {{
-                      +item.desconto_rateado | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
-                    }}</span
-                  >
-                  <a [routerLink]="['/notas', item.chave_nota, 'revisao']"
-                    >Ver nota {{ item.numero_nota }}</a
-                  >
-                </div>
-              </div>
-            } @empty {
-              <div class="list-group-item">Nenhum item encontrado.</div>
-            }
-          </div>
-          <div
-            class="card-footer d-flex flex-wrap align-items-center justify-content-between gap-2"
-          >
-            <span class="small"
-              >{{ deslocamento() + (detalhes.total ? 1 : 0) }}–{{
-                deslocamento() + detalhes.itens.length
-              }}
-              de {{ detalhes.total }} {{ detalhes.total === 1 ? 'item' : 'itens' }}</span
-            >
-            <div class="d-flex gap-2">
-              <button
-                class="btn btn-sm btn-outline-secondary"
-                type="button"
-                [disabled]="deslocamento() === 0"
-                (click)="navegarItens(-1)"
-              >
-                Anterior
-              </button>
-              <button
-                class="btn btn-sm btn-outline-secondary"
-                type="button"
-                [disabled]="deslocamento() + limite >= detalhes.total"
-                (click)="navegarItens(1)"
-              >
-                Próxima
-              </button>
-            </div>
-          </div>
-        }
-      </section>
+          <ng-container *ngTemplateOutlet="detalhesItens" />
+        </section>
+      }
     }
   }
 </div>
+
+<ng-template #detalhesItens
+  ><lnf-itens-relatorio
+    [pagina]="pagina()"
+    [carregando]="carregandoItens()"
+    [erro]="erroItens()"
+    [deslocamento]="deslocamento()"
+    (tentar)="carregarItens()"
+    (navegar)="navegarItens($event)"
+/></ng-template>
+@if (filtro()?.tipo === 'categoria') {
+  @if (filtro(); as selecionado) {
+    <div
+      #dialogo
+      class="modal fade show d-block"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="titulo-detalhes-categoria"
+      (keydown)="tecladoDialogo($event)"
+      (click)="limparFiltro()"
+    >
+      <div
+        class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"
+        (click)="$event.stopPropagation()"
+      >
+        <section class="modal-content">
+          <header class="modal-header lnf-modal-header align-items-start gap-3">
+            <div>
+              <h2 id="titulo-detalhes-categoria" class="modal-title fs-5">
+                {{ selecionado.grupo.nome }}
+              </h2>
+              <p class="small text-body-secondary mb-0 mt-2">
+                {{ +selecionado.grupo.total_pago | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
+                · {{ percentual(selecionado.grupo.total_pago) | number: '1.1-1' : 'pt-BR' }}%
+              </p>
+            </div>
+            <button
+              data-fechar
+              class="btn-close flex-shrink-0"
+              type="button"
+              aria-label="Fechar detalhes"
+              (click)="limparFiltro()"
+            ></button>
+          </header>
+          <div class="modal-body p-0" aria-live="polite">
+            <div class="card border-0 rounded-0">
+              <lnf-produtos-categoria [mes]="mes()" [categoria]="selecionado.grupo" />
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+  }
+}

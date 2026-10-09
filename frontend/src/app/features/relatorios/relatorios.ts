@@ -1,5 +1,15 @@
-import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
-import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { CurrencyPipe, DecimalPipe, DOCUMENT, NgTemplateOutlet } from '@angular/common';
+import {
+  Component,
+  DestroyRef,
+  ElementRef,
+  Injector,
+  OnInit,
+  afterNextRender,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -8,19 +18,38 @@ import { ApiService } from '../../core/api/api.service';
 import { GrupoRelatorio, ItensRelatorio, RelatorioMensal } from '../../core/models/api.models';
 import { mensagemErro } from '../../core/utils/erro-api';
 import { deslocarMes, formatarMes, mesValido } from '../../core/utils/mes.utils';
+import { DonutCategorias } from './donut-categorias';
+import { ProdutosCategoria } from './produtos-categoria';
+import { ItensRelatorioLista } from './itens-relatorio';
+import { QuantidadesCompradasPipe } from './quantidade-relatorio.pipe';
 
 type FiltroItens = { tipo: 'categoria' | 'tag'; grupo: GrupoRelatorio };
 
 @Component({
   selector: 'lnf-relatorios',
-  imports: [CurrencyPipe, DatePipe, DecimalPipe, RouterLink],
+  imports: [
+    CurrencyPipe,
+    DecimalPipe,
+    RouterLink,
+    NgTemplateOutlet,
+    DonutCategorias,
+    ProdutosCategoria,
+    ItensRelatorioLista,
+    QuantidadesCompradasPipe,
+  ],
   templateUrl: './relatorios.html',
+  styles: '.modal-body { scrollbar-gutter: stable; }',
 })
 export class Relatorios implements OnInit {
   private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly documento = inject(DOCUMENT);
+  private readonly injector = inject(Injector);
+  private readonly dialogo = viewChild<ElementRef<HTMLElement>>('dialogo');
+  private acionador: Element | null = null;
+  private overflowAnterior: string | null = null;
   private consulta?: Subscription;
   private consultaItens?: Subscription;
 
@@ -44,6 +73,7 @@ export class Relatorios implements OnInit {
     this.destroyRef.onDestroy(() => {
       this.consulta?.unsubscribe();
       this.consultaItens?.unsubscribe();
+      this.restaurarPagina();
     });
   }
 
@@ -84,18 +114,74 @@ export class Relatorios implements OnInit {
   }
 
   selecionarGrupo(tipo: FiltroItens['tipo'], grupo: GrupoRelatorio): void {
+    if (tipo === 'categoria') {
+      this.acionador = this.documento.activeElement;
+      if (this.overflowAnterior === null)
+        this.overflowAnterior = this.documento.body.style.overflow;
+      this.documento.body.style.overflow = 'hidden';
+      afterNextRender(
+        () => {
+          this.dialogo()?.nativeElement.querySelector<HTMLButtonElement>('[data-fechar]')?.focus();
+        },
+        { injector: this.injector },
+      );
+    }
     this.filtro.set({ tipo, grupo });
     this.deslocamento.set(0);
-    this.carregarItens();
+    if (tipo === 'tag') this.carregarItens();
   }
 
   limparFiltro(): void {
+    const eraCategoria = this.filtro()?.tipo === 'categoria';
     this.consultaItens?.unsubscribe();
     this.filtro.set(null);
     this.pagina.set(null);
     this.erroItens.set(null);
     this.carregandoItens.set(false);
     this.deslocamento.set(0);
+    this.restaurarPagina();
+    const acionador = this.acionador;
+    if (eraCategoria && acionador?.isConnected) {
+      // Aguarda a remoção de inert antes de devolver o foco ao gráfico.
+      afterNextRender(
+        () => {
+          if (this.filtro()?.tipo !== 'categoria' && acionador.isConnected) {
+            (acionador as HTMLElement | SVGElement).focus();
+          }
+        },
+        { injector: this.injector },
+      );
+    }
+    this.acionador = null;
+  }
+
+  private restaurarPagina(): void {
+    if (this.overflowAnterior !== null) {
+      this.documento.body.style.overflow = this.overflowAnterior;
+      this.overflowAnterior = null;
+    }
+  }
+
+  tecladoDialogo(evento: KeyboardEvent): void {
+    if (evento.key === 'Escape') {
+      evento.preventDefault();
+      this.limparFiltro();
+      return;
+    }
+    if (evento.key !== 'Tab') return;
+    const elementos = this.dialogo()?.nativeElement.querySelectorAll<HTMLElement>(
+      'button:not(:disabled), a[href]',
+    );
+    if (!elementos?.length) return;
+    const primeiro = elementos[0];
+    const ultimo = elementos[elementos.length - 1];
+    if (evento.shiftKey && this.documento.activeElement === primeiro) {
+      evento.preventDefault();
+      ultimo.focus();
+    } else if (!evento.shiftKey && this.documento.activeElement === ultimo) {
+      evento.preventDefault();
+      primeiro.focus();
+    }
   }
 
   navegarItens(quantidade: number): void {
@@ -106,6 +192,11 @@ export class Relatorios implements OnInit {
   carregarItens(): void {
     const filtro = this.filtro();
     if (!filtro) return;
+    const dialogo = this.dialogo()?.nativeElement;
+    // A paginação substitui os controles pelo estado de carregamento.
+    if (dialogo?.contains(this.documento.activeElement)) {
+      dialogo.querySelector<HTMLButtonElement>('[data-fechar]')?.focus();
+    }
     this.consultaItens?.unsubscribe();
     this.pagina.set(null);
     this.erroItens.set(null);

@@ -10,6 +10,9 @@ import {
   Tag,
   RelatorioMensal,
   ItensRelatorio,
+  ProdutoRelatorio,
+  AgrupadorRelatorio,
+  AgrupamentoRelatorio,
   Estabelecimento,
   Leitura,
   Marca,
@@ -109,11 +112,35 @@ export class ApiService {
     categoriaId?: string,
     tagId?: string,
     deslocamento = 0,
+    produtoId?: string,
+    agrupamento?: { agrupador: AgrupadorRelatorio; grupoId: string | null },
   ): Observable<ItensRelatorio> {
     let params = new HttpParams().set('mes', mes).set('deslocamento', deslocamento);
     if (categoriaId) params = params.set('categoria_id', categoriaId);
     if (tagId) params = params.set('tag_id', tagId);
+    if (produtoId) params = params.set('produto_id', produtoId);
+    if (agrupamento)
+      params = params
+        .set('agrupador', agrupamento.agrupador)
+        .set('grupo_id', agrupamento.grupoId ?? 'sem_grupo');
     return this.http.get<ItensRelatorio>(`${this.baseUrl}/relatorios/mensal/itens`, { params });
+  }
+
+  listarProdutosRelatorio(mes: string, categoriaId: string): Observable<ProdutoRelatorio[]> {
+    return this.http.get<ProdutoRelatorio[]>(`${this.baseUrl}/relatorios/mensal/produtos`, {
+      params: { mes, categoria_id: categoriaId },
+    });
+  }
+
+  listarAgrupamentosRelatorio(
+    mes: string,
+    categoriaId: string,
+    produtoId: string,
+    agrupador: AgrupadorRelatorio,
+  ): Observable<AgrupamentoRelatorio[]> {
+    return this.http.get<AgrupamentoRelatorio[]>(`${this.baseUrl}/relatorios/mensal/agrupamentos`, {
+      params: { mes, categoria_id: categoriaId, produto_id: produtoId, agrupador },
+    });
   }
 
   listarCategorias(busca?: string): Observable<Categoria[]> {

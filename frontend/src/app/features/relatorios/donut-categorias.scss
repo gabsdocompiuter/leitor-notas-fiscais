@@ -1,0 +1,26 @@
+:host {
+  display: block;
+}
+.legenda {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.legenda button {
+  min-width: 0;
+  color: var(--bs-body-color);
+  overflow-wrap: anywhere;
+}
+.legenda button:hover {
+  background: var(--bs-tertiary-bg);
+}
+.cor {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.nome {
+  min-width: 0;
+}
