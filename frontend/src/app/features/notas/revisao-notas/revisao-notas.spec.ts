@@ -4,7 +4,7 @@ import localePt from '@angular/common/locales/pt';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of, Subject } from 'rxjs';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiService } from '../../../core/api/api.service';
 import { ItemNota, Nota, Produto } from '../../../core/models/api.models';
@@ -13,6 +13,10 @@ import { RevisaoNotas } from './revisao-notas';
 registerLocaleData(localePt);
 
 describe('metadados na revisão', () => {
+  beforeEach(() => {
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+  });
+  afterEach(() => vi.restoreAllMocks());
   const produto: Produto = {
     id: 'produto', nome: 'Filtro de café', categoria: { id: 'cat', nome: 'Alimentos' },
     nao_solicitar_marca: true, tratar_apenas_como_unidades: true,
@@ -105,6 +109,102 @@ describe('metadados na revisão', () => {
     fixture.detectChanges();
     return fixture.componentInstance.formularioItem('item')!;
   }
+
+  function criarNavegacao(revisado = false, situacao: Nota['situacao'] = 'lida') {
+    const contexto = criar({
+      revisado, apresentacao: { id: 'ap', produto, marca: null }, quantidade_confirmada: '1',
+    }, situacao);
+    contexto.nota.itens = ['anterior', 'item', 'automatico', 'ignorado', 'proximo'].map((id, indice) => ({
+      ...contexto.nota.itens[0], id, numero: indice + 1,
+      revisado: id === 'item' && revisado, ignorado: id === 'ignorado',
+    }));
+    contexto.nota.quantidade_itens = contexto.nota.itens.length;
+    contexto.fixture.componentInstance.carregar();
+    contexto.fixture.detectChanges();
+    const cartoes = contexto.fixture.nativeElement.querySelectorAll('[data-item-id]') as NodeListOf<HTMLElement>;
+    cartoes.forEach((cartao, indice) => {
+      vi.spyOn(cartao, 'getBoundingClientRect').mockReturnValue({ top: (indice + 1) * 200 } as DOMRect);
+    });
+    return contexto;
+  }
+
+  it.each([false, true])('avança após salvar item (já revisado: %s), pulando automáticos e ignorados', async (revisado) => {
+    const { fixture, nota, resposta } = criarNavegacao(revisado);
+    const item = nota.itens[1];
+    if (revisado) fixture.componentInstance.editarItem(item);
+    fixture.componentInstance.salvarItem(item);
+    expect(window.scrollTo).not.toHaveBeenCalled();
+    resposta.next({ ...nota, itens: nota.itens.map((atual) => ({
+      ...atual, revisado: ['item', 'automatico'].includes(atual.id),
+    })) });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(window.scrollTo).toHaveBeenCalledWith({ top: 984, behavior: 'smooth' });
+  });
+
+  it('volta à primeira pendência quando não há outra abaixo', async () => {
+    const { fixture, nota, resposta } = criarNavegacao();
+    fixture.componentInstance.salvarItem(nota.itens[4]);
+    resposta.next({ ...nota, itens: nota.itens.map((item) => ({ ...item, revisado: item.id !== 'anterior' })) });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(window.scrollTo).toHaveBeenCalledWith({ top: 184, behavior: 'smooth' });
+  });
+
+  it.each([false, true])('vai ao banner ao salvar a última pendência ou ajuste (já revisado: %s)', async (revisado) => {
+    const { fixture, nota, resposta } = criarNavegacao(revisado);
+    const banner = fixture.nativeElement.querySelector('section.card.mt-4') as HTMLElement;
+    vi.spyOn(banner, 'getBoundingClientRect').mockReturnValue({ top: 1400 } as DOMRect);
+    const item = nota.itens[1];
+    if (revisado) fixture.componentInstance.editarItem(item);
+    fixture.componentInstance.salvarItem(item);
+    resposta.next({ ...nota, itens: nota.itens.map((atual) => ({ ...atual, revisado: true })) });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(window.scrollTo).toHaveBeenCalledWith({ top: 1384, behavior: 'smooth' });
+    expect(fixture.nativeElement.querySelector('button[aria-label="Ir para o primeiro item não revisado"]')).toBeNull();
+  });
+
+  it('mantém a posição ao editar uma nota importada', async () => {
+    const { fixture, nota, resposta } = criarNavegacao(true, 'importada');
+    fixture.componentInstance.editarItem(nota.itens[1]);
+    fixture.componentInstance.salvarItem(nota.itens[1]);
+    resposta.next(nota);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(window.scrollTo).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('button[aria-label="Ir para o primeiro item não revisado"]')).toBeNull();
+  });
+
+  it('atalho volta à primeira pendência abaixo do cabeçalho e respeita movimento reduzido', async () => {
+    const { fixture } = criarNavegacao();
+    const cabecalho = document.createElement('header');
+    cabecalho.className = 'sticky-top';
+    document.body.append(cabecalho);
+    vi.spyOn(cabecalho, 'getBoundingClientRect').mockReturnValue({ height: 80 } as DOMRect);
+    const mediaAnterior = window.matchMedia;
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true });
+    try {
+      fixture.nativeElement.querySelector('button[aria-label="Ir para o primeiro item não revisado"]').click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(window.scrollTo).toHaveBeenCalledWith({ top: 104, behavior: 'instant' });
+    } finally {
+      cabecalho.remove();
+      window.matchMedia = mediaAnterior;
+    }
+  });
+
+  it.each(['invalido', 'erro'])('não rola quando o salvamento falha: %s', async (cenario) => {
+    const { fixture, nota, resposta, api } = criarNavegacao();
+    if (cenario === 'invalido') fixture.componentInstance.formularioItem('item')!.patchValue({ produto_id: '' });
+    fixture.componentInstance.salvarItem(nota.itens[1]);
+    if (cenario === 'erro') resposta.error(new Error('Falha ao salvar'));
+    else expect(api.revisarItem).not.toHaveBeenCalled();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(window.scrollTo).not.toHaveBeenCalled();
+  });
 
   it.each(['KG', 'G'])('reconhece produto em %s e sugere 1 sem confirmar automaticamente', (unidade) => {
     const { fixture, nota, api, resposta } = criar({

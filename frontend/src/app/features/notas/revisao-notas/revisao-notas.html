@@ -186,6 +186,8 @@
         @let formulario = formularioItem(item.id);
         @if (formulario) {
           <article
+            #cartaoItem
+            [attr.data-item-id]="item.id"
             class="card border-start border-1 shadow-sm"
             [class.border-success]="item.revisado && !item.ignorado && !atual.ignorada"
             [class.border-warning]="!item.revisado && !item.ignorado && !atual.ignorada"
@@ -425,7 +427,7 @@
     </div>
 
     @if (!atual.ignorada && atual.situacao !== 'importada') {
-      <section class="card shadow-sm mt-4">
+      <section #bannerImportacao class="card shadow-sm mt-4">
         <div
           class="card-body d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 p-4"
         >
@@ -447,7 +449,19 @@
               }}
             </p>
           </div>
-          <div class="d-grid flex-shrink-0">
+          <div class="d-flex align-items-center gap-2 flex-shrink-0">
+            @if (itensPendentes(atual) > 0) {
+              <button
+                class="btn btn-outline-primary rounded-circle flex-shrink-0 d-inline-flex align-items-center justify-content-center"
+                style="width: 44px; height: 44px"
+                type="button"
+                aria-label="Ir para o primeiro item não revisado"
+                title="Ir para o primeiro item não revisado"
+                (click)="rolarParaPrimeiroPendente()"
+              >
+                <i class="bi bi-arrow-up" aria-hidden="true"></i>
+              </button>
+            }
             <button
               class="btn btn-primary rounded-pill px-4"
               type="button"

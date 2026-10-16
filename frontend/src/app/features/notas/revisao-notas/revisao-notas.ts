@@ -1,6 +1,6 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import {
-  Component, ElementRef, Injector, OnDestroy, OnInit, afterNextRender, inject, signal, viewChild,
+  Component, ElementRef, Injector, OnDestroy, OnInit, afterNextRender, inject, signal, viewChild, viewChildren,
 } from '@angular/core';
 import {
   FormBuilder,
@@ -65,6 +65,8 @@ export class RevisaoNotas implements OnInit, OnDestroy {
   readonly formatarDecimal = formatarDecimal;
   private readonly api = inject(ApiService);
   private readonly injector = inject(Injector);
+  private readonly cartoesItens = viewChildren<ElementRef<HTMLElement>>('cartaoItem');
+  private readonly bannerImportacao = viewChild<ElementRef<HTMLElement>>('bannerImportacao');
   private readonly dialogoIgnorar = viewChild<ElementRef<HTMLElement>>('dialogoIgnorar');
   private origemIgnorar: HTMLInputElement | null = null;
   private readonly route = inject(ActivatedRoute);
@@ -439,6 +441,7 @@ export class RevisaoNotas implements OnInit, OnDestroy {
         ?.itens.filter((atual) => !atual.revisado && atual.id !== item.id)
         .map((atual) => atual.id),
     );
+    const avancarAposSalvar = this.nota()?.situacao !== 'importada';
     this.api.revisarItem(this.chave, item.id, revisao).subscribe({
       next: (nota) => {
         const automaticos = nota.itens.filter(
@@ -452,12 +455,40 @@ export class RevisaoNotas implements OnInit, OnDestroy {
               ? ` Mais ${automaticos} ${automaticos === 1 ? 'item igual revisado automaticamente' : 'itens iguais revisados automaticamente'} nesta nota.`
               : ''),
         );
+        if (avancarAposSalvar && nota.situacao !== 'importada' && !nota.ignorada) {
+          this.rolarParaPendencia(item.id);
+        }
       },
       error: (e) => {
         this.erro.set(mensagemErro(e));
         this.itemSalvando.set(null);
       },
     });
+  }
+
+  rolarParaPrimeiroPendente(): void {
+    this.rolarParaPendencia();
+  }
+
+  private rolarParaPendencia(aposItemId?: string): void {
+    afterNextRender(() => {
+      const nota = this.nota();
+      if (!nota || nota.situacao === 'importada' || nota.ignorada) return;
+      const indice = nota.itens.findIndex((item) => item.id === aposItemId);
+      const pendente = (item: ItemNota) => !this.itemConcluido(item);
+      const proximo = nota.itens.slice(indice + 1).find(pendente) ?? nota.itens.find(pendente);
+      const destino = proximo
+        ? this.cartoesItens().find((cartao) => cartao.nativeElement.dataset['itemId'] === proximo.id)?.nativeElement
+        : this.podeImportar(nota) ? this.bannerImportacao()?.nativeElement : undefined;
+      if (!destino) return;
+      const cabecalho = document.querySelector<HTMLElement>('header.sticky-top');
+      const margem = (cabecalho?.getBoundingClientRect().height ?? 0) + 16;
+      const movimentoReduzido = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      window.scrollTo({
+        top: Math.max(0, window.scrollY + destino.getBoundingClientRect().top - margem),
+        behavior: movimentoReduzido ? 'instant' : 'smooth',
+      });
+    }, { injector: this.injector });
   }
 
   concluirImportacao(): void {
