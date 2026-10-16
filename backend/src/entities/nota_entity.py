@@ -23,16 +23,17 @@ class NotaEntity(BaseEntity):
     __table_args__ = (Index("idx_notas_emissao", "emissao"),)
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
-    chave: Mapped[str] = mapped_column(String(44), unique=True)
-    numero: Mapped[str] = mapped_column(String(20))
-    serie: Mapped[str] = mapped_column(String(10))
+    chave: Mapped[str | None] = mapped_column(String(44), unique=True)
+    numero: Mapped[str | None] = mapped_column(String(20))
+    serie: Mapped[str | None] = mapped_column(String(10))
+    origem: Mapped[str] = mapped_column(String(10), default="sefaz", server_default="sefaz")
     estabelecimento_id: Mapped[UUID] = mapped_column(ForeignKey("estabelecimentos.id"))
     emissao: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     quantidade_itens: Mapped[int] = mapped_column(Integer)
     valor_total: Mapped[Decimal] = mapped_column(DecimalText)
     desconto: Mapped[Decimal] = mapped_column(DecimalText)
     valor_a_pagar: Mapped[Decimal] = mapped_column(DecimalText)
-    url_origem: Mapped[str] = mapped_column(String(2048))
+    url_origem: Mapped[str | None] = mapped_column(String(2048))
     situacao: Mapped[SituacaoNota] = mapped_column(
         Enum(SituacaoNota, values_callable=lambda enum: [item.value for item in enum]),
         default=SituacaoNota.LIDA,

@@ -1,6 +1,7 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, time, timezone
 from decimal import Decimal, ROUND_HALF_UP
 from uuid import UUID
+from typing import Protocol, Sequence
 
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -13,6 +14,8 @@ from ..entities import (
     ApresentacaoProdutoEntity,
     AssociacaoProdutoEntity,
     ItemEntity,
+    NotaEntity,
+    EstabelecimentoEntity,
     ProdutoEntity,
     VariacaoProdutoEntity,
 )
@@ -28,11 +31,114 @@ from ..repositories import (
 )
 
 
+class ItemCompraManual(Protocol):
+    produto_id: UUID
+    marca_id: UUID | None
+    variacao_id: UUID | None
+    quantidade_confirmada: Decimal
+    quantidade_pacotes: Decimal | None
+    unidades_por_pacote: Decimal | None
+    valor_total: Decimal | None
+    valor_unitario: Decimal | None
+
+
 class RevisaoNotaService:
     """Regras de revisão; cada operação é uma única transação atômica."""
 
     def __init__(self, session_factory: sessionmaker[Session]):
         self.session_factory = session_factory
+
+    @staticmethod
+    def _valores_manuais(
+        quantidade: Decimal, total: Decimal | None, unitario: Decimal | None,
+    ) -> tuple[Decimal, Decimal]:
+        if (total is None) == (unitario is None):
+            raise DadosInvalidos("Informe o valor total ou unitário, apenas um deles.")
+        informado = total if total is not None else unitario
+        limite = Decimal("9999999999999.99")
+        if (not informado.is_finite() or informado < 0 or informado > limite
+                or informado != informado.quantize(Decimal("0.01"))):
+            raise DadosInvalidos("Informe um valor com até duas casas decimais.")
+        if unitario is not None:
+            total = (unitario * quantidade).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        else:
+            unitario = (total / quantidade).quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
+        if total > limite:
+            raise DadosInvalidos("O valor total calculado excede o limite permitido.")
+        return total, unitario
+
+    def criar_manual(self, estabelecimento_id: UUID, data: date, itens: Sequence[ItemCompraManual]) -> NotaDTO:
+        if not itens:
+            raise DadosInvalidos("Adicione pelo menos um item.")
+        with self.session_factory.begin() as session:
+            estabelecimento = session.get(EstabelecimentoEntity, estabelecimento_id)
+            if estabelecimento is None:
+                raise NaoEncontrado("Estabelecimento não encontrado.")
+            nota = NotaEntity(
+                origem="manual", chave=None, numero=None, serie=None, url_origem=None,
+                estabelecimento=estabelecimento,
+                # O horário neutro preserva o dia escolhido em telas e relatórios.
+                emissao=datetime.combine(data, time(12)),
+                quantidade_itens=len(itens), valor_total=Decimal("0.00"),
+                desconto=Decimal(0), valor_a_pagar=Decimal("0.00"),
+                situacao=SituacaoNota.IMPORTADA, importada_em=datetime.now(timezone.utc),
+                ignorada=False, considerar_proximo_mes=False,
+            )
+            session.add(nota)
+            for numero, entrada in enumerate(itens, 1):
+                self._adicionar_item_manual(session, nota, entrada, numero)
+            nota.valor_a_pagar = nota.valor_total
+            session.flush()
+            return EntityMapper.nota(nota)
+
+    def adicionar_item_manual(self, identificador: str, entrada: ItemCompraManual) -> NotaDTO:
+        with self.session_factory.begin() as session:
+            nota = NotaRepository(session).obter_por_identificador(identificador)
+            if nota is None:
+                raise NaoEncontrado("Nota não encontrada.")
+            if nota.origem != "manual" or nota.situacao != SituacaoNota.IMPORTADA or nota.ignorada:
+                raise Conflito("Só é possível adicionar itens a uma compra manual concluída e não ignorada.")
+            numero = max((item.numero for item in nota.itens), default=0) + 1
+            self._adicionar_item_manual(session, nota, entrada, numero)
+            nota.quantidade_itens = len(nota.itens)
+            nota.valor_a_pagar = nota.valor_total - nota.desconto
+            session.flush()
+            return EntityMapper.nota(nota)
+
+
+    def _adicionar_item_manual(
+        self, session: Session, nota: NotaEntity, entrada: ItemCompraManual, numero: int,
+    ) -> None:
+        quantidade = entrada.quantidade_confirmada
+        validar_quantidade(quantidade)
+        valor_total, valor_unitario = self._valores_manuais(
+            quantidade, entrada.valor_total, entrada.valor_unitario
+        )
+        produto, variacao = self._validar_classificacao(
+            session, entrada.produto_id, entrada.marca_id, entrada.variacao_id, quantidade
+        )
+        self._validar_pacotes(
+            produto, quantidade, entrada.quantidade_pacotes, entrada.unidades_por_pacote
+        )
+        apresentacoes = ApresentacaoProdutoRepository(session)
+        apresentacao = apresentacoes.obter_por_produto_marca(produto.id, entrada.marca_id)
+        if apresentacao is None:
+            apresentacao = apresentacoes.adicionar(ApresentacaoProdutoEntity(
+                produto=produto,
+                marca=MarcaRepository(session).obter(entrada.marca_id) if entrada.marca_id else None,
+            ))
+        unidade = "UN" if produto.tratar_apenas_como_unidades or produto.contem_variacoes else produto.unidade_medida.value
+        nota.itens.append(ItemEntity(
+            numero=numero, codigo="", descricao_original=produto.nome,
+            quantidade=quantidade, unidade_original=unidade,
+            valor_total=valor_total, valor_unitario=valor_unitario,
+            quantidade_confirmada=quantidade,
+            quantidade_pacotes=entrada.quantidade_pacotes,
+            unidades_por_pacote=entrada.unidades_por_pacote,
+            apresentacao=apresentacao, variacao=variacao,
+            revisado=True, ignorado=False, alertas=[], tags=[],
+        ))
+        nota.valor_total += valor_total
 
     def revisar_item(
         self,
@@ -44,13 +150,17 @@ class RevisaoNotaService:
         quantidade_confirmada: Decimal,
         quantidade_pacotes: Decimal | None = None,
         unidades_por_pacote: Decimal | None = None,
+        valor_total: Decimal | None = None,
+        valor_unitario: Decimal | None = None,
     ) -> NotaDTO:
         validar_quantidade(quantidade_confirmada)
         with self.session_factory.begin() as session:
             notas = NotaRepository(session)
-            nota = notas.obter_por_chave(chave)
+            nota = notas.obter_por_identificador(chave)
             if nota is None:
                 raise NaoEncontrado("Nota não encontrada.")
+            if (valor_total is not None or valor_unitario is not None) and nota.origem != "manual":
+                raise DadosInvalidos("O valor só pode ser alterado em compras manuais.")
             importada = nota.situacao == SituacaoNota.IMPORTADA
             item = ItemRepository(session).obter_na_nota(item_id, nota.id)
             if item is None:
@@ -78,18 +188,29 @@ class RevisaoNotaService:
             item.quantidade_pacotes = quantidade_pacotes
             item.unidades_por_pacote = unidades_por_pacote
             item.revisado = True
+            if nota.origem == "manual":
+                item.descricao_original = produto.nome
+                item.quantidade = quantidade_confirmada
+                item.unidade_original = (
+                    "UN" if produto.tratar_apenas_como_unidades or produto.contem_variacoes
+                    else produto.unidade_medida.value
+                )
+                total_informado = valor_total
+                if total_informado is None and valor_unitario is None:
+                    total_informado = item.valor_total
+                item.valor_total, item.valor_unitario = self._valores_manuais(
+                    quantidade_confirmada, total_informado, valor_unitario
+                )
+                nota.valor_total = sum((atual.valor_total for atual in nota.itens), Decimal(0))
+                nota.valor_a_pagar = nota.valor_total - nota.desconto
             if not importada:
                 nota.situacao = SituacaoNota.EM_REVISAO
-            self._salvar_associacao(
-                session,
-                nota.estabelecimento_id,
-                item,
-                apresentacao,
-                variacao,
-                quantidade_confirmada / item.quantidade,
-                unidades_por_pacote,
-            )
-            if not importada:
+            if nota.origem == "sefaz":
+                self._salvar_associacao(
+                    session, nota.estabelecimento_id, item, apresentacao, variacao,
+                    quantidade_confirmada / item.quantidade, unidades_por_pacote,
+                )
+            if not importada and nota.origem == "sefaz":
                 self._revisar_pendentes_iguais(session, item)
             session.flush()
             session.expire_all()
@@ -162,10 +283,10 @@ class RevisaoNotaService:
     def aplicar_classificacoes_automaticas(self, chave: str) -> NotaDTO:
         with self.session_factory.begin() as session:
             notas = NotaRepository(session)
-            nota = notas.obter_por_chave(chave)
+            nota = notas.obter_por_identificador(chave)
             if nota is None:
                 raise NaoEncontrado("Nota não encontrada.")
-            if nota.situacao == SituacaoNota.IMPORTADA or nota.ignorada:
+            if nota.origem == "manual" or nota.situacao == SituacaoNota.IMPORTADA or nota.ignorada:
                 return EntityMapper.nota(nota)
 
             alterados = 0
@@ -216,7 +337,7 @@ class RevisaoNotaService:
     def concluir_importacao(self, chave: str) -> NotaDTO:
         with self.session_factory.begin() as session:
             notas = NotaRepository(session)
-            nota = notas.obter_por_chave(chave)
+            nota = notas.obter_por_identificador(chave)
             if nota is None:
                 raise NaoEncontrado("Nota não encontrada.")
             if nota.situacao == SituacaoNota.IMPORTADA:
@@ -236,7 +357,7 @@ class RevisaoNotaService:
 
     def definir_item_ignorado(self, chave: str, item_id: UUID, ignorado: bool) -> NotaDTO:
         with self.session_factory.begin() as session:
-            nota = NotaRepository(session).obter_por_chave(chave)
+            nota = NotaRepository(session).obter_por_identificador(chave)
             if nota is None:
                 raise NaoEncontrado("Nota não encontrada.")
             item = ItemRepository(session).obter_na_nota(item_id, nota.id)

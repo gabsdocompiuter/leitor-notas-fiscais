@@ -8,7 +8,7 @@
   <div class="my-4">
     <h1 class="h2">Estabelecimentos</h1>
     <p class="text-body-secondary mb-0">
-      Os estabelecimentos são incluídos pelas notas fiscais. Você pode editar o apelido de cada um.
+      Os estabelecimentos são incluídos pelas notas fiscais ou pelas compras manuais. Você pode editar o apelido de cada um.
     </p>
   </div>
 
@@ -37,9 +37,11 @@
         >
           <span>
             <strong class="d-block">{{ loja.nome_exibicao }}</strong>
-            <small class="text-body-secondary"
-              >{{ loja.razao_social }} · CNPJ {{ loja.cnpj }}</small
-            >
+            @if (loja.razao_social || loja.cnpj) {
+              <small class="text-body-secondary">
+                {{ loja.razao_social }} @if (loja.cnpj) { · CNPJ {{ loja.cnpj }} }
+              </small>
+            }
           </span>
           <span class="text-primary-emphasis">Editar</span>
         </a>

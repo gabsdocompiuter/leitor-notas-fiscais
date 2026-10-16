@@ -19,7 +19,7 @@ class NotaService:
 
     def obter_por_chave(self, chave: str) -> NotaDTO | None:
         with self.session_factory() as session:
-            entidade = NotaRepository(session).obter_por_chave(chave)
+            entidade = NotaRepository(session).obter_por_identificador(chave)
             return EntityMapper.nota(entidade) if entidade else None
 
     def listar(
@@ -36,7 +36,7 @@ class NotaService:
 
     def definir_competencia(self, chave: str, considerar_proximo_mes: bool) -> NotaDTO:
         with self.session_factory.begin() as session:
-            nota = NotaRepository(session).obter_por_chave(chave)
+            nota = NotaRepository(session).obter_por_identificador(chave)
             if nota is None:
                 raise NaoEncontrado("Nota não encontrada.")
             nota.considerar_proximo_mes = considerar_proximo_mes
@@ -50,7 +50,7 @@ class NotaService:
 
     def definir_ignorada(self, chave: str, ignorada: bool) -> NotaDTO:
         with self.session_factory.begin() as session:
-            nota = NotaRepository(session).obter_por_chave(chave)
+            nota = NotaRepository(session).obter_por_identificador(chave)
             if nota is None:
                 raise NaoEncontrado("Nota não encontrada.")
             nota.ignorada = ignorada

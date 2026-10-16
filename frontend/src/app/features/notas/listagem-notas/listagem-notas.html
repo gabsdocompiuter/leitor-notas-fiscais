@@ -12,6 +12,9 @@
           Leia uma nota pelo celular e termine a revisão quando preferir.
         </p>
       </div>
+      <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-outline-primary btn-lg d-inline-flex align-items-center gap-2"
+        routerLink="/notas/nova"><i class="bi bi-plus-lg" aria-hidden="true"></i>Adicionar compra</a>
       <a
         class="btn btn-primary btn-lg d-inline-flex align-items-center justify-content-center gap-2 flex-shrink-0"
         routerLink="/ler"
@@ -20,6 +23,7 @@
         <i class="bi bi-plus-lg" aria-hidden="true"></i>
         <span>Ler nota</span>
       </a>
+      </div>
     </div>
   </section>
 
@@ -34,7 +38,7 @@
           ['todas', 'Todas'],
           ['lida', 'Aguardando revisão'],
           ['em_revisao', 'Em revisão'],
-          ['importada', 'Importadas'],
+          ['importada', 'Concluídas'],
           ['ignorada', 'Ignoradas'],
         ];
         track opcao[0]
@@ -104,7 +108,7 @@
                     {{ nota.estabelecimento.nome_exibicao }}
                   </h3>
                   <p class="text-body-secondary small mb-0">
-                    {{ nota.emissao | date: 'dd/MM/yyyy, HH:mm' }}
+                    {{ nota.emissao | date: (nota.origem === 'manual' ? 'dd/MM/yyyy' : 'dd/MM/yyyy, HH:mm') }}
                   </p>
                 </div>
                 <span
@@ -114,7 +118,7 @@
                   [class.text-bg-success]="nota.situacao === 'importada'"
                   [class.text-bg-secondary]="nota.situacao === 'ignorada'"
                 >
-                  {{ rotuloSituacao(nota.situacao) }}
+                  {{ nota.origem === 'manual' && nota.situacao === 'importada' ? 'Concluída' : rotuloSituacao(nota.situacao) }}
                 </span>
               </div>
 
@@ -141,13 +145,13 @@
                 class="d-flex align-items-center justify-content-between gap-3 border-top pt-3 mt-3 mt-auto"
               >
                 <span class="text-body-secondary small">
-                  NFC-e {{ nota.numero }} · Série {{ nota.serie }}
+                  @if (nota.origem === 'manual') { Compra manual } @else { NFC-e {{ nota.numero }} · Série {{ nota.serie }} }
                 </span>
                 <a
                   class="btn btn-sm rounded-pill flex-shrink-0"
                   [class.btn-primary]="nota.situacao !== 'importada' && nota.situacao !== 'ignorada'"
                   [class.btn-outline-secondary]="nota.situacao === 'importada' || nota.situacao === 'ignorada'"
-                  [routerLink]="['/notas', nota.chave, 'revisao']"
+                  [routerLink]="['/notas', nota.chave ?? nota.id, 'revisao']"
                 >
                   {{ nota.situacao === 'importada' || nota.situacao === 'ignorada' ? 'Visualizar' : 'Continuar' }}
                   <i class="bi bi-arrow-right ms-1"></i>

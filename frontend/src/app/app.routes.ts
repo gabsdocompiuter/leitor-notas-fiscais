@@ -20,6 +20,12 @@ export const routes: Routes = [
     title: 'Notas · Minhas Compras',
   },
   {
+    path: 'notas/nova',
+    loadComponent: () =>
+      import('./features/notas/compra-manual/compra-manual').then((m) => m.CompraManual),
+    title: 'Adicionar compra · Minhas Compras',
+  },
+  {
     path: 'notas/:chave/revisao',
     loadComponent: () =>
       import('./features/notas/revisao-notas/revisao-notas').then((m) => m.RevisaoNotas),

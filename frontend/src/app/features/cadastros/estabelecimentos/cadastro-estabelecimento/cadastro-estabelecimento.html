@@ -23,6 +23,7 @@
         <form class="card" (ngSubmit)="salvar()">
           <div class="card-body">
             <div class="row g-3">
+              @if (estabelecimento()!.razao_social) {
               <div class="col-12">
                 <label class="form-label" for="nome-estabelecimento">
                   Nome do estabelecimento
@@ -34,18 +35,22 @@
                   readonly
                 />
               </div>
+              }
+              @if (estabelecimento()!.cnpj) {
               <div class="col-12 col-md-6">
                 <label class="form-label" for="cnpj">CNPJ</label>
                 <input id="cnpj" class="form-control" [value]="estabelecimento()!.cnpj" readonly />
               </div>
+              }
               <div class="col-12 col-md-6">
                 <label class="form-label" for="apelido">Apelido</label>
                 <input
                   id="apelido"
                   class="form-control"
                   name="apelido"
-                  maxlength="150"
-                  placeholder="Apelido opcional"
+                  maxlength="100"
+                  [placeholder]="estabelecimento()!.razao_social ? 'Apelido opcional' : 'Apelido obrigatório'"
+                  [required]="!estabelecimento()!.razao_social"
                   autofocus
                   [(ngModel)]="apelido"
                 />

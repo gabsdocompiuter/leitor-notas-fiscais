@@ -28,7 +28,7 @@ class ProdutosRelatorioTests(unittest.TestCase):
             variacao.id = uuid4()
             variacao.nome_exibicao = f"{variacao.quantidade} {variacao.unidade_medida.value}"
         return Dados(
-            chave=str(uuid4()), numero="1", emissao=datetime(2026, 10, 1), ignorada=False,
+            id=uuid4(), chave=str(uuid4()), numero="1", emissao=datetime(2026, 10, 1), ignorada=False,
             estabelecimento=Dados(id=UUID(int=100), nome_exibicao="Mercado"), considerar_proximo_mes=False,
             valor_a_pagar=sum(map(Decimal, valores)) - Decimal(desconto),
             desconto=Decimal(desconto), itens=[Dados(

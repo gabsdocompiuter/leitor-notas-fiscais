@@ -71,8 +71,9 @@ class RelatorioMensalResponse(BaseModel):
 
 class ItemRelatorioResponse(BaseModel):
     id: UUID
-    chave_nota: str
-    numero_nota: str
+    nota_id: UUID | None
+    chave_nota: str | None
+    numero_nota: str | None
     emissao: datetime
     estabelecimento: str
     produto: str
@@ -96,7 +97,7 @@ class ItemRelatorioResponse(BaseModel):
     @classmethod
     def from_entity(cls, item: ItemRelatorioDTO) -> "ItemRelatorioResponse":
         return cls(
-            id=item.id, chave_nota=item.chave_nota, numero_nota=item.numero_nota,
+            id=item.id, nota_id=item.nota_id, chave_nota=item.chave_nota, numero_nota=item.numero_nota,
             emissao=item.emissao, estabelecimento=item.estabelecimento, produto=item.produto,
             produto_id=item.produto_id,
             categoria_id=item.categoria_id, categoria=item.categoria,

@@ -292,3 +292,32 @@ arquivos; a tela não oferece um botão de restauração.
 Esta coordenação exige um único processo backend e nenhuma outra aplicação
 acessando diretamente o arquivo SQLite durante a troca. Não execute múltiplos
 workers/réplicas sobre este banco com importação habilitada.
+
+
+### Compras manuais
+
+- `POST /estabelecimentos`: cria um estabelecimento com `apelido` obrigatório (até 100 caracteres).
+  CNPJ e razão social ficam nulos; o apelido desses estabelecimentos não pode ser removido.
+- `POST /notas/manuais`: recebe `estabelecimento_id`, `data` (`AAAA-MM-DD`) e pelo menos um item.
+  Cada item usa os campos de classificação de uma revisão (`produto_id`, marca/variação quando exigidas,
+  `quantidade_confirmada` e, opcionalmente, `quantidade_pacotes` e `unidades_por_pacote`)
+  e `valor_total`, em reais, com até duas casas decimais. Ao informar pacotes, a quantidade confirmada
+  deve ser o total de unidades; quantidade e unidades por pacote devem ser inteiras.
+- `POST /notas/{uuid}/itens`: adiciona um item a uma compra manual concluída e não ignorada,
+  com os mesmos campos e validações do cadastro. Salva o item já revisado e recalcula
+  a quantidade de itens e os totais da compra em uma transação, mantendo a conclusão.
+- A compra é gravada atomicamente com origem `manual`, situação `importada`, itens revisados e desconto zero.
+  Os totais e preços unitários são calculados no servidor; chave, número, série e URL fiscal ficam nulos.
+- Os endpoints de consulta e ajustes de notas aceitam tanto a chave fiscal como o UUID.
+  Os itens dos relatórios incluem `nota_id` para navegar até compras sem `chave_nota`.
+- Compras manuais não alimentam o reconhecimento automático de produtos em notas fiscais.
+
+- Ao ajustar um item manual, `PATCH /notas/{chave-ou-uuid}/itens/{item_id}` também aceita
+  `valor_total` opcional. Se omitido, mantém o valor pago; produto, quantidade, unidade e preço
+  unitário são sincronizados e os totais da compra são recalculados. Valores fiscais não são editáveis.
+
+- Itens manuais também aceitam `valor_unitario` no cadastro e na edição, em alternativa a
+  `valor_total`. Informe somente um deles. O servidor multiplica o preço unitário pela quantidade
+  confirmada, arredonda o total para centavos e preserva o preço informado. Para pacotes, o preço
+  unitário corresponde à unidade do produto. A tela inicia em valor total e permite trocar o tipo
+  mantendo o número digitado.

@@ -69,7 +69,7 @@ class TagService:
 
     @staticmethod
     def _obter_nota(session: Session, chave: str) -> NotaEntity:
-        nota = NotaRepository(session).obter_por_chave(chave)
+        nota = NotaRepository(session).obter_por_identificador(chave)
         if nota is None:
             raise NaoEncontrado("Nota não encontrada.")
         return nota

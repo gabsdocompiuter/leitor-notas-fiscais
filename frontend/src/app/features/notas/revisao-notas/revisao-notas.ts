@@ -1,6 +1,6 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import {
-  Component, ElementRef, Injector, OnDestroy, OnInit, afterNextRender, inject, signal, viewChild, viewChildren,
+  ChangeDetectorRef, Component, ElementRef, Injector, OnDestroy, OnInit, afterNextRender, inject, signal, viewChild, viewChildren,
 } from '@angular/core';
 import {
   FormBuilder,
@@ -33,6 +33,7 @@ import {
   formatarVariacao,
   validarDecimal,
 } from '../../../core/utils/decimal.utils';
+import { valoresItem } from '../../../core/utils/valor-item.utils';
 import { DecimalInput } from '../../../shared/directives/decimal-input';
 import { sugerirQuantidade } from '../../../core/utils/quantidade.utils';
 import { EstadoVazio } from '../../../shared/components/estado-vazio/estado-vazio';
@@ -65,6 +66,7 @@ export class RevisaoNotas implements OnInit, OnDestroy {
   readonly formatarDecimal = formatarDecimal;
   private readonly api = inject(ApiService);
   private readonly injector = inject(Injector);
+  private readonly detectorMudancas = inject(ChangeDetectorRef);
   private readonly cartoesItens = viewChildren<ElementRef<HTMLElement>>('cartaoItem');
   private readonly bannerImportacao = viewChild<ElementRef<HTMLElement>>('bannerImportacao');
   private readonly dialogoIgnorar = viewChild<ElementRef<HTMLElement>>('dialogoIgnorar');
@@ -78,6 +80,12 @@ export class RevisaoNotas implements OnInit, OnDestroy {
   readonly confirmacaoIgnorar = signal<{ item: ItemNota | null } | null>(null);
 
   readonly nota = signal<Nota | null>(null);
+  readonly novoItem = signal<ItemNota | null>(null);
+  itensExibidos(): ItemNota[] {
+    const itens = this.nota()?.itens ?? [];
+    const novo = this.novoItem();
+    return novo ? [...itens, novo] : itens;
+  }
   readonly produtos = signal<Produto[]>([]);
   readonly categorias = signal<Categoria[]>([]);
   readonly marcas = signal<Marca[]>([]);
@@ -305,6 +313,43 @@ export class RevisaoNotas implements OnInit, OnDestroy {
     });
   }
 
+  resumoItem(item: ItemNota): {
+    descricao: string; quantidade: number | null; unidade: string;
+    valor_unitario: number | null; valor_total: number | null;
+  } {
+    if (this.nota()?.origem !== 'manual') {
+      return {
+        descricao: item.descricao_original, quantidade: Number(item.quantidade),
+        unidade: item.unidade_original, valor_unitario: Number(item.valor_unitario),
+        valor_total: Number(item.valor_total),
+      };
+    }
+    const form = this.formularios.get(item.id);
+    const editando = this.itemEstaEmEdicao(item) && !!form;
+    const produto = editando ? this.produtoSelecionado(item.id) : item.apresentacao?.produto;
+    const quantidade = editando
+      ? this.usaPacotes(item.id) ? this.totalUnidades(item.id) : this.numero(form.get('quantidade_confirmada')?.value)
+      : this.numero(item.quantidade_confirmada ?? item.quantidade);
+    const quantidadeValida = quantidade !== null && quantidade > 0 ? quantidade : null;
+    const valores = editando
+      ? valoresItem(this.numero(form.get('valor_total')?.value), quantidadeValida, form.get('tipo_valor')?.value)
+      : {
+          total: Number(item.valor_total),
+          unitario: Number(item.quantidade) === quantidadeValida
+            ? Number(item.valor_unitario)
+            : quantidadeValida !== null ? Number(item.valor_total) / quantidadeValida : null,
+        };
+    return {
+      descricao: produto?.nome ?? item.descricao_original,
+      quantidade: quantidadeValida,
+      unidade: produto
+        ? produto.tratar_apenas_como_unidades || produto.contem_variacoes ? 'UN' : produto.unidade_medida ?? ''
+        : item.unidade_original,
+      valor_total: valores.total,
+      valor_unitario: valores.unitario,
+    };
+  }
+
   formularioItem(id: string): FormGroup | undefined {
     return this.formularios.get(id);
   }
@@ -392,6 +437,7 @@ export class RevisaoNotas implements OnInit, OnDestroy {
       this.produtoSelecionado(item.id)?.id === item.apresentacao.produto.id;
   }
   editarItem(item: ItemNota): void {
+    if (this.novoItem()) return;
     if (!this.itemConcluido(item) || this.metadadosOcupados() || this.nota()?.ignorada) return;
     const itemAnterior = this.nota()?.itens.find((atual) => atual.id === this.itemEditando());
     if (itemAnterior && itemAnterior.id !== item.id) {
@@ -405,7 +451,40 @@ export class RevisaoNotas implements OnInit, OnDestroy {
     const form = this.formularios.get(item.id);
     if (form) this.configurarEdicaoQuantidade(form, true);
   }
+  adicionarItem(): void {
+    const nota = this.nota();
+    if (!nota || nota.origem !== 'manual' || nota.situacao !== 'importada' ||
+        nota.ignorada || this.metadadosOcupados() || this.novoItem() || this.itemEditando()) return;
+    const item: ItemNota = {
+      id: 'novo-item-manual',
+      numero: Math.max(0, ...nota.itens.map((atual) => atual.numero)) + 1,
+      codigo: '', descricao_original: 'Novo item',
+      quantidade: '1', unidade_original: 'UN', valor_unitario: '', valor_total: '',
+      quantidade_confirmada: '1', quantidade_pacotes: null, unidades_por_pacote: null,
+      apresentacao: null, variacao: null, revisado: false, ignorado: false,
+      alertas: [], tags: [],
+    };
+    this.novoItem.set(item);
+    this.criarFormularioItem(item);
+    this.formularios.get(item.id)?.get('valor_total')?.reset(null);
+    this.erro.set(null);
+    this.sucesso.set(null);
+    afterNextRender(() => {
+      const cartao = this.cartoesItens().find(
+        (atual) => atual.nativeElement.dataset['itemId'] === item.id,
+      )?.nativeElement;
+      cartao?.querySelector<HTMLButtonElement>('form button')?.focus();
+    }, { injector: this.injector });
+  }
+
   cancelarEdicao(item: ItemNota): void {
+    if (this.metadadosOcupados()) return;
+    if (this.novoItem()?.id === item.id) {
+      this.novoItem.set(null);
+      this.formularios.delete(item.id);
+      this.erro.set(null);
+      return;
+    }
     this.itemEditando.set(null);
     const form = this.formularios.get(item.id);
     if (form) this.restaurarFormulario(item, form);
@@ -424,6 +503,13 @@ export class RevisaoNotas implements OnInit, OnDestroy {
       this.erro.set('Informe uma quantidade válida de pacotes e unidades por pacote.');
       return;
     }
+    if (this.nota()?.origem === 'manual') {
+      const valorTotal = this.resumoItem(item).valor_total;
+      if (valorTotal === null || valorTotal > 9999999999999.99) {
+        this.erro.set('Revise o valor e a quantidade: o total calculado excede o limite permitido.');
+        return;
+      }
+    }
     const valor = form.getRawValue();
     const revisao: RevisaoItem = {
       produto_id: valor.produto_id,
@@ -432,6 +518,10 @@ export class RevisaoNotas implements OnInit, OnDestroy {
       unidades_por_pacote: pacotes ? Number(valor.unidades_por_pacote) : null,
       variacao_id: valor.variacao_id || null,
     };
+    if (this.nota()?.origem === 'manual') {
+      if (valor.tipo_valor === 'unitario') revisao.valor_unitario = Number(valor.valor_total).toFixed(2);
+      else revisao.valor_total = Number(valor.valor_total).toFixed(2);
+    }
     if (this.deveSolicitarMarca(item.id)) revisao.marca_id = valor.marca_id;
     this.itemSalvando.set(item.id);
     this.erro.set(null);
@@ -442,15 +532,20 @@ export class RevisaoNotas implements OnInit, OnDestroy {
         .map((atual) => atual.id),
     );
     const avancarAposSalvar = this.nota()?.situacao !== 'importada';
-    this.api.revisarItem(this.chave, item.id, revisao).subscribe({
+    const novo = this.novoItem()?.id === item.id;
+    const operacao = novo
+      ? this.api.adicionarItemManual(this.chave, revisao)
+      : this.api.revisarItem(this.chave, item.id, revisao);
+    operacao.subscribe({
       next: (nota) => {
         const automaticos = nota.itens.filter(
           (atual) => atual.revisado && pendentesAntes.has(atual.id),
         ).length;
+        if (novo) this.novoItem.set(null);
         this.definirNota(nota);
         this.itemSalvando.set(null);
         this.sucesso.set(
-          `Item ${item.numero} revisado.` +
+          (novo ? `Item ${item.numero} adicionado à compra.` : `Item ${item.numero} revisado.`) +
             (automaticos
               ? ` Mais ${automaticos} ${automaticos === 1 ? 'item igual revisado automaticamente' : 'itens iguais revisados automaticamente'} nesta nota.`
               : ''),
@@ -515,7 +610,7 @@ export class RevisaoNotas implements OnInit, OnDestroy {
     if (!form || !this.itemEstaEmEdicao(item)) return;
     this.tipoModal.set(tipo);
     this.itemModal.set(item);
-    this.buscaInicialModal.set(capitalizarIniciais(item.descricao_original));
+    this.buscaInicialModal.set(this.novoItem()?.id === item.id ? '' : capitalizarIniciais(item.descricao_original));
     if (tipo === 'variacao') {
       const produto = this.produtoSelecionado(item.id);
       if (!produto) return;
@@ -573,13 +668,18 @@ export class RevisaoNotas implements OnInit, OnDestroy {
     const form = this.formularios.get(item.id);
     if (!form) return;
     const mudou = form.get('produto_id')?.value !== produto.id;
+    const quantidadeManual = this.usaPacotes(item.id)
+      ? this.totalUnidades(item.id) : form.get('quantidade_confirmada')?.value;
     form.patchValue({
       produto_id: produto.id,
       variacao_id: mudou ? null : form.get('variacao_id')?.value,
     });
     if (mudou) form.patchValue({ tipo_quantidade: 'unidades', unidades_por_pacote: null });
     this.configurarCamposProduto(form, produto, mudou ? null : form.get('marca_id')?.value);
-    if (mudou) this.preencherQuantidade(item, form, produto);
+    if (mudou) {
+      if (this.nota()?.origem === 'manual') form.patchValue({ quantidade_confirmada: quantidadeManual });
+      else this.preencherQuantidade(item, form, produto);
+    }
     this.fecharSeletor();
   }
   selecionarMarca(marca: Marca): void {
@@ -622,27 +722,38 @@ export class RevisaoNotas implements OnInit, OnDestroy {
   private definirNota(nota: Nota): void {
     this.nota.set(nota);
     this.itemEditando.set(null);
+    const novo = this.novoItem();
+    const formularioNovo = novo ? this.formularios.get(novo.id) : null;
     this.formularios.clear();
-    nota.itens.forEach((item) => {
-      const form = this.fb.group({
-        produto_id: ['', Validators.required],
-        marca_id: [null as string | null],
-        variacao_id: [null as string | null],
-        quantidade_confirmada: [null as number | null],
-        tipo_quantidade: ['unidades'],
-        unidades_por_pacote: [null as number | null],
-      });
-      this.restaurarFormulario(item, form);
-      this.formularios.set(item.id, form);
-      form.get('tipo_quantidade')?.valueChanges.subscribe(() =>
-        this.configurarPacotes(form, this.produtoSelecionado(item.id)),
-      );
-    });
+    nota.itens.forEach((item) => this.criarFormularioItem(item));
+    if (novo && formularioNovo) this.formularios.set(novo.id, formularioNovo);
   }
+
+  private criarFormularioItem(item: ItemNota): void {
+    const form = this.fb.group({
+      produto_id: ['', Validators.required],
+      marca_id: [null as string | null],
+      variacao_id: [null as string | null],
+      quantidade_confirmada: [null as number | null],
+      tipo_quantidade: ['unidades'],
+      tipo_valor: ['total'],
+      unidades_por_pacote: [null as number | null],
+      valor_total: [null as number | null],
+    });
+    this.restaurarFormulario(item, form);
+    this.formularios.set(item.id, form);
+    form.valueChanges.subscribe(() => this.detectorMudancas.markForCheck());
+    form.get('tipo_quantidade')?.valueChanges.subscribe(() =>
+      this.configurarPacotes(form, this.produtoSelecionado(item.id)),
+    );
+  }
+
   private restaurarFormulario(item: ItemNota, form: FormGroup): void {
     const produto = item.apresentacao?.produto ?? null;
     form.reset({
       produto_id: produto?.id ?? '',
+      valor_total: this.numero(item.valor_total),
+      tipo_valor: 'total',
       marca_id: item.apresentacao?.marca?.id ?? null,
       variacao_id: item.variacao?.id ?? null,
       quantidade_confirmada: this.numero(item.quantidade_pacotes ?? item.quantidade_confirmada),
@@ -650,15 +761,21 @@ export class RevisaoNotas implements OnInit, OnDestroy {
         ? 'pacotes' : 'unidades',
       unidades_por_pacote: this.numero(item.unidades_por_pacote),
     });
+    const valorTotal = form.get('valor_total');
+    valorTotal?.setValidators(this.nota()?.origem === 'manual'
+      ? [Validators.required, Validators.min(0), Validators.max(9999999999999.99),
+          Validators.pattern(/^\d+(?:\.\d{1,2})?$/), validarDecimal]
+      : []);
+    valorTotal?.updateValueAndValidity({ emitEvent: false });
     this.configurarCamposProduto(form, produto, item.apresentacao?.marca?.id ?? null);
     if (item.quantidade_confirmada === null && produto)
       this.preencherQuantidade(item, form, produto);
     this.configurarEdicaoQuantidade(form, this.itemEstaEmEdicao(item));
   }
   private configurarEdicaoQuantidade(form: FormGroup, editando: boolean): void {
-    for (const nome of ['quantidade_confirmada', 'tipo_quantidade', 'unidades_por_pacote']) {
+    for (const nome of ['quantidade_confirmada', 'tipo_quantidade', 'unidades_por_pacote', 'valor_total', 'tipo_valor']) {
       const controle = form.get(nome);
-      if (editando) controle?.enable({ emitEvent: false });
+      if (editando && (!['valor_total', 'tipo_valor'].includes(nome) || this.nota()?.origem === 'manual')) controle?.enable({ emitEvent: false });
       else controle?.disable({ emitEvent: false });
     }
   }

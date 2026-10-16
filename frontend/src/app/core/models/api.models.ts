@@ -76,17 +76,18 @@ export interface ItemNota {
 
 export interface Estabelecimento {
   id: string;
-  cnpj: string;
-  razao_social: string;
+  cnpj: string | null;
+  razao_social: string | null;
   apelido: string | null;
   nome_exibicao: string;
 }
 
 export interface Nota {
+  origem?: 'sefaz' | 'manual';
   id: string;
-  chave: string;
-  numero: string;
-  serie: string;
+  chave: string | null;
+  numero: string | null;
+  serie: string | null;
   estabelecimento: Estabelecimento;
   emissao: string;
   quantidade_itens: number;
@@ -94,7 +95,7 @@ export interface Nota {
   desconto: string;
   valor_a_pagar: string;
   itens: ItemNota[];
-  url_origem: string;
+  url_origem: string | null;
   situacao: SituacaoNota;
   importada_em: string | null;
   considerar_proximo_mes: boolean;
@@ -109,7 +110,15 @@ export interface Leitura {
   criada_em: string;
 }
 
+export interface CompraManualRequest {
+  estabelecimento_id: string;
+  data: string;
+  itens: (RevisaoItem & ({ valor_total: string } | { valor_unitario: string }))[];
+}
+
 export interface RevisaoItem {
+  valor_total?: string;
+  valor_unitario?: string;
   produto_id: string;
   marca_id?: string | null;
   variacao_id?: string | null;
@@ -168,8 +177,9 @@ export interface RelatorioMensal {
 
 export interface ItemRelatorio {
   id: string;
-  chave_nota: string;
-  numero_nota: string;
+  nota_id?: string | null;
+  chave_nota: string | null;
+  numero_nota: string | null;
   emissao: string;
   estabelecimento: string;
   produto: string;

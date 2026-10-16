@@ -38,6 +38,12 @@ describe('Detalhes contextuais das compras', () => {
     fixture.detectChanges();
     return fixture;
   }
+  it('abre compras manuais pelo UUID quando não existe chave fiscal', () => {
+    const fixture = criar('marca', { ...item, chave_nota: null, numero_nota: null, nota_id: 'uuid-compra' });
+    const link = fixture.nativeElement.querySelector('a');
+    expect(link.getAttribute('href')).toBe('/notas/uuid-compra/revisao');
+    expect(link.textContent.trim()).toBe('Ver compra manual');
+  });
   for (const agrupador of ['marca', 'estabelecimento', 'variacao'] as const) {
     it(`complementa a visão por ${agrupador} sem repetir o atributo do grupo`, () => {
       const fixture = criar(agrupador);

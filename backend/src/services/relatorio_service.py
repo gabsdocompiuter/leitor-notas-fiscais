@@ -32,7 +32,7 @@ class RelatorioService:
                 mes=mes,
                 total_pago=sum((item.valor_pago for item in itens), Decimal("0.00")),
                 total_desconto=sum((item.desconto_rateado for item in itens), Decimal("0.00")),
-                quantidade_notas=len({item.chave_nota for item in itens}),
+                quantidade_notas=len({item.nota_id or item.chave_nota for item in itens}),
                 quantidade_itens=len(itens),
                 total_mes_anterior=sum((item.valor_pago for item in itens_anteriores), Decimal("0.00")),
                 categorias=self._agrupar(itens, lambda item: [(item.categoria_id, item.categoria)]),
@@ -132,7 +132,7 @@ class RelatorioService:
                 produto = item.apresentacao.produto
                 quantidade, unidade = RelatorioService._quantidade_item(item)
                 resultado.append(ItemRelatorioDTO(
-                    id=item.id, chave_nota=nota.chave, numero_nota=nota.numero,
+                    id=item.id, nota_id=nota.id, chave_nota=nota.chave, numero_nota=nota.numero,
                     emissao=nota.emissao, estabelecimento=nota.estabelecimento.nome_exibicao,
                     produto=produto.nome, produto_id=produto.id, categoria_id=produto.categoria.id,
                     categoria=produto.categoria.nome, valor_bruto=item.valor_total,

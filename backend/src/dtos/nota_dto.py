@@ -11,9 +11,9 @@ from ..enums.situacao_nota import SituacaoNota
 @dataclass
 class NotaDTO:
     id: UUID = field(default_factory=uuid4, kw_only=True)
-    chave: str
-    numero: str
-    serie: str
+    chave: str | None
+    numero: str | None
+    serie: str | None
     estabelecimento: EstabelecimentoDTO
     emissao: datetime
     quantidade_itens: int
@@ -21,7 +21,8 @@ class NotaDTO:
     desconto: Decimal
     valor_a_pagar: Decimal
     itens: list[ItemDTO]
-    url_origem: str
+    url_origem: str | None
+    origem: str = "sefaz"
     situacao: SituacaoNota = SituacaoNota.LIDA
     importada_em: datetime | None = None
     considerar_proximo_mes: bool = False

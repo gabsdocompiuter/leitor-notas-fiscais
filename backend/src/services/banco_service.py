@@ -74,9 +74,37 @@ class BancoService:
                 indices.append((indice[2], indice[3], indice[4], campos))
             # Inclui CHECKs e collations que os PRAGMAs não descrevem. Aceitamos
             # schemas produzidos pelas migrations do aplicativo, ignorando formatação.
-            definicao = re.sub(r"\s+", "", sql.replace('"', ''))
+            definicao = BancoService.normalizar_definicao(sql)
             estrutura[nome] = (colunas, estrangeiras, sorted(indices), definicao)
         return estrutura
+
+    @staticmethod
+    def normalizar_definicao(sql: str) -> str:
+        definicao = re.sub(r"\s+", "", sql.replace('"', ''))
+        inicio, fim = definicao.index("("), definicao.rindex(")")
+        partes, atual = [], []
+        nivel = 0
+        em_texto = False
+        for caractere in definicao[inicio + 1:fim]:
+            if caractere == "'":
+                em_texto = not em_texto
+            if not em_texto:
+                if caractere == "(":
+                    nivel += 1
+                elif caractere == ")":
+                    nivel -= 1
+                elif caractere == "," and nivel == 0:
+                    partes.append("".join(atual))
+                    atual = []
+                    continue
+            atual.append(caractere)
+        partes.append("".join(atual))
+        # A recriação de tabelas pelo Alembic pode trocar a ordem das restrições.
+        # Preserva a definição completa de colunas, CHECKs e collations.
+        prefixos = ("CONSTRAINT", "PRIMARYKEY(", "FOREIGNKEY(", "UNIQUE(", "CHECK(")
+        colunas = [parte for parte in partes if not parte.upper().startswith(prefixos)]
+        restricoes = sorted(parte for parte in partes if parte.upper().startswith(prefixos))
+        return definicao[:inicio + 1] + ",".join(colunas + restricoes) + definicao[fim:]
 
     @staticmethod
     def verificar_integridade(conexao: sqlite3.Connection) -> None:

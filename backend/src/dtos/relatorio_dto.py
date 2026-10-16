@@ -27,8 +27,8 @@ class GrupoRelatorioDTO:
 @dataclass
 class ItemRelatorioDTO:
     id: UUID
-    chave_nota: str
-    numero_nota: str
+    chave_nota: str | None
+    numero_nota: str | None
     emissao: datetime
     estabelecimento: str
     produto: str
@@ -40,6 +40,7 @@ class ItemRelatorioDTO:
     valor_pago: Decimal
     tags: list[TagDTO]
     considerar_proximo_mes: bool
+    nota_id: UUID | None = field(default=None, kw_only=True)
     quantidade_comprada: Decimal | None = None
     unidade_quantidade: str | None = None
     estabelecimento_id: UUID | None = None

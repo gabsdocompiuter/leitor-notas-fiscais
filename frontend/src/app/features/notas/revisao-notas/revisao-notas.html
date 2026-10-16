@@ -45,7 +45,7 @@
       <div class="card-body p-4">
         <div class="d-flex flex-column gap-3">
           <span class="text-primary-emphasis text-uppercase fw-bold small">
-            {{ atual.ignorada ? 'Ignorada' : atual.situacao === 'importada' ? 'Nota importada' : 'Revisão da compra' }}
+            {{ atual.ignorada ? 'Ignorada' : atual.origem === 'manual' ? 'Compra manual · Concluída' : atual.situacao === 'importada' ? 'Nota importada' : 'Revisão da compra' }}
           </span>
 
           <div class="d-flex flex-column flex-sm-row justify-content-between gap-3">
@@ -65,7 +65,8 @@
                 </button>
               </div>
               <span class="text-body-secondary">
-                {{ atual.emissao | date: 'dd/MM/yyyy, HH:mm' }} · NFC-e {{ atual.numero }}
+                {{ atual.emissao | date: (atual.origem === 'manual' ? 'dd/MM/yyyy' : 'dd/MM/yyyy, HH:mm') }}
+                @if (atual.numero) { · NFC-e {{ atual.numero }} }
               </span>
             </div>
             <div class="d-flex flex-column align-items-sm-end gap-1">
@@ -115,7 +116,7 @@
               <p class="small text-body-secondary mb-0">
                 Esta nota está ignorada. Desmarque “Ignorar nota” para voltar a editá-la.
               </p>
-            } @else {
+            } @else if (atual.origem !== 'manual') {
             <div class="d-flex justify-content-between small ms-1">
               <span>
                 {{ itensRevisados(atual) }} revisado(s), {{ itensIgnorados(atual) }} ignorado(s)
@@ -155,6 +156,7 @@
 
             }
 
+            @if (atual.url_origem) {
             <a
               class="ms-1 link-underline link-underline-opacity-0 d-flex gap-2"
               target="_blank"
@@ -164,6 +166,7 @@
               <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
               Ver nota original na SEFAZ
             </a>
+            }
           </div>
         </div>
       </div>
@@ -182,16 +185,17 @@
     </div>
 
     <div class="d-grid gap-3">
-      @for (item of atual.itens; track item.id) {
+      @for (item of itensExibidos(); track item.id) {
         @let formulario = formularioItem(item.id);
+        @let resumo = resumoItem(item);
         @if (formulario) {
           <article
             #cartaoItem
             [attr.data-item-id]="item.id"
             class="card border-start border-1 shadow-sm"
-            [class.border-success]="item.revisado && !item.ignorado && !atual.ignorada"
-            [class.border-warning]="!item.revisado && !item.ignorado && !atual.ignorada"
-            [class.border-secondary]="item.ignorado || atual.ignorada"
+            [class.border-success]="atual.origem !== 'manual' && item.revisado && !item.ignorado && !atual.ignorada"
+            [class.border-warning]="atual.origem !== 'manual' && !item.revisado && !item.ignorado && !atual.ignorada"
+            [class.border-secondary]="atual.origem === 'manual' || item.ignorado || atual.ignorada"
           >
             <div class="card-body p-3 p-md-4 d-flex flex-column gap-3">
               <div class="d-flex align-items-center gap-3">
@@ -201,7 +205,7 @@
                     class="btn btn-sm btn-outline-primary rounded-circle flex-shrink-0 d-inline-flex align-items-center justify-content-center"
                     aria-label="Editar item"
                     title="Editar item"
-                    [disabled]="metadadosOcupados()"
+                    [disabled]="metadadosOcupados() || novoItem() !== null"
                     (click)="editarItem(item)"
                   >
                     <i class="bi bi-pencil" aria-hidden="true"></i>
@@ -209,7 +213,7 @@
                 }
                 <div class="overflow-hidden d-flex flex-column gap-1">
                   <div class="d-flex flex-wrap align-items-center gap-2">
-                    <h3 class="h6 mb-0">{{ item.descricao_original }}</h3>
+                    <h3 class="h6 mb-0">{{ resumo.descricao }}</h3>
                     <span
                       class="badge"
                       [class.text-bg-success]="item.revisado && !item.ignorado && !atual.ignorada"
@@ -220,20 +224,27 @@
                     </span>
                   </div>
                   <p class="text-body-secondary small mb-0">
-                    {{ formatarDecimal(item.quantidade) }} {{ item.unidade_original }} ×
-                    {{ +item.valor_unitario | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }} ·
-                    Total
-                    {{ +item.valor_total | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
+                    {{ resumo.quantidade === null ? '—' : formatarDecimal(resumo.quantidade) }} {{ resumo.unidade }} ×
+                    @if (resumo.valor_unitario !== null) {
+                      {{ resumo.valor_unitario | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
+                    } @else { — }
+                    · Total
+                    @if (resumo.valor_total !== null) {
+                      {{ resumo.valor_total | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
+                    } @else { — }
                   </p>
                 </div>
               </div>
 
+              @if (novoItem()?.id !== item.id) {
               <label class="d-flex align-items-start gap-2">
                 <input class="form-check-input flex-shrink-0" type="checkbox"
                   [checked]="item.ignorado" [disabled]="metadadosOcupados() || !itemEstaEmEdicao(item)"
                   (change)="solicitarIgnorar($event, item)" />
                 <span>Ignorar item</span>
               </label>
+
+              }
 
               @if (item.alertas.length && !item.revisado && !item.ignorado && !atual.ignorada) {
                 <div class="d-flex flex-wrap gap-2">
@@ -384,8 +395,33 @@
                       </div>
                     </div>
                   }
+                  @if (atual.origem === 'manual') {
+                    <div class="col-12 col-lg-4">
+                      <label class="form-label" [for]="'valor-total-' + item.id">Valor do item</label>
+                      <div class="input-group">
+                        <span class="input-group-text">R$</span>
+                        <input class="form-control" [id]="'valor-total-' + item.id"
+                          lnfDecimal formControlName="valor_total"
+                          [attr.disabled]="itemEstaEmEdicao(item) ? null : true"
+                          [class.is-invalid]="formulario.get('valor_total')?.invalid && formulario.get('valor_total')?.touched" />
+                        <select class="form-select flex-grow-0 w-auto" formControlName="tipo_valor"
+                          [attr.disabled]="itemEstaEmEdicao(item) ? null : true"
+                          [attr.aria-label]="'Tipo do valor do item ' + item.numero">
+                          <option value="total">Valor total</option>
+                          <option value="unitario">Valor unitário</option>
+                        </select>
+                      </div>
+                      @if (usaPacotes(item.id) && formulario.get('tipo_valor')?.value === 'unitario') {
+                        <div class="small text-body-secondary mt-1">Valor por unidade do produto, mesmo ao informar pacotes.</div>
+                      }
+                      @if (formulario.get('valor_total')?.invalid && formulario.get('valor_total')?.touched) {
+                        <div class="text-danger small">Informe o valor pago, com até duas casas decimais.</div>
+                      }
+                    </div>
+                  }
                 </div>
 
+                @if (novoItem()?.id !== item.id) {
                 <lnf-seletor-tags
                   [selecionadas]="item.tags"
                   [ocupado]="atual.ignorada || metadadosOcupados() || (item.ignorado && !itemEstaEmEdicao(item))"
@@ -393,8 +429,10 @@
                   (remover)="removerTag(item, $event)"
                 />
 
+                }
+
                 <div class="d-flex flex-wrap justify-content-end gap-2">
-                  @if (itemConcluido(item) && itemEstaEmEdicao(item)) {
+                  @if ((itemConcluido(item) && itemEstaEmEdicao(item)) || novoItem()?.id === item.id) {
                     <button
                       class="btn btn-outline-secondary rounded-pill px-4"
                       type="button"
@@ -414,7 +452,7 @@
                         <span class="spinner-border spinner-border-sm me-2"></span>Salvando...
                       } @else {
                         <i class="bi bi-check2 me-2"></i>
-                        {{ item.revisado ? 'Salvar ajustes' : 'Confirmar item' }}
+                        {{ novoItem()?.id === item.id ? 'Salvar item' : item.revisado ? 'Salvar ajustes' : 'Confirmar item' }}
                       }
                     </button>
                   }
@@ -425,6 +463,16 @@
         }
       }
     </div>
+
+    @if (atual.origem === 'manual' && atual.situacao === 'importada') {
+      <div class="d-flex justify-content-end mt-3">
+        <button class="btn btn-outline-primary rounded-pill px-4" type="button"
+          [disabled]="atual.ignorada || metadadosOcupados() || novoItem() !== null || itemEditando() !== null"
+          (click)="adicionarItem()">
+          <i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Adicionar item
+        </button>
+      </div>
+    }
 
     @if (!atual.ignorada && atual.situacao !== 'importada') {
       <section #bannerImportacao class="card shadow-sm mt-4">
@@ -500,7 +548,7 @@
             <div class="alert alert-danger" role="alert">{{ erro() }}</div>
           }
           <p class="fw-semibold text-break">
-            {{ confirmacao.item?.descricao_original ?? ('NFC-e ' + nota()?.numero + ' · ' + nota()?.estabelecimento?.nome_exibicao) }}
+            {{ confirmacao.item?.descricao_original ?? ((nota()?.origem === 'manual' ? 'Compra manual' : 'NFC-e ' + nota()?.numero) + ' · ' + nota()?.estabelecimento?.nome_exibicao) }}
           </p>
           <p id="descricao-ignorar" class="mb-0">
             {{ confirmacao.item
@@ -539,8 +587,12 @@
             <h2 class="modal-title fs-5" id="titulo-edicao-estabelecimento">
               Editar estabelecimento
             </h2>
-            <p class="text-body-secondary small mb-0">{{ atual.estabelecimento.razao_social }}</p>
-            <p class="text-body-secondary small mb-0">CNPJ {{ atual.estabelecimento.cnpj }}</p>
+            @if (atual.estabelecimento.razao_social) {
+              <p class="text-body-secondary small mb-0">{{ atual.estabelecimento.razao_social }}</p>
+            }
+            @if (atual.estabelecimento.cnpj) {
+              <p class="text-body-secondary small mb-0">CNPJ {{ atual.estabelecimento.cnpj }}</p>
+            }
           </div>
           <button
             type="button"
@@ -561,11 +613,14 @@
               class="form-control"
               name="apelidoEstabelecimento"
               maxlength="100"
-              placeholder="Use a razão social"
+              [placeholder]="atual.estabelecimento.razao_social ? 'Use a razão social' : 'Informe o apelido'"
+              [required]="!atual.estabelecimento.razao_social"
               autofocus
               [(ngModel)]="apelidoEstabelecimento"
             />
-            <div class="form-text">Deixe vazio para voltar a exibir a razão social.</div>
+            <div class="form-text">{{ atual.estabelecimento.razao_social
+              ? 'Deixe vazio para voltar a exibir a razão social.'
+              : 'O apelido é obrigatório para este estabelecimento.' }}</div>
           </div>
           <footer class="modal-footer">
             <button

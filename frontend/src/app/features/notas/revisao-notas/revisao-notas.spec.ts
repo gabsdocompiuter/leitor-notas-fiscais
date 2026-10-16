@@ -87,6 +87,7 @@ describe('metadados na revisão', () => {
       definirItemIgnorado: vi.fn(() => resposta),
       concluirImportacao: vi.fn(() => resposta),
       revisarItem: vi.fn(() => resposta),
+      adicionarItemManual: vi.fn(() => resposta),
     };
     TestBed.configureTestingModule({
       providers: [
@@ -127,6 +128,301 @@ describe('metadados na revisão', () => {
     });
     return contexto;
   }
+
+  function criarManual() {
+    const contexto = criar({
+      descricao_original: 'Areia gatos', quantidade: '1', unidade_original: 'UN',
+      quantidade_confirmada: '1', valor_unitario: '60.00', valor_total: '60.00',
+      revisado: true, apresentacao: { id: 'ap', produto, marca: null },
+    }, 'importada');
+    contexto.nota.origem = 'manual';
+    contexto.fixture.componentInstance.carregar();
+    contexto.fixture.detectChanges();
+    return contexto;
+  }
+
+  it('mantém Adicionar item após concluir e abre um cartão com foco no produto', async () => {
+    const { fixture, nota } = criarManual();
+    const componente = fixture.componentInstance;
+    const botao = [...fixture.nativeElement.querySelectorAll('button')].find(
+      (atual: any) => atual.textContent.trim() === 'Adicionar item',
+    ) as HTMLButtonElement;
+    expect(botao.disabled).toBe(false);
+    expect(fixture.nativeElement.querySelector('[role=progressbar]')).toBeNull();
+    botao.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const novo = componente.novoItem()!;
+    const cartao = fixture.nativeElement.querySelector('[data-item-id="novo-item-manual"]');
+    expect(cartao).not.toBeNull();
+    expect(cartao.classList.contains('border-secondary')).toBe(true);
+    expect(cartao.querySelector('form button')).toBe(document.activeElement);
+    expect(cartao.querySelector('lnf-seletor-tags')).toBeNull();
+    expect(cartao.textContent).not.toContain('Ignorar item');
+    expect(componente.formularioItem(novo.id)?.get('quantidade_confirmada')?.value).toBe(1);
+    expect(componente.formularioItem(novo.id)?.get('valor_total')?.value).toBeNull();
+    componente.adicionarItem();
+    expect(componente.itensExibidos()).toHaveLength(2);
+    expect(nota.itens).toHaveLength(1);
+    componente.cancelarEdicao(novo);
+    fixture.detectChanges();
+    expect(componente.novoItem()).toBeNull();
+    expect(componente.itensExibidos()).toHaveLength(1);
+    expect(botao.disabled).toBe(false);
+  });
+
+  it('valida e salva novo item na compra concluída uma vez e permite adicionar outro', () => {
+    const { fixture, nota, api, resposta } = criarManual();
+    const componente = fixture.componentInstance;
+    componente.adicionarItem();
+    const novo = componente.novoItem()!;
+    componente.salvarItem(novo);
+    expect(api.adicionarItemManual).not.toHaveBeenCalled();
+    componente.itemModal.set(novo);
+    componente.selecionarProduto(produto);
+    const form = componente.formularioItem(novo.id)!;
+    form.patchValue({ quantidade_confirmada: 3, tipo_valor: 'unitario', valor_total: 2.50 });
+    componente.salvarItem(novo);
+    componente.salvarItem(novo);
+    expect(api.revisarItem).not.toHaveBeenCalled();
+    expect(api.adicionarItemManual).toHaveBeenCalledExactlyOnceWith(nota.chave, {
+      produto_id: produto.id, quantidade_confirmada: 3,
+      quantidade_pacotes: null, unidades_por_pacote: null, variacao_id: null, valor_unitario: '2.50',
+    });
+    const salvo: ItemNota = {
+      ...novo, id: 'salvo', quantidade: '3', quantidade_confirmada: '3',
+      valor_total: '7.50', valor_unitario: '2.50', revisado: true,
+      apresentacao: { id: 'nova-ap', produto, marca: null },
+    };
+    resposta.next({ ...nota, itens: [...nota.itens, salvo], quantidade_itens: 2, valor_total: '17.50', valor_a_pagar: '17.50' });
+    fixture.detectChanges();
+    expect(componente.novoItem()).toBeNull();
+    expect(componente.nota()?.valor_total).toBe('17.50');
+    expect(componente.nota()?.situacao).toBe('importada');
+    expect(componente.itensExibidos()).toHaveLength(2);
+    componente.adicionarItem();
+    expect(componente.novoItem()?.numero).toBe(3);
+    expect(componente.itensExibidos()).toHaveLength(3);
+  });
+
+  it('preserva o novo item quando o servidor falha', () => {
+    const { fixture, api, resposta } = criarManual();
+    const componente = fixture.componentInstance;
+    componente.adicionarItem();
+    const novo = componente.novoItem()!;
+    componente.itemModal.set(novo);
+    componente.selecionarProduto(produtoPeso);
+    const form = componente.formularioItem(novo.id)!;
+    form.patchValue({ quantidade_confirmada: 2.5, valor_total: 12.34 });
+    componente.salvarItem(novo);
+    expect(api.adicionarItemManual).toHaveBeenCalledOnce();
+    resposta.error(new HttpErrorResponse({ status: 500 }));
+    expect(componente.itemSalvando()).toBeNull();
+    expect(componente.novoItem()).toBe(novo);
+    expect(form.getRawValue()).toMatchObject({
+      produto_id: produtoPeso.id, quantidade_confirmada: 2.5, valor_total: 12.34,
+    });
+    expect(componente.erro()).toBeTruthy();
+  });
+
+  it('preserva o formulário do novo item ao atualizar metadados', () => {
+    const { fixture, nota, resposta } = criarManual();
+    const componente = fixture.componentInstance;
+    componente.adicionarItem();
+    const novo = componente.novoItem()!;
+    const form = componente.formularioItem(novo.id)!;
+    form.patchValue({ produto_id: produto.id, valor_total: 15 });
+    componente.definirCompetencia({ target: { checked: true } } as unknown as Event);
+    resposta.next({ ...nota, considerar_proximo_mes: true });
+    expect(componente.novoItem()).toBe(novo);
+    expect(componente.formularioItem(novo.id)).toBe(form);
+    expect(form.get('valor_total')?.value).toBe(15);
+  });
+
+  it('não adiciona itens a notas fiscais ou compras ignoradas', () => {
+    const { fixture } = criar();
+    const componente = fixture.componentInstance;
+    componente.adicionarItem();
+    expect(componente.novoItem()).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Adicionar item');
+    componente.nota.update((nota) => nota ? { ...nota, origem: 'manual', situacao: 'importada', ignorada: true } : null);
+    componente.adicionarItem();
+    expect(componente.novoItem()).toBeNull();
+  });
+
+  it('atualiza o cabeçalho manual durante a edição e restaura ao cancelar', () => {
+    const { fixture, nota } = criarManual();
+    const componente = fixture.componentInstance;
+    const item = nota.itens[0];
+    componente.editarItem(item);
+    const form = componente.formularioItem(item.id)!;
+    expect(form.get('valor_total')?.enabled).toBe(true);
+    expect(form.get('valor_total')?.value).toBe(60);
+    form.patchValue({ quantidade_confirmada: 5 });
+    selecionar(fixture, nota, produtoPeso);
+    expect(form.get('quantidade_confirmada')?.value).toBe(5);
+    form.patchValue({ valor_total: 75 });
+    fixture.detectChanges();
+    const cartao = fixture.nativeElement.querySelector('article') as HTMLElement;
+    expect(cartao.querySelector('h3')?.textContent).toBe('Farinha');
+    const resumo = cartao.querySelector('p')!.textContent!;
+    expect(resumo).toContain('5 G');
+    expect(resumo).toContain('15,00');
+    expect(resumo).toContain('75,00');
+    expect(resumo).not.toContain('1 UN');
+    componente.cancelarEdicao(item);
+    fixture.detectChanges();
+    expect(cartao.querySelector('h3')?.textContent).toBe(produto.nome);
+    expect(cartao.querySelector('p')?.textContent).toContain('1 UN');
+    expect(form.get('valor_total')?.value).toBe(60);
+    expect(form.get('valor_total')?.disabled).toBe(true);
+  });
+
+  it('usa os dados confirmados em compras manuais já ajustadas anteriormente', () => {
+    const { fixture, nota } = criarManual();
+    nota.itens[0] = {
+      ...nota.itens[0], apresentacao: { id: 'ap', produto: produtoPeso, marca: null },
+      quantidade_confirmada: '5',
+    };
+    fixture.componentInstance.carregar();
+    fixture.detectChanges();
+    const cartao = fixture.nativeElement.querySelector('article') as HTMLElement;
+    expect(cartao.querySelector('h3')?.textContent).toBe('Farinha');
+    expect(cartao.querySelector('p')?.textContent).toContain('5 G');
+    expect(cartao.querySelector('p')?.textContent).toContain('12,00');
+    expect(cartao.textContent).not.toContain('Areia gatos');
+  });
+
+  it('salva o valor manual e mantém o resumo atualizado após a resposta', () => {
+    const { fixture, nota, resposta, api } = criarManual();
+    const componente = fixture.componentInstance;
+    const item = nota.itens[0];
+    componente.editarItem(item);
+    const form = selecionar(fixture, nota, produtoPeso);
+    form.patchValue({ quantidade_confirmada: 5, valor_total: 75 });
+    componente.salvarItem(item);
+    expect(api.revisarItem).toHaveBeenCalledWith(nota.chave, item.id, {
+      produto_id: produtoPeso.id, quantidade_confirmada: 5,
+      quantidade_pacotes: null, unidades_por_pacote: null, variacao_id: null, valor_total: '75.00',
+    });
+    resposta.next({
+      ...nota, valor_total: '75.00', valor_a_pagar: '75.00',
+      itens: [{ ...item, descricao_original: 'Farinha', quantidade: '5', unidade_original: 'G',
+        quantidade_confirmada: '5', valor_total: '75.00', valor_unitario: '15.000000',
+        apresentacao: { id: 'ap', produto: produtoPeso, marca: null } }],
+    });
+    fixture.detectChanges();
+    const cartao = fixture.nativeElement.querySelector('article') as HTMLElement;
+    expect(cartao.querySelector('h3')?.textContent).toBe('Farinha');
+    expect(cartao.querySelector('p')?.textContent).toContain('5 G');
+    expect(cartao.querySelector('p')?.textContent).toContain('75,00');
+    expect(componente.formularioItem(item.id)?.get('valor_total')?.disabled).toBe(true);
+    expect(componente.nota()?.valor_a_pagar).toBe('75.00');
+  });
+
+  it('mostra a quantidade total e o preço por unidade ao editar pacotes', () => {
+    const { fixture, nota } = criarManual();
+    const componente = fixture.componentInstance;
+    componente.editarItem(nota.itens[0]);
+    componente.formularioItem(nota.itens[0].id)!.patchValue({
+      tipo_quantidade: 'pacotes', quantidade_confirmada: 2, unidades_por_pacote: 6,
+    });
+    fixture.detectChanges();
+    const resumo = fixture.nativeElement.querySelector('article p').textContent;
+    expect(resumo).toContain('12 UN');
+    expect(resumo).toContain('5,00');
+    expect(resumo).toContain('60,00');
+  });
+
+  it('alterna entre valor total e unitário na edição sem modificar o número informado', () => {
+    const { fixture, nota, api } = criarManual();
+    const componente = fixture.componentInstance;
+    componente.editarItem(nota.itens[0]);
+    const form = componente.formularioItem(nota.itens[0].id)!;
+    form.patchValue({ quantidade_confirmada: 5, valor_total: 15 });
+    fixture.detectChanges();
+    const seletor = fixture.nativeElement.querySelector('[formControlName="tipo_valor"]') as HTMLSelectElement;
+    expect(seletor.disabled).toBe(false);
+    seletor.value = 'unitario';
+    seletor.dispatchEvent(new Event('change', { bubbles: true }));
+    fixture.detectChanges();
+    expect(form.get('valor_total')?.value).toBe(15);
+    expect(componente.resumoItem(nota.itens[0])).toMatchObject({ valor_unitario: 15, valor_total: 75 });
+    componente.salvarItem(nota.itens[0]);
+    expect(api.revisarItem).toHaveBeenCalledWith(nota.chave, nota.itens[0].id, {
+      produto_id: produto.id, quantidade_confirmada: 5, quantidade_pacotes: null,
+      unidades_por_pacote: null, variacao_id: null, valor_unitario: '15.00',
+    });
+  });
+
+  it('restaura valor e tipo ao cancelar a edição e preserva o preço unitário salvo', () => {
+    const { fixture, nota } = criarManual();
+    const componente = fixture.componentInstance;
+    const item = nota.itens[0];
+    componente.editarItem(item);
+    componente.formularioItem(item.id)!.patchValue({ tipo_valor: 'unitario', valor_total: 5 });
+    componente.cancelarEdicao(item);
+    expect(componente.formularioItem(item.id)!.getRawValue()).toMatchObject({ tipo_valor: 'total', valor_total: 60 });
+    expect(componente.formularioItem(item.id)!.get('tipo_valor')?.disabled).toBe(true);
+    Object.assign(item, { quantidade: '0.5', quantidade_confirmada: '0.5', valor_total: '0.15',
+      valor_unitario: '0.29', apresentacao: { id: 'ap', produto: produtoPeso, marca: null } });
+    componente.carregar();
+    fixture.detectChanges();
+    expect(componente.resumoItem(item).valor_unitario).toBe(0.29);
+    expect(componente.resumoItem(item).valor_total).toBe(0.15);
+  });
+
+  it('valida o valor manual antes de enviar os ajustes', () => {
+    const { fixture, nota, api } = criarManual();
+    const componente = fixture.componentInstance;
+    componente.editarItem(nota.itens[0]);
+    const form = componente.formularioItem(nota.itens[0].id)!;
+    for (const valor of [null, -1, 1.001]) {
+      form.patchValue({ valor_total: valor });
+      componente.salvarItem(nota.itens[0]);
+    }
+    expect(api.revisarItem).not.toHaveBeenCalled();
+    form.patchValue({ valor_total: 0 });
+    componente.salvarItem(nota.itens[0]);
+    expect(api.revisarItem).toHaveBeenCalledWith(nota.chave, nota.itens[0].id, expect.objectContaining({ valor_total: '0.00' }));
+  });
+
+  it('preserva o cabeçalho fiscal e não oferece edição de valor em notas importadas', () => {
+    const { fixture, nota, api } = criar({
+      revisado: true, apresentacao: { id: 'ap', produto, marca: null }, quantidade_confirmada: '1',
+    }, 'importada');
+    fixture.componentInstance.editarItem(nota.itens[0]);
+    const form = selecionar(fixture, nota, produtoPeso);
+    form.patchValue({ quantidade_confirmada: 5 });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('article h3').textContent).toBe('Produto');
+    expect(fixture.nativeElement.querySelector('article p').textContent).toContain('1 UN');
+    expect(fixture.nativeElement.querySelector('[formControlName="valor_total"]')).toBeNull();
+    expect(form.get('valor_total')?.disabled).toBe(true);
+    fixture.componentInstance.salvarItem(nota.itens[0]);
+    expect(api.revisarItem).toHaveBeenCalledWith(nota.chave, nota.itens[0].id, {
+      produto_id: produtoPeso.id, quantidade_confirmada: 5, quantidade_pacotes: null,
+      unidades_por_pacote: null, variacao_id: null,
+    });
+  });
+
+  it('exibe a compra manual com borda cinza e sem dados ou link fiscal', () => {
+    const { fixture, nota } = criar({
+      revisado: true, apresentacao: { id: 'ap', produto, marca: null }, quantidade_confirmada: '1',
+    }, 'importada');
+    Object.assign(nota, {
+      origem: 'manual', chave: null, numero: null, serie: null, url_origem: null,
+      estabelecimento: { id: 'loja', nome_exibicao: 'Feira', apelido: 'Feira', cnpj: null, razao_social: null },
+    });
+    fixture.componentInstance.carregar();
+    fixture.detectChanges();
+    const cartao = fixture.nativeElement.querySelector('article');
+    expect(cartao.classList.contains('border-secondary')).toBe(true);
+    expect(cartao.classList.contains('border-success')).toBe(false);
+    expect(fixture.nativeElement.textContent).toContain('Compra manual · Concluída');
+    expect(fixture.nativeElement.textContent).not.toContain('NFC-e');
+    expect(fixture.nativeElement.textContent).not.toContain('Ver nota original na SEFAZ');
+  });
 
   it.each([false, true])('avança após salvar item (já revisado: %s), pulando automáticos e ignorados', async (revisado) => {
     const { fixture, nota, resposta } = criarNavegacao(revisado);

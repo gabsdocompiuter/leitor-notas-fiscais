@@ -6,12 +6,17 @@ from fastapi import APIRouter, Depends, Query
 from ...services.estabelecimento_service import EstabelecimentoService
 from ..dependencies import obter_estabelecimento_service
 from ..schemas.erro_response import ErroResponse
-from ..schemas.estabelecimento_request import EstabelecimentoRequest
+from ..schemas.estabelecimento_request import EstabelecimentoRequest, CriarEstabelecimentoRequest
 from ..schemas.estabelecimento_response import EstabelecimentoResponse
 
 
 router = APIRouter(prefix="/estabelecimentos", tags=["Catálogos"])
 Servico = Annotated[EstabelecimentoService, Depends(obter_estabelecimento_service)]
+
+
+@router.post("", response_model=EstabelecimentoResponse, status_code=201, summary="Criar estabelecimento manual")
+def criar_estabelecimento(entrada: CriarEstabelecimentoRequest, servico: Servico) -> EstabelecimentoResponse:
+    return EstabelecimentoResponse.from_entity(servico.criar(entrada.apelido))
 
 
 @router.get("", response_model=list[EstabelecimentoResponse], summary="Listar estabelecimentos")

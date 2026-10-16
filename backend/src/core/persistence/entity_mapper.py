@@ -113,6 +113,7 @@ class EntityMapper:
         return NotaDTO(
             id=entidade.id,
             chave=entidade.chave,
+            origem=entidade.origem,
             numero=entidade.numero,
             serie=entidade.serie,
             estabelecimento=cls.estabelecimento(entidade.estabelecimento),

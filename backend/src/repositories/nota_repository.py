@@ -70,6 +70,14 @@ class NotaRepository(BaseRepository[NotaEntity]):
         consulta = consulta.order_by(NotaEntity.emissao.desc(), NotaEntity.id)
         return list(self.session.scalars(consulta.limit(limite).offset(deslocamento)))
 
+    def obter_por_identificador(self, identificador: str) -> NotaEntity | None:
+        if len(identificador) == 44 and identificador.isdigit():
+            return self.obter_por_chave(identificador)
+        try:
+            return self.obter(UUID(identificador))
+        except ValueError:
+            return None
+
     def adicionar_modelo(self, nota: NotaDTO) -> NotaEntity:
         if (
             not nota.itens

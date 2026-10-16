@@ -4,6 +4,19 @@ As versões só são alteradas por solicitação explícita do usuário.
 
 ## Não lançado
 
+- Inclusão de novos itens em compras manuais já concluídas, com recálculo atômico
+  dos totais e atualização imediata dos relatórios.
+
+- Seleção entre valor total e unitário no cadastro e na edição de compras manuais,
+  com cálculo decimal dos totais e preservação do preço unitário informado.
+
+- Edição do valor de itens manuais com recálculo dos totais e do preço unitário; produto, quantidade
+  e unidade do item são atualizados ao salvar, preservando os dados originais de notas fiscais.
+
+- Compras manuais concluídas diretamente, com estabelecimento existente ou criado apenas por apelido,
+  classificação de produtos, marcas, variações e pacotes, consulta e ajustes pelo UUID e inclusão nos relatórios.
+- Migração 0006 preserva as notas fiscais e permite registros sem CNPJ ou chave fiscal.
+
 - Situação pública “ignorada” e filtro exclusivo de notas ignoradas, preservando a situação anterior para restauração.
 
 - Marcação reversível de notas e itens ignorados, excluídos de todos os relatórios com preservação do rateio original de descontos. Itens ignorados dispensam revisão, mas a importação exige ao menos um item considerado; restaurar um item incompleto de nota importada exige revisão prévia.

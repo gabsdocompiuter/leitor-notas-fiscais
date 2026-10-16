@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   ConfiguracaoBanco,
+  CompraManualRequest,
   ImportacaoBancoResponse,
   Categoria,
   Tag,
@@ -52,6 +53,18 @@ export class ApiService {
   listarNotas(situacao?: SituacaoNota): Observable<Nota[]> {
     const params = situacao ? new HttpParams().set('situacao', situacao) : undefined;
     return this.http.get<Nota[]>(`${this.baseUrl}/notas`, { params });
+  }
+
+  adicionarItemManual(chave: string, item: RevisaoItem): Observable<Nota> {
+    return this.http.post<Nota>(`${this.baseUrl}/notas/${chave}/itens`, item);
+  }
+
+  criarCompraManual(compra: CompraManualRequest): Observable<Nota> {
+    return this.http.post<Nota>(`${this.baseUrl}/notas/manuais`, compra);
+  }
+
+  criarEstabelecimento(apelido: string): Observable<Estabelecimento> {
+    return this.http.post<Estabelecimento>(`${this.baseUrl}/estabelecimentos`, { apelido });
   }
 
   obterNota(chave: string): Observable<Nota> {

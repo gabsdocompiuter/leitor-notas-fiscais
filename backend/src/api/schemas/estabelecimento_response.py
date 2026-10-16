@@ -7,8 +7,8 @@ from ...dtos.estabelecimento_dto import EstabelecimentoDTO
 
 class EstabelecimentoResponse(BaseModel):
     id: UUID
-    cnpj: str
-    razao_social: str
+    cnpj: str | None
+    razao_social: str | None
     apelido: str | None
     nome_exibicao: str
 

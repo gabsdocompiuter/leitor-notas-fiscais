@@ -63,8 +63,8 @@
               {{ +item.desconto_rateado | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</span
             >
           }
-          <a [routerLink]="['/notas', item.chave_nota, 'revisao']"
-            >Ver nota {{ item.numero_nota }}</a
+          <a [routerLink]="['/notas', item.chave_nota ?? item.nota_id, 'revisao']"
+            >{{ item.numero_nota ? 'Ver nota ' + item.numero_nota : 'Ver compra manual' }}</a
           >
         </div>
       </div>

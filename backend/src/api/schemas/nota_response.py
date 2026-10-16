@@ -1,5 +1,6 @@
 from datetime import datetime
 from uuid import UUID
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -11,9 +12,10 @@ from .item_response import ItemResponse
 
 class NotaResponse(BaseModel):
     id: UUID
-    chave: str
-    numero: str
-    serie: str
+    chave: str | None
+    numero: str | None
+    serie: str | None
+    origem: Literal["sefaz", "manual"]
     estabelecimento: EstabelecimentoResponse
     emissao: datetime
     quantidade_itens: int
@@ -21,7 +23,7 @@ class NotaResponse(BaseModel):
     desconto: str
     valor_a_pagar: str
     itens: list[ItemResponse]
-    url_origem: str
+    url_origem: str | None
     situacao: SituacaoNota
     considerar_proximo_mes: bool
     ignorada: bool
@@ -32,6 +34,7 @@ class NotaResponse(BaseModel):
         return cls(
             id=nota.id,
             chave=nota.chave,
+            origem=nota.origem,
             numero=nota.numero,
             serie=nota.serie,
             estabelecimento=EstabelecimentoResponse.from_entity(nota.estabelecimento),

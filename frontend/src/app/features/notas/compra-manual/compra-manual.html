@@ -1,0 +1,287 @@
+<div class="container py-4 py-md-5" (keydown)="tecladoModal($event)">
+  <a
+    class="link-body-emphasis link-opacity-75 link-opacity-100-hover text-decoration-none fw-semibold small"
+    routerLink="/notas"
+    ><i class="bi bi-arrow-left me-2"></i>Voltar para notas</a
+  >
+
+  @if (erro()) {
+    <div class="alert alert-danger mt-3" role="alert">
+      {{ erro() }}
+      @if (!produtos().length && !carregando()) {
+        <button type="button" class="btn btn-sm btn-outline-danger ms-2" (click)="carregar()">
+          Tentar novamente
+        </button>
+      }
+    </div>
+  }
+  @if (carregando()) {
+    <div class="d-flex justify-content-center py-5" role="status">
+      <span class="spinner-border text-primary-emphasis"></span
+      ><span class="visually-hidden">Carregando</span>
+    </div>
+  } @else {
+    <form [formGroup]="formulario" (ngSubmit)="concluir()">
+      <fieldset [disabled]="ocupado()">
+        <section class="card border-0 bg-body-tertiary shadow-sm my-4">
+          <div class="card-body p-4">
+            <span class="text-primary-emphasis text-uppercase fw-bold small">Compra manual</span>
+            <div class="d-flex flex-column flex-sm-row justify-content-between gap-3 mt-2 mb-4">
+              <div>
+                <h1 class="h2 mb-2">Adicionar compra</h1>
+                <p class="text-body-secondary mb-0">Informe onde comprou e adicione os itens.</p>
+              </div>
+              <div class="d-flex flex-column align-items-sm-end">
+                <strong class="text-primary-emphasis fs-5" aria-live="polite">{{
+                  total() | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR'
+                }}</strong>
+                <span class="small text-body-secondary">Total da compra</span>
+              </div>
+            </div>
+            <div class="row g-3">
+              <div class="col-12 col-md-8">
+                <label for="estabelecimento" class="form-label">Estabelecimento</label>
+                <button
+                  id="estabelecimento"
+                  type="button"
+                  class="form-control d-flex align-items-center justify-content-between text-start"
+                  [class.is-invalid]="invalido(formulario, 'estabelecimento_id')"
+                  (click)="abrirSeletor('estabelecimento')"
+                >
+                  <span>{{ estabelecimento()?.nome_exibicao ?? 'Pesquisar estabelecimento' }}</span>
+                  <i class="bi bi-search" aria-hidden="true"></i>
+                </button>
+                <div class="invalid-feedback">Selecione um estabelecimento.</div>
+              </div>
+              <div class="col-12 col-md-4">
+                <label for="data-compra" class="form-label">Data da compra</label>
+                <input
+                  id="data-compra"
+                  class="form-control"
+                  type="date"
+                  formControlName="data"
+                  [class.is-invalid]="invalido(formulario, 'data')"
+                />
+                <div class="invalid-feedback">Informe a data da compra.</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <h2 class="h4 mb-3">Itens da compra</h2>
+        <div class="d-grid gap-3" formArrayName="itens">
+          @for (form of itens.controls; track form; let indice = $index) {
+            <article
+              #cartaoItem
+              class="card border-start border-1 border-secondary shadow-sm"
+              [formGroupName]="indice"
+            >
+              <div class="card-body p-3 p-md-4 d-flex flex-column gap-3">
+                <div class="d-flex align-items-center justify-content-between gap-3">
+                  <h3 class="h6 mb-0">{{ produto(form)?.nome ?? 'Item ' + (indice + 1) }}</h3>
+                  @if (itens.length > 1) {
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-secondary"
+                      [attr.aria-label]="'Remover item ' + (indice + 1)"
+                      (click)="removerItem(indice)"
+                    >
+                      <i class="bi bi-trash" aria-hidden="true"></i>
+                    </button>
+                  }
+                </div>
+                <div class="row g-3">
+                  <div class="col-12 col-lg-6">
+                    <label class="form-label" [for]="'produto-' + indice">Produto</label>
+                    <button
+                      data-produto
+                      type="button"
+                      [id]="'produto-' + indice"
+                      class="form-control d-flex align-items-center justify-content-between text-start"
+                      [class.is-invalid]="invalido(form, 'produto_id')"
+                      (click)="abrirSeletor('produto', indice)"
+                    >
+                      <span>{{ produto(form)?.nome ?? 'Pesquisar produto' }}</span
+                      ><i class="bi bi-search" aria-hidden="true"></i>
+                    </button>
+                    <div class="invalid-feedback">Selecione um produto.</div>
+                  </div>
+                  @if (produto(form); as selecionado) {
+                    @if (!selecionado.nao_solicitar_marca) {
+                      <div class="col-12 col-lg-6">
+                        <label class="form-label" [for]="'marca-' + indice">Marca</label>
+                        <button
+                          type="button"
+                          [id]="'marca-' + indice"
+                          class="form-control d-flex align-items-center justify-content-between text-start"
+                          [class.is-invalid]="invalido(form, 'marca_id')"
+                          (click)="abrirSeletor('marca', indice)"
+                        >
+                          <span>{{ nomeMarca(form) }}</span
+                          ><i class="bi bi-search" aria-hidden="true"></i>
+                        </button>
+                        <div class="invalid-feedback">Selecione uma marca.</div>
+                      </div>
+                    }
+                    @if (selecionado.contem_variacoes) {
+                      <div class="col-12 col-lg-6">
+                        <label class="form-label" [for]="'variacao-' + indice">Variação</label>
+                        <button
+                          type="button"
+                          [id]="'variacao-' + indice"
+                          class="form-control d-flex align-items-center justify-content-between text-start"
+                          [class.is-invalid]="invalido(form, 'variacao_id')"
+                          (click)="abrirSeletor('variacao', indice)"
+                        >
+                          <span>{{ nomeVariacao(form) }}</span
+                          ><i class="bi bi-search" aria-hidden="true"></i>
+                        </button>
+                        <div class="invalid-feedback">Selecione uma variação.</div>
+                      </div>
+                    }
+                  }
+                  <div class="col-12 col-md-6 col-lg-4">
+                    <label class="form-label" [for]="'quantidade-' + indice">Quantidade</label>
+                    <div class="input-group">
+                      <input
+                        [id]="'quantidade-' + indice"
+                        class="form-control"
+                        lnfDecimal
+                        formControlName="quantidade_confirmada"
+                        [class.is-invalid]="invalido(form, 'quantidade_confirmada')"
+                      />
+                      @if (produto(form)?.tratar_apenas_como_unidades) {
+                        <select
+                          class="form-select flex-grow-0 w-auto"
+                          formControlName="tipo_quantidade"
+                          [attr.aria-label]="'Tipo de quantidade do item ' + (indice + 1)"
+                        >
+                          <option value="unidades">Unidades</option>
+                          <option value="pacotes">Pacotes</option>
+                        </select>
+                      } @else {
+                        <span class="input-group-text">{{ unidade(form) }}</span>
+                      }
+                    </div>
+                    @if (invalido(form, 'quantidade_confirmada')) {
+                      <div class="text-danger small">
+                        Informe uma quantidade maior que zero, inteira para unidades e variações.
+                      </div>
+                    }
+                    @if (usaPacotes(form)) {
+                      <label class="form-label small mt-2" [for]="'unidades-' + indice"
+                        >Unidades por pacote</label
+                      >
+                      <input
+                        [id]="'unidades-' + indice"
+                        class="form-control"
+                        lnfDecimal
+                        formControlName="unidades_por_pacote"
+                        [class.is-invalid]="invalido(form, 'unidades_por_pacote')"
+                      />
+                      <div class="invalid-feedback">Informe um número inteiro maior que zero.</div>
+                      @if (quantidade(form) > 0) {
+                        <div class="small text-body-secondary mt-1" aria-live="polite">
+                          {{ quantidade(form) }} unidades no total
+                        </div>
+                      }
+                    }
+                  </div>
+                  <div class="col-12 col-md-6 col-lg-4">
+                    <label class="form-label" [for]="'valor-' + indice">Valor do item</label>
+                    <div class="input-group">
+                      <span class="input-group-text">R$</span>
+                      <input
+                        [id]="'valor-' + indice"
+                        class="form-control"
+                        lnfDecimal
+                        formControlName="valor_total"
+                        [class.is-invalid]="invalido(form, 'valor_total')"
+                      />
+                      <select class="form-select flex-grow-0 w-auto" formControlName="tipo_valor"
+                        [attr.aria-label]="'Tipo do valor do item ' + (indice + 1)">
+                        <option value="total">Valor total</option>
+                        <option value="unitario">Valor unitário</option>
+                      </select>
+                    </div>
+                    @if (invalido(form, 'valor_total')) {
+                      <div class="text-danger small">
+                        Informe o valor pago, com até duas casas decimais.
+                      </div>
+                    }
+                    <div class="small text-body-secondary mt-1" aria-live="polite">
+                      @if (form.get('tipo_valor')?.value === 'unitario') {
+                        Total do item:
+                        {{ valorItem(form).total | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
+                      } @else {
+                        Preço por {{ unidade(form) === 'unidades' ? 'unidade' : unidade(form) || 'unidade' }}:
+                        {{ precoUnitario(form) | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
+                      }
+                    </div>
+                    @if (usaPacotes(form) && form.get('tipo_valor')?.value === 'unitario') {
+                      <div class="small text-body-secondary">Valor por unidade do produto, mesmo ao informar pacotes.</div>
+                    }
+                  </div>
+                </div>
+              </div>
+            </article>
+          }
+        </div>
+        <div class="d-flex flex-wrap justify-content-end gap-2 mt-4">
+          <button
+            type="button"
+            class="btn btn-outline-primary rounded-pill px-4"
+            (click)="adicionarItem()"
+          >
+            <i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Adicionar item
+          </button>
+          <button type="submit" class="btn btn-primary rounded-pill px-4">
+            @if (salvando()) {
+              <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span
+              >Salvando...
+            } @else {
+              <i class="bi bi-check2 me-2" aria-hidden="true"></i>Concluir
+            }
+          </button>
+        </div>
+      </fieldset>
+    </form>
+  }
+
+  @if (modal() === 'estabelecimento') {
+    <lnf-pesquisa-estabelecimento
+      [registros]="estabelecimentos()"
+      (fechar)="fecharSeletor()"
+      (registroSelecionado)="selecionarEstabelecimento($event)"
+      (cadastroCriado)="registrarEstabelecimento($event)"
+    />
+  } @else if (modal() === 'produto') {
+    <lnf-pesquisa-produto
+      [registros]="produtos()"
+      [categorias]="categorias()"
+      [unidades]="unidades()"
+      (fechar)="fecharSeletor()"
+      (registroSelecionado)="selecionarProduto($event)"
+      (cadastroCriado)="registrarProduto($event)"
+      (categoriaCriada)="registrarCategoria($event)"
+    />
+  } @else if (modal() === 'marca') {
+    <lnf-pesquisa-marca
+      [registros]="marcas()"
+      (fechar)="fecharSeletor()"
+      (registroSelecionado)="selecionarMarca($event)"
+      (cadastroCriado)="registrarMarca($event)"
+    />
+  } @else if (modal() === 'variacao') {
+    @if (produtoModal(); as selecionado) {
+      <lnf-pesquisa-variacao
+        [registros]="variacoes()"
+        [produto]="selecionado"
+        [unidades]="unidades()"
+        (fechar)="fecharSeletor()"
+        (registroSelecionado)="selecionarVariacao($event)"
+        (cadastroCriado)="registrarVariacao($event)"
+      />
+    }
+  }
+</div>
