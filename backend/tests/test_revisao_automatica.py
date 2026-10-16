@@ -65,6 +65,18 @@ class RevisaoAutomaticaTests(unittest.TestCase):
             self.assertEqual(atual.situacao, SituacaoNota.EM_REVISAO)
             self.assertIsNone(atual.importada_em)
 
+    def test_ignorar_bloqueia_reconhecimento_e_propagacao_automatica(self):
+        origem = self.criar_nota(1)
+        ignorada = self.criar_nota(2)
+        item_ignorado = self.criar_nota(3)
+        self.notas.definir_ignorada(ignorada.chave, True)
+        self.revisao.definir_item_ignorado(item_ignorado.chave, item_ignorado.itens[0].id, True)
+        self.confirmar(origem)
+        for nota in (ignorada, item_ignorado):
+            self.assertFalse(self.consultar(nota).itens[0].revisado)
+            self.revisao.aplicar_classificacoes_automaticas(nota.chave)
+            self.assertFalse(self.consultar(nota).itens[0].revisado)
+
     def test_descricao_em_outro_estabelecimento_e_unidade_compativel(self):
         origem = self.criar_nota(1, unidade='KG', quantidade='1')
         outra = self.criar_nota(2, ['  pao KG ', 'QUEIJO 300g'], cnpj='22222222222222',

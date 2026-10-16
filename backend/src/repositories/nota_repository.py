@@ -63,8 +63,10 @@ class NotaRepository(BaseRepository[NotaEntity]):
         deslocamento: int = 0,
     ) -> list[NotaEntity]:
         consulta = select(NotaEntity).options(*self.opcoes_carregamento())
-        if situacao is not None:
-            consulta = consulta.where(NotaEntity.situacao == situacao)
+        if situacao == SituacaoNota.IGNORADA:
+            consulta = consulta.where(NotaEntity.ignorada.is_(True))
+        elif situacao is not None:
+            consulta = consulta.where(NotaEntity.situacao == situacao, NotaEntity.ignorada.is_(False))
         consulta = consulta.order_by(NotaEntity.emissao.desc(), NotaEntity.id)
         return list(self.session.scalars(consulta.limit(limite).offset(deslocamento)))
 
@@ -106,6 +108,7 @@ class NotaRepository(BaseRepository[NotaEntity]):
             situacao=nota.situacao,
             importada_em=nota.importada_em,
             considerar_proximo_mes=nota.considerar_proximo_mes,
+            ignorada=nota.ignorada,
         )
         self.session.add(entidade)
         for item in nota.itens:
@@ -134,6 +137,7 @@ class NotaRepository(BaseRepository[NotaEntity]):
                     quantidade_pacotes=item.quantidade_pacotes,
                     unidades_por_pacote=item.unidades_por_pacote,
                     revisado=item.revisado,
+                    ignorado=item.ignorado,
                     tags=[self._obter_ou_adicionar_tag(tag) for tag in item.tags],
                 )
             )

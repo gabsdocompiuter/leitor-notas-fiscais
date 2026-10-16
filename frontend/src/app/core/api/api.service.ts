@@ -74,6 +74,16 @@ export class ApiService {
     return this.http.post<Nota>(`${this.baseUrl}/notas/${chave}/importacao`, {});
   }
 
+  definirNotaIgnorada(chave: string, ignorada: boolean): Observable<Nota> {
+    return this.http.patch<Nota>(`${this.baseUrl}/notas/${chave}/ignorada`, { ignorada });
+  }
+
+  definirItemIgnorado(chave: string, itemId: string, ignorado: boolean): Observable<Nota> {
+    return this.http.patch<Nota>(`${this.baseUrl}/notas/${chave}/itens/${itemId}/ignorado`, {
+      ignorado,
+    });
+  }
+
   listarTags(busca?: string): Observable<Tag[]> {
     const params = busca ? new HttpParams().set('busca', busca) : undefined;
     return this.http.get<Tag[]>(`${this.baseUrl}/tags`, { params });

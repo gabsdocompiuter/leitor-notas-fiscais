@@ -52,12 +52,19 @@ Para usar a câmera pelo Android via HTTP, cadastre exatamente a origem do servi
 - Exclusão de produtos sem itens em notas, com confirmação da remoção de variações, apresentações e associações automáticas.
 - Cadastros rápidos de categorias, marcas e produtos.
 - Alertas e progresso da revisão.
-- Importação liberada somente depois da revisão de todos os itens.
+- Checkboxes “Ignorar nota” e “Ignorar item”, com confirmação ao marcar e exclusão dos relatórios.
+- Status “Ignorada” e filtro “Ignoradas”; os campos da nota ficam bloqueados até desmarcar a opção.
+- Itens ignorados ficam fechados como os confirmados. Para alterar a marcação de um item concluído, entre na edição pelo lápis.
+- Importação exige pelo menos um item não ignorado e revisão completa dos itens considerados.
 - Consulta e ajuste individual dos itens de notas importadas.
 
 A área **Relatórios** reúne o resumo mensal e os gastos por categoria e por tag,
 com seleção de mês, comparação com o anterior e detalhes paginados dos itens.
 Ela inclui apenas notas importadas e distribui proporcionalmente os descontos.
+Notas e itens ignorados não entram nos totais, contagens ou detalhamentos. O desconto
+dos itens considerados mantém o rateio original da nota. É possível desmarcar as
+opções; para restaurar um item ainda não revisado de uma nota importada, confirme
+sua classificação primeiro. Ignorar a nota preserva as escolhas individuais dos itens.
 
 Corrigir nome ou categoria de um produto também atualiza as compras antigas e
 os relatórios. Passar a exigir marca preserva notas importadas; os itens sem

@@ -1,0 +1,11 @@
+$kind: http-request
+name: Definir nota ignorada nos relatórios
+url: "{{baseUrl}}/notas/{{chaveNfce}}/ignorada"
+method: PATCH
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {"ignorada": true}

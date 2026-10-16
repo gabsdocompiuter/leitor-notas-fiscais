@@ -2,6 +2,10 @@
 
 ## Não lançado
 
+- Status e filtro de notas ignoradas, com campos bloqueados e restauração da situação anterior. Itens ignorados ficam concluídos; itens confirmados exigem entrar na edição para alterar a marcação.
+
+- Checkboxes para ignorar notas e itens nos relatórios, com modal de confirmação, identificação visual, reversão e preservação dos formulários em edição. Bloqueia importação quando todos os itens estão ignorados.
+
 - Campo de leitura manual aceita link do QR Code, chave de acesso de 44 dígitos ou link de consulta da SEFAZ RS.
 
 - Edição dos dados de produtos utilizados, com motivos para os bloqueios estruturais e orientação sobre o efeito nas compras antigas.

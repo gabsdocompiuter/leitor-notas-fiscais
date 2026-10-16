@@ -13,12 +13,35 @@ from ..schemas.erro_response import ErroResponse
 from ..schemas.nota_response import NotaResponse
 from ..schemas.revisao_item_request import RevisaoItemRequest
 from ..schemas.competencia_nota_request import CompetenciaNotaRequest
+from ..schemas.ignorar_request import IgnorarItemRequest, IgnorarNotaRequest
 from ..schemas.tag_request import TagsItemRequest
 from ..dependencies import obter_tag_service
 
 
 router = APIRouter(prefix="/notas", tags=["Notas"])
 Chave = Annotated[str, Path(pattern=r"^\d{44}$", description="Chave de acesso da NFC-e")]
+
+
+@router.patch("/{chave}/ignorada", response_model=NotaResponse, summary="Definir nota ignorada nos relatórios",
+              responses={404: {"model": ErroResponse}})
+def definir_nota_ignorada(
+    chave: Chave,
+    entrada: IgnorarNotaRequest,
+    servico: Annotated[NotaService, Depends(obter_nota_service)],
+) -> NotaResponse:
+    return NotaResponse.from_entity(servico.definir_ignorada(chave, entrada.ignorada))
+
+
+@router.patch("/{chave}/itens/{item_id}/ignorado", response_model=NotaResponse,
+              summary="Definir item ignorado nos relatórios",
+              responses={404: {"model": ErroResponse}, 409: {"model": ErroResponse}})
+def definir_item_ignorado(
+    chave: Chave,
+    item_id: UUID,
+    entrada: IgnorarItemRequest,
+    servico: Annotated[RevisaoNotaService, Depends(obter_revisao_nota_service)],
+) -> NotaResponse:
+    return NotaResponse.from_entity(servico.definir_item_ignorado(chave, item_id, entrada.ignorado))
 
 
 @router.get("", response_model=list[NotaResponse], summary="Listar notas lidas")

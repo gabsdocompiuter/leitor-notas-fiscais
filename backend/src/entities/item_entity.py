@@ -40,6 +40,7 @@ class ItemEntity(BaseEntity):
     quantidade_pacotes: Mapped[Decimal | None] = mapped_column(DecimalText)
     unidades_por_pacote: Mapped[Decimal | None] = mapped_column(DecimalText)
     revisado: Mapped[bool] = mapped_column(Boolean, default=False)
+    ignorado: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     nota: Mapped[NotaEntity] = relationship(back_populates="itens")
     apresentacao: Mapped[ApresentacaoProdutoEntity | None] = relationship(
         back_populates="itens"

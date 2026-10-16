@@ -4,6 +4,10 @@ As versões só são alteradas por solicitação explícita do usuário.
 
 ## Não lançado
 
+- Situação pública “ignorada” e filtro exclusivo de notas ignoradas, preservando a situação anterior para restauração.
+
+- Marcação reversível de notas e itens ignorados, excluídos de todos os relatórios com preservação do rateio original de descontos. Itens ignorados dispensam revisão, mas a importação exige ao menos um item considerado; restaurar um item incompleto de nota importada exige revisão prévia.
+
 - Leitura por chave de acesso de 44 dígitos ou link de consulta da SEFAZ RS, com conversão para a URL de QR Code da SVRS e suporte no campo manual e na API.
 
 - Edição de nome, categoria e exigência de marca em produtos utilizados, com proteção dos campos estruturais e retorno à revisão dos itens sem marca em notas não importadas.

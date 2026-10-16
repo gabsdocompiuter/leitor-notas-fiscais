@@ -1,5 +1,7 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import {
+  Component, ElementRef, Injector, OnDestroy, OnInit, afterNextRender, inject, signal, viewChild,
+} from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -59,15 +61,19 @@ type TipoModal = 'produto' | 'marca' | 'variacao';
   ],
   templateUrl: './revisao-notas.html',
 })
-export class RevisaoNotas implements OnInit {
+export class RevisaoNotas implements OnInit, OnDestroy {
   readonly formatarDecimal = formatarDecimal;
   private readonly api = inject(ApiService);
+  private readonly injector = inject(Injector);
+  private readonly dialogoIgnorar = viewChild<ElementRef<HTMLElement>>('dialogoIgnorar');
+  private origemIgnorar: HTMLInputElement | null = null;
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
   private readonly chave = this.route.snapshot.paramMap.get('chave') ?? '';
   private readonly formularios = new Map<string, FormGroup>();
 
   readonly salvandoMetadados = signal(false);
+  readonly confirmacaoIgnorar = signal<{ item: ItemNota | null } | null>(null);
 
   readonly nota = signal<Nota | null>(null);
   readonly produtos = signal<Produto[]>([]);
@@ -93,6 +99,95 @@ export class RevisaoNotas implements OnInit {
 
   ngOnInit(): void {
     this.carregar();
+  }
+
+  ngOnDestroy(): void {
+    if (this.confirmacaoIgnorar()) document.body.classList.remove('modal-open');
+  }
+
+  solicitarIgnorar(evento: Event, item: ItemNota | null = null): void {
+    const campo = evento.target as HTMLInputElement;
+    const ignorar = campo.checked;
+    campo.checked = item ? item.ignorado : (this.nota()?.ignorada ?? false);
+    if (this.metadadosOcupados() || this.confirmacaoIgnorar()) return;
+    if (item && !this.itemEstaEmEdicao(item)) return;
+    this.origemIgnorar = campo;
+    if (!ignorar) {
+      this.salvarIgnorar(false, item);
+      return;
+    }
+    this.erro.set(null);
+    this.confirmacaoIgnorar.set({ item });
+    document.body.classList.add('modal-open');
+    afterNextRender(() => {
+      this.dialogoIgnorar()?.nativeElement.querySelector<HTMLButtonElement>('[data-cancelar]')?.focus();
+    }, { injector: this.injector });
+  }
+
+  cancelarIgnorar(): void {
+    if (this.metadadosOcupados()) return;
+    this.confirmacaoIgnorar.set(null);
+    document.body.classList.remove('modal-open');
+    this.restaurarFocoIgnorar();
+    afterNextRender(() => this.restaurarFocoIgnorar(), { injector: this.injector });
+  }
+
+  private restaurarFocoIgnorar(): void {
+    const origem = this.origemIgnorar;
+    if (origem?.disabled) {
+      origem.closest('article')?.querySelector<HTMLButtonElement>('[aria-label="Editar item"]')?.focus();
+    } else {
+      origem?.focus();
+    }
+  }
+
+  confirmarIgnorar(): void {
+    const confirmacao = this.confirmacaoIgnorar();
+    if (!confirmacao || this.metadadosOcupados()) return;
+    this.salvarIgnorar(true, confirmacao.item);
+    if (this.salvandoMetadados()) this.dialogoIgnorar()?.nativeElement.focus();
+  }
+
+  tecladoIgnorar(evento: KeyboardEvent): void {
+    if (evento.key === 'Escape') {
+      evento.preventDefault();
+      this.cancelarIgnorar();
+    }
+    if (evento.key !== 'Tab') return;
+    const botoes = this.dialogoIgnorar()?.nativeElement.querySelectorAll<HTMLButtonElement>('button:not(:disabled)');
+    if (!botoes?.length) {
+      evento.preventDefault();
+      return;
+    }
+    const primeiro = botoes[0];
+    const ultimo = botoes[botoes.length - 1];
+    if (evento.shiftKey && (document.activeElement === primeiro || document.activeElement === this.dialogoIgnorar()?.nativeElement)) {
+      evento.preventDefault();
+      ultimo.focus();
+    } else if (!evento.shiftKey && (document.activeElement === ultimo || document.activeElement === this.dialogoIgnorar()?.nativeElement)) {
+      evento.preventDefault();
+      primeiro.focus();
+    }
+  }
+
+  private salvarIgnorar(ignorar: boolean, item: ItemNota | null): void {
+    this.salvarMetadados(
+      item
+        ? this.api.definirItemIgnorado(this.chave, item.id, ignorar)
+        : this.api.definirNotaIgnorada(this.chave, ignorar),
+      ignorar ? 'Registro ignorado nos relatórios.' : 'Registro incluído novamente nos relatórios.',
+      () => {
+        if (ignorar && (!item || this.itemEditando() === item.id)) this.itemEditando.set(null);
+        const nota = this.nota();
+        if (nota) {
+          for (const atual of nota.itens) {
+            const form = this.formularios.get(atual.id);
+            if (form) this.configurarEdicaoQuantidade(form, this.itemEstaEmEdicao(atual));
+          }
+        }
+        if (this.confirmacaoIgnorar()) this.cancelarIgnorar();
+      },
+    );
   }
 
   carregar(): void {
@@ -124,7 +219,7 @@ export class RevisaoNotas implements OnInit {
   }
 
   adicionarTag(nome: string, item?: ItemNota): void {
-    if (this.metadadosOcupados()) return;
+    if (this.metadadosOcupados() || this.nota()?.ignorada || (item?.ignorado && !this.itemEstaEmEdicao(item))) return;
     const operacao = this.api
       .criarTag(nome)
       .pipe(
@@ -144,7 +239,7 @@ export class RevisaoNotas implements OnInit {
   }
 
   removerTag(item: ItemNota, tagId: string): void {
-    if (this.metadadosOcupados()) return;
+    if (this.metadadosOcupados() || this.nota()?.ignorada || (item.ignorado && !this.itemEstaEmEdicao(item))) return;
     this.salvarMetadados(
       this.api.definirTagsItem(
         this.chave,
@@ -160,7 +255,7 @@ export class RevisaoNotas implements OnInit {
     const proximoMes = campo.checked;
     // Exibe o valor salvo até a confirmação e mantém a tela coerente se houver erro.
     campo.checked = this.nota()?.considerar_proximo_mes ?? false;
-    if (this.metadadosOcupados()) return;
+    if (this.metadadosOcupados() || this.nota()?.ignorada) return;
     this.salvarMetadados(
       this.api.definirCompetencia(this.chave, proximoMes),
       'Mês considerado atualizado.',
@@ -175,7 +270,7 @@ export class RevisaoNotas implements OnInit {
     return data.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
   }
 
-  private salvarMetadados(operacao: Observable<Nota>, mensagem: string): void {
+  private salvarMetadados(operacao: Observable<Nota>, mensagem: string, aoSalvar?: () => void): void {
     this.salvandoMetadados.set(true);
     this.erro.set(null);
     this.sucesso.set(null);
@@ -187,8 +282,11 @@ export class RevisaoNotas implements OnInit {
             ? {
                 ...atual,
                 considerar_proximo_mes: nota.considerar_proximo_mes,
+                ignorada: nota.ignorada,
+                situacao: nota.situacao,
                 itens: atual.itens.map((item) => ({
                   ...item,
+                  ignorado: nota.itens.find((salvo) => salvo.id === item.id)?.ignorado ?? item.ignorado,
                   tags: nota.itens.find((salvo) => salvo.id === item.id)?.tags ?? item.tags,
                 })),
               }
@@ -196,6 +294,7 @@ export class RevisaoNotas implements OnInit {
         );
         this.salvandoMetadados.set(false);
         this.sucesso.set(mensagem);
+        aoSalvar?.();
       },
       error: (erro) => {
         this.erro.set(mensagemErro(erro));
@@ -279,7 +378,10 @@ export class RevisaoNotas implements OnInit {
     );
   }
   itemEstaEmEdicao(item: ItemNota): boolean {
-    return !item.revisado || this.itemEditando() === item.id;
+    return !this.nota()?.ignorada && (!this.itemConcluido(item) || this.itemEditando() === item.id);
+  }
+  itemConcluido(item: ItemNota): boolean {
+    return item.revisado || item.ignorado;
   }
   requerConfirmacaoUnidades(item: ItemNota): boolean {
     return !item.revisado && item.quantidade_confirmada === null &&
@@ -288,7 +390,7 @@ export class RevisaoNotas implements OnInit {
       this.produtoSelecionado(item.id)?.id === item.apresentacao.produto.id;
   }
   editarItem(item: ItemNota): void {
-    if (!item.revisado || this.itemSalvando() !== null) return;
+    if (!this.itemConcluido(item) || this.metadadosOcupados() || this.nota()?.ignorada) return;
     const itemAnterior = this.nota()?.itens.find((atual) => atual.id === this.itemEditando());
     if (itemAnterior && itemAnterior.id !== item.id) {
       const formularioAnterior = this.formularios.get(itemAnterior.id);
@@ -401,6 +503,7 @@ export class RevisaoNotas implements OnInit {
     document.body.classList.remove('modal-open');
   }
   abrirEdicaoEstabelecimento(): void {
+    if (this.nota()?.ignorada || this.metadadosOcupados()) return;
     const estabelecimento = this.nota()?.estabelecimento;
     if (!estabelecimento) return;
     this.apelidoEstabelecimento = estabelecimento.apelido ?? '';
@@ -415,7 +518,7 @@ export class RevisaoNotas implements OnInit {
   }
   salvarEstabelecimento(): void {
     const estabelecimento = this.nota()?.estabelecimento;
-    if (!estabelecimento || this.salvandoEstabelecimento()) return;
+    if (!estabelecimento || this.salvandoEstabelecimento() || this.nota()?.ignorada) return;
     this.salvandoEstabelecimento.set(true);
     this.erroEstabelecimento.set(null);
     this.api
@@ -474,6 +577,12 @@ export class RevisaoNotas implements OnInit {
 
   itensPendentes(n: Nota): number {
     return quantidadeItensPendentes(n);
+  }
+  itensIgnorados(n: Nota): number {
+    return n.itens.filter((item) => item.ignorado).length;
+  }
+  itensRevisados(n: Nota): number {
+    return n.itens.filter((item) => !item.ignorado && item.revisado).length;
   }
   podeImportar(n: Nota): boolean {
     return todosItensRevisados(n);

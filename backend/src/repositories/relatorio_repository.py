@@ -20,6 +20,7 @@ class RelatorioRepository:
             .options(*NotaRepository.opcoes_carregamento())
             .where(
                 NotaEntity.situacao == SituacaoNota.IMPORTADA,
+                NotaEntity.ignorada.is_(False),
                 or_(
                     and_(
                         NotaEntity.considerar_proximo_mes.is_(False),

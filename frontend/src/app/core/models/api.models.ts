@@ -1,4 +1,4 @@
-export type SituacaoNota = 'lida' | 'em_revisao' | 'importada';
+export type SituacaoNota = 'lida' | 'em_revisao' | 'importada' | 'ignorada';
 export type UnidadeMedida = 'KG' | 'G' | 'L' | 'ML';
 
 export interface ConfiguracaoBanco {
@@ -70,6 +70,7 @@ export interface ItemNota {
   quantidade_pacotes: string | null;
   unidades_por_pacote: string | null;
   revisado: boolean;
+  ignorado: boolean;
   tags: Tag[];
 }
 
@@ -97,6 +98,7 @@ export interface Nota {
   situacao: SituacaoNota;
   importada_em: string | null;
   considerar_proximo_mes: boolean;
+  ignorada: boolean;
 }
 
 export interface Leitura {

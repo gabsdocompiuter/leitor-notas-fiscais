@@ -25,3 +25,4 @@ class NotaDTO:
     situacao: SituacaoNota = SituacaoNota.LIDA
     importada_em: datetime | None = None
     considerar_proximo_mes: bool = False
+    ignorada: bool = False

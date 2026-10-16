@@ -5,3 +5,4 @@ class SituacaoNota(str, Enum):
     LIDA = "lida"
     EM_REVISAO = "em_revisao"
     IMPORTADA = "importada"
+    IGNORADA = "ignorada"

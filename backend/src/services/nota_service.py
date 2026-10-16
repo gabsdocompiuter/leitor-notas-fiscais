@@ -48,6 +48,15 @@ class NotaService:
             entidade = LeituraNotaRepository(session).obter_por_chave(chave)
             return EntityMapper.leitura(entidade) if entidade else None
 
+    def definir_ignorada(self, chave: str, ignorada: bool) -> NotaDTO:
+        with self.session_factory.begin() as session:
+            nota = NotaRepository(session).obter_por_chave(chave)
+            if nota is None:
+                raise NaoEncontrado("Nota não encontrada.")
+            nota.ignorada = ignorada
+            session.flush()
+            return EntityMapper.nota(nota)
+
     def salvar(self, nota: NotaDTO, leitura_id: UUID | None = None) -> NotaDTO:
         try:
             with self.session_factory.begin() as session:

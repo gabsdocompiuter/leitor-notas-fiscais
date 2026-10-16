@@ -27,13 +27,14 @@ class RelatorioService:
             notas = self._notas_mes(session, inicio)
             anteriores = self._notas_mes(session, deslocar_mes(inicio, -1))
             itens = self._itens(notas)
+            itens_anteriores = self._itens(anteriores)
             return RelatorioMensalDTO(
                 mes=mes,
-                total_pago=sum((nota.valor_a_pagar for nota in notas), Decimal("0.00")),
-                total_desconto=sum((nota.desconto for nota in notas), Decimal("0.00")),
-                quantidade_notas=len(notas),
+                total_pago=sum((item.valor_pago for item in itens), Decimal("0.00")),
+                total_desconto=sum((item.desconto_rateado for item in itens), Decimal("0.00")),
+                quantidade_notas=len({item.chave_nota for item in itens}),
                 quantidade_itens=len(itens),
-                total_mes_anterior=sum((nota.valor_a_pagar for nota in anteriores), Decimal("0.00")),
+                total_mes_anterior=sum((item.valor_pago for item in itens_anteriores), Decimal("0.00")),
                 categorias=self._agrupar(itens, lambda item: [(item.categoria_id, item.categoria)]),
                 tags=self._agrupar(itens, lambda item: [(tag.id, tag.nome) for tag in item.tags]),
                 quantidades_compradas=self._quantidades(itens),
@@ -122,8 +123,12 @@ class RelatorioService:
     def _itens(notas: list[NotaDTO]) -> list[ItemRelatorioDTO]:
         resultado = []
         for nota in notas:
+            if nota.ignorada:
+                continue
             parcelas = ratear_desconto([item.valor_total for item in nota.itens], nota.desconto)
             for item, desconto in zip(nota.itens, parcelas):
+                if item.ignorado:
+                    continue
                 produto = item.apresentacao.produto
                 quantidade, unidade = RelatorioService._quantidade_item(item)
                 resultado.append(ItemRelatorioDTO(

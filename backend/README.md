@@ -212,6 +212,35 @@ alembic revision --autogenerate -m "descricao da alteracao"
 - `src/services/`: regras e transações, com um service exclusivo por entidade.
 - `tests/`: testes locais sem acesso à rede.
 
+## Notas e itens ignorados
+
+As respostas de notas incluem `ignorada` e as respostas de itens incluem `ignorado`,
+ambos inicialmente `false`. As marcações persistem nas reconsultas da SEFAZ.
+
+- `PATCH /notas/{chave}/ignorada`: recebe `{"ignorada": true}` ou `false`.
+- `PATCH /notas/{chave}/itens/{item_id}/ignorado`: recebe `{"ignorado": true}` ou `false`.
+
+Ambas as operações retornam a nota atualizada e podem ser repetidas. Uma nota ou
+item inexistente, inclusive um item de outra nota, retorna `404`.
+Ignorar não apaga os dados. Enquanto a nota estiver ignorada, a API retorna
+`situacao: "ignorada"`. O filtro `GET /notas?situacao=ignorada` lista somente essas
+notas; os demais filtros por situação não as incluem. A listagem sem filtro inclui
+todas. A situação de importação anterior fica preservada internamente e volta a
+ser exibida ao desmarcar a nota, mantendo as escolhas individuais dos itens.
+
+Itens ignorados dispensam revisão. A conclusão da importação exige ao menos um item
+não ignorado e a classificação completa de todos os itens considerados; caso
+contrário, retorna `409`. Para desmarcar um item incompleto de uma nota importada,
+revise-o primeiro pelo endpoint de revisão; uma tentativa antecipada retorna `409`.
+Notas importadas podem ter todos os seus itens posteriormente ignorados.
+
+Todos os relatórios, incluindo totais, contagens, quantidades e mês anterior,
+excluem notas e itens ignorados. O desconto é rateado sobre os itens originais
+antes da exclusão, sem redistribuição da parcela dos ignorados. Notas sem itens
+considerados não são contadas. Os valores fiscais originais da nota permanecem
+disponíveis na consulta. A migration `0005` atualiza bancos existentes com as
+marcações desativadas.
+
 ## Testes
 
 ```bash

@@ -1,4 +1,5 @@
 import { registerLocaleData } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import localePt from '@angular/common/locales/pt';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
@@ -43,6 +44,7 @@ describe('metadados na revisão', () => {
       situacao,
       importada_em: null,
       considerar_proximo_mes: false,
+      ignorada: situacao === 'ignorada',
       itens: [
         {
           id: 'item',
@@ -60,6 +62,7 @@ describe('metadados na revisão', () => {
           quantidade_pacotes: null,
           unidades_por_pacote: null,
           revisado: false,
+          ignorado: false,
           tags: [{ id: 'tag', nome: 'Festa' }],
           ...item,
         },
@@ -76,6 +79,9 @@ describe('metadados na revisão', () => {
       listarTags: () => of(nota.itens[0].tags),
       definirTagsItem: vi.fn(() => resposta),
       definirCompetencia: vi.fn(() => resposta),
+      definirNotaIgnorada: vi.fn(() => resposta),
+      definirItemIgnorado: vi.fn(() => resposta),
+      concluirImportacao: vi.fn(() => resposta),
       revisarItem: vi.fn(() => resposta),
     };
     TestBed.configureTestingModule({
@@ -268,7 +274,7 @@ describe('metadados na revisão', () => {
 
   it('falha ao mudar o mês mantém o checkbox no valor salvo', () => {
     const { fixture, resposta, api } = criar();
-    const campo = fixture.nativeElement.querySelector('input[type=checkbox]') as HTMLInputElement;
+    const campo = fixture.nativeElement.querySelector('#considerar-proximo-mes') as HTMLInputElement;
     campo.checked = true;
     campo.dispatchEvent(new Event('change'));
     expect(api.definirCompetencia).toHaveBeenCalledWith('1'.repeat(44), true);
@@ -276,5 +282,184 @@ describe('metadados na revisão', () => {
     fixture.detectChanges();
     expect(campo.checked).toBe(false);
     expect(fixture.componentInstance.nota()?.considerar_proximo_mes).toBe(false);
+  });
+
+  function marcarIgnorar(fixture: ReturnType<typeof criar>['fixture'], item = false, marcado = true) {
+    const campos = fixture.nativeElement.querySelectorAll('input[type=checkbox]');
+    const campo = campos[item ? 2 : 0] as HTMLInputElement;
+    campo.checked = marcado;
+    campo.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    return campo;
+  }
+
+  it('confirma nota somente no modal e preserva o formulário em edição', () => {
+    const { fixture, nota, api, resposta } = criar();
+    const form = fixture.componentInstance.formularioItem('item')!;
+    form.patchValue({ produto_id: 'em-edicao', quantidade_confirmada: 3 });
+    const campo = marcarIgnorar(fixture);
+    expect(campo.checked).toBe(false);
+    expect(api.definirNotaIgnorada).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('[role=dialog]').textContent).toContain('NFC-e 1');
+    fixture.componentInstance.confirmarIgnorar();
+    fixture.componentInstance.confirmarIgnorar();
+    expect(api.definirNotaIgnorada).toHaveBeenCalledExactlyOnceWith(nota.chave, true);
+    resposta.next({ ...nota, ignorada: true, situacao: 'ignorada' });
+    fixture.detectChanges();
+    expect(campo.checked).toBe(true);
+    expect(fixture.nativeElement.querySelector('[role=dialog]')).toBeNull();
+    expect(form.get('produto_id')?.value).toBe('em-edicao');
+    expect(form.get('quantidade_confirmada')?.value).toBe(3);
+  });
+
+  it('cancela a marcação do item sem salvar e devolve foco por Escape', async () => {
+    const { fixture, api } = criar();
+    const campo = marcarIgnorar(fixture, true);
+    await fixture.whenStable();
+    const dialogo = fixture.nativeElement.querySelector('[role=dialog]') as HTMLElement;
+    const botoes = dialogo.querySelectorAll('button');
+    expect(document.activeElement).toBe(botoes[1]);
+    botoes[0].focus();
+    botoes[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true }));
+    expect(document.activeElement).toBe(botoes[2]);
+    botoes[2].dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+    expect(document.activeElement).toBe(botoes[0]);
+    dialogo.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role=dialog]')).toBeNull();
+    expect(api.definirItemIgnorado).not.toHaveBeenCalled();
+    expect(campo.checked).toBe(false);
+    expect(document.activeElement).toBe(campo);
+  });
+
+  it('confirma item e bloqueia importação quando todos os itens estão ignorados', () => {
+    const { fixture, nota, api, resposta } = criar();
+    marcarIgnorar(fixture, true);
+    fixture.componentInstance.confirmarIgnorar();
+    expect(api.definirItemIgnorado).toHaveBeenCalledWith(nota.chave, 'item', true);
+    resposta.next({ ...nota, itens: [{ ...nota.itens[0], ignorado: true }] });
+    fixture.detectChanges();
+    const atual = fixture.componentInstance.nota()!;
+    expect(fixture.componentInstance.itensPendentes(atual)).toBe(0);
+    expect(fixture.componentInstance.podeImportar(atual)).toBe(false);
+    expect(fixture.nativeElement.textContent).toContain('pelo menos um item não ignorado');
+    fixture.componentInstance.concluirImportacao();
+    expect(api.concluirImportacao).not.toHaveBeenCalled();
+  });
+
+  it('mantém modal e checkbox salvo após falha na confirmação', () => {
+    const { fixture, resposta } = criar();
+    const campo = marcarIgnorar(fixture, true);
+    fixture.componentInstance.confirmarIgnorar();
+    resposta.error(new HttpErrorResponse({ status: 500, error: { mensagem: 'Falha ao salvar' } }));
+    fixture.detectChanges();
+    expect(campo.checked).toBe(false);
+    expect(fixture.nativeElement.querySelector('[role=dialog]').textContent).toContain('Falha ao salvar');
+    expect(fixture.componentInstance.salvandoMetadados()).toBe(false);
+  });
+
+  it('desmarca sem modal e preserva ignorado se faltar revisão na nota importada', () => {
+    const { fixture, nota, api, resposta } = criar({ ignorado: true }, 'importada');
+    fixture.componentInstance.editarItem(nota.itens[0]);
+    fixture.detectChanges();
+    const campo = marcarIgnorar(fixture, true, false);
+    expect(api.definirItemIgnorado).toHaveBeenCalledWith(nota.chave, 'item', false);
+    expect(fixture.nativeElement.querySelector('[role=dialog]')).toBeNull();
+    resposta.error(new HttpErrorResponse({ status: 409, error: { mensagem: 'Revise e confirme o item antes de incluí-lo novamente nos relatórios.' } }));
+    fixture.detectChanges();
+    expect(campo.checked).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('Revise e confirme o item');
+    expect(fixture.componentInstance.itemEstaEmEdicao(nota.itens[0])).toBe(true);
+  });
+
+  it('só permite ignorar um item confirmado após entrar na edição e fecha ao confirmar', async () => {
+    const { fixture, nota, api, resposta } = criar({
+      revisado: true, apresentacao: { id: 'ap', produto, marca: null }, quantidade_confirmada: '1',
+    });
+    const campo = marcarIgnorar(fixture, true);
+    expect(campo.disabled).toBe(true);
+    expect(campo.checked).toBe(false);
+    expect(fixture.nativeElement.querySelector('[role=dialog]')).toBeNull();
+    expect(api.definirItemIgnorado).not.toHaveBeenCalled();
+    fixture.nativeElement.querySelector('button[aria-label="Editar item"]').click();
+    fixture.detectChanges();
+    expect(campo.disabled).toBe(false);
+    marcarIgnorar(fixture, true);
+    fixture.componentInstance.confirmarIgnorar();
+    resposta.next({ ...nota, itens: [{ ...nota.itens[0], ignorado: true }] });
+    fixture.detectChanges();
+    expect(campo.checked).toBe(true);
+    expect(campo.disabled).toBe(true);
+    expect(fixture.componentInstance.itemEditando()).toBeNull();
+    expect(fixture.componentInstance.formularioItem('item')?.get('quantidade_confirmada')?.disabled).toBe(true);
+    expect(fixture.nativeElement.querySelector('form button[type=submit]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('button[aria-label="Editar item"]')).not.toBeNull();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('button[aria-label="Editar item"]'));
+  });
+
+  it('mostra um item ignorado sem revisão como concluído e permite reabrir e cancelar', () => {
+    const { fixture, nota } = criar({ ignorado: true });
+    const item = nota.itens[0];
+    const form = fixture.componentInstance.formularioItem(item.id)!;
+    form.markAllAsTouched();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.is-invalid')).toBeNull();
+    expect(fixture.componentInstance.itemConcluido(item)).toBe(true);
+    expect(fixture.componentInstance.itemEstaEmEdicao(item)).toBe(false);
+    expect(form.get('quantidade_confirmada')?.disabled).toBe(true);
+    expect(fixture.nativeElement.querySelector('form button[type=submit]')).toBeNull();
+    fixture.componentInstance.editarItem(item);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.itemEstaEmEdicao(item)).toBe(true);
+    expect(form.get('quantidade_confirmada')?.enabled).toBe(true);
+    fixture.componentInstance.cancelarEdicao(item);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.itemEstaEmEdicao(item)).toBe(false);
+    expect(form.get('quantidade_confirmada')?.disabled).toBe(true);
+  });
+
+  it('bloqueia todos os campos de uma nota ignorada e mantém a opção de restaurá-la', async () => {
+    const { fixture, nota, api } = criar({
+      apresentacao: { id: 'ap', produto, marca: null }, quantidade_confirmada: '1',
+    }, 'ignorada');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const campos = fixture.nativeElement.querySelectorAll('input[type=checkbox]') as NodeListOf<HTMLInputElement>;
+    expect(campos[0].disabled).toBe(false);
+    expect(campos[0].checked).toBe(true);
+    expect(campos[1].disabled).toBe(true);
+    expect(campos[2].disabled).toBe(true);
+    for (const campo of fixture.nativeElement.querySelectorAll('input:not([type=checkbox]), form button.form-control')) {
+      expect(campo.disabled, campo.outerHTML).toBe(true);
+    }
+    expect(fixture.nativeElement.querySelector('button[aria-label="Editar estabelecimento"]').disabled).toBe(true);
+    expect(fixture.nativeElement.querySelector('button[aria-label="Editar item"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('form button[type=submit]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[role=progressbar]')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Requer atenção');
+    expect(fixture.nativeElement.textContent).not.toContain('Concluir importação');
+    fixture.componentInstance.editarItem(nota.itens[0]);
+    fixture.componentInstance.adicionarTag('Nova');
+    fixture.componentInstance.removerTag(nota.itens[0], 'tag');
+    fixture.componentInstance.abrirEdicaoEstabelecimento();
+    fixture.componentInstance.concluirImportacao();
+    expect(fixture.componentInstance.itemEditando()).toBeNull();
+    expect(fixture.componentInstance.modalEstabelecimentoAberto()).toBe(false);
+    expect(api.definirTagsItem).not.toHaveBeenCalled();
+    expect(api.concluirImportacao).not.toHaveBeenCalled();
+  });
+
+  it('restaura a situação e desbloqueia itens pendentes ao desmarcar a nota ignorada', () => {
+    const { fixture, nota, api, resposta } = criar({}, 'ignorada');
+    marcarIgnorar(fixture, false, false);
+    expect(api.definirNotaIgnorada).toHaveBeenCalledWith(nota.chave, false);
+    resposta.next({ ...nota, ignorada: false, situacao: 'em_revisao' });
+    fixture.detectChanges();
+    expect(fixture.componentInstance.nota()?.situacao).toBe('em_revisao');
+    expect(fixture.componentInstance.itemEstaEmEdicao(nota.itens[0])).toBe(true);
+    expect(fixture.componentInstance.formularioItem('item')?.get('quantidade_confirmada')?.enabled).toBe(true);
+    expect(fixture.nativeElement.querySelector('form button[type=submit]')).not.toBeNull();
   });
 });

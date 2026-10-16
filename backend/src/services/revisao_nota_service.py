@@ -165,7 +165,7 @@ class RevisaoNotaService:
             nota = notas.obter_por_chave(chave)
             if nota is None:
                 raise NaoEncontrado("Nota não encontrada.")
-            if nota.situacao == SituacaoNota.IMPORTADA:
+            if nota.situacao == SituacaoNota.IMPORTADA or nota.ignorada:
                 return EntityMapper.nota(nota)
 
             alterados = 0
@@ -221,13 +221,31 @@ class RevisaoNotaService:
                 raise NaoEncontrado("Nota não encontrada.")
             if nota.situacao == SituacaoNota.IMPORTADA:
                 return EntityMapper.nota(nota)
-            incompletos = [item for item in nota.itens if not self._item_completo(item)]
-            if not nota.itens or incompletos:
+            considerados = [item for item in nota.itens if not item.ignorado]
+            if not considerados:
+                raise Conflito("A nota precisa de pelo menos um item não ignorado para ser importada.")
+            incompletos = [item for item in considerados if not self._item_completo(item)]
+            if incompletos:
                 raise Conflito(
                     f"A nota possui {len(incompletos)} item(ns) que ainda precisam de revisão."
                 )
             nota.situacao = SituacaoNota.IMPORTADA
             nota.importada_em = datetime.now(timezone.utc)
+            session.flush()
+            return EntityMapper.nota(nota)
+
+    def definir_item_ignorado(self, chave: str, item_id: UUID, ignorado: bool) -> NotaDTO:
+        with self.session_factory.begin() as session:
+            nota = NotaRepository(session).obter_por_chave(chave)
+            if nota is None:
+                raise NaoEncontrado("Nota não encontrada.")
+            item = ItemRepository(session).obter_na_nota(item_id, nota.id)
+            if item is None:
+                raise NaoEncontrado("Item não encontrado nessa nota.")
+            if (item.ignorado and not ignorado and nota.situacao == SituacaoNota.IMPORTADA
+                    and not self._item_completo(item)):
+                raise Conflito("Revise e confirme o item antes de incluí-lo novamente nos relatórios.")
+            item.ignorado = ignorado
             session.flush()
             return EntityMapper.nota(nota)
 

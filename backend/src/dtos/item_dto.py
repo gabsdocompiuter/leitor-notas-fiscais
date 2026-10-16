@@ -25,3 +25,4 @@ class ItemDTO:
     tags: list[TagDTO] = field(default_factory=list)
     quantidade_pacotes: Decimal | None = None
     unidades_por_pacote: Decimal | None = None
+    ignorado: bool = False

@@ -35,6 +35,7 @@
           ['lida', 'Aguardando revisão'],
           ['em_revisao', 'Em revisão'],
           ['importada', 'Importadas'],
+          ['ignorada', 'Ignoradas'],
         ];
         track opcao[0]
       ) {
@@ -111,6 +112,7 @@
                   [class.text-bg-warning]="nota.situacao === 'lida'"
                   [class.text-bg-info]="nota.situacao === 'em_revisao'"
                   [class.text-bg-success]="nota.situacao === 'importada'"
+                  [class.text-bg-secondary]="nota.situacao === 'ignorada'"
                 >
                   {{ rotuloSituacao(nota.situacao) }}
                 </span>
@@ -127,7 +129,7 @@
                   <span class="d-block text-body-secondary small">Itens</span>
                   <strong>{{ nota.quantidade_itens }}</strong>
                 </div>
-                @if (nota.situacao !== 'importada') {
+                @if (nota.situacao !== 'importada' && nota.situacao !== 'ignorada') {
                   <div class="col">
                     <span class="d-block text-body-secondary small">Pendentes</span>
                     <strong>{{ quantidadeItensPendentes(nota) }}</strong>
@@ -143,11 +145,11 @@
                 </span>
                 <a
                   class="btn btn-sm rounded-pill flex-shrink-0"
-                  [class.btn-primary]="nota.situacao !== 'importada'"
-                  [class.btn-outline-secondary]="nota.situacao === 'importada'"
+                  [class.btn-primary]="nota.situacao !== 'importada' && nota.situacao !== 'ignorada'"
+                  [class.btn-outline-secondary]="nota.situacao === 'importada' || nota.situacao === 'ignorada'"
                   [routerLink]="['/notas', nota.chave, 'revisao']"
                 >
-                  {{ nota.situacao === 'importada' ? 'Visualizar' : 'Continuar' }}
+                  {{ nota.situacao === 'importada' || nota.situacao === 'ignorada' ? 'Visualizar' : 'Continuar' }}
                   <i class="bi bi-arrow-right ms-1"></i>
                 </a>
               </div>

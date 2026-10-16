@@ -16,6 +16,8 @@ class ItemRepository(BaseRepository[ItemEntity]):
             .options(joinedload(ItemEntity.nota))
             .where(
                 ItemEntity.revisado.is_(False),
+                ItemEntity.ignorado.is_(False),
+                NotaEntity.ignorada.is_(False),
                 NotaEntity.situacao.in_((SituacaoNota.LIDA, SituacaoNota.EM_REVISAO)),
             )
             .order_by(ItemEntity.nota_id, ItemEntity.numero)
@@ -32,7 +34,8 @@ class ItemRepository(BaseRepository[ItemEntity]):
         return list(
             self.session.scalars(
                 select(ItemEntity)
-                .where(ItemEntity.nota_id == nota_id, ItemEntity.revisado.is_(False))
+                .where(ItemEntity.nota_id == nota_id, ItemEntity.revisado.is_(False),
+                       ItemEntity.ignorado.is_(False))
                 .order_by(ItemEntity.numero)
             )
         )

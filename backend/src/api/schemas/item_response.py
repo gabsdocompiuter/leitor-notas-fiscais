@@ -25,6 +25,7 @@ class ItemResponse(BaseModel):
     unidades_por_pacote: str | None
     tags: list[TagResponse]
     revisado: bool
+    ignorado: bool
 
     @classmethod
     def from_entity(cls, item: ItemDTO) -> "ItemResponse":
@@ -52,6 +53,7 @@ class ItemResponse(BaseModel):
                 else None
             ),
             revisado=item.revisado,
+            ignorado=item.ignorado,
             quantidade_pacotes=(
                 str(item.quantidade_pacotes) if item.quantidade_pacotes is not None else None
             ),

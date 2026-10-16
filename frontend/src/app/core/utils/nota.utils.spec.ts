@@ -25,6 +25,7 @@ function criarNota(revisoes: boolean[]): Nota {
     situacao: 'em_revisao',
     importada_em: null,
     considerar_proximo_mes: false,
+    ignorada: false,
     itens: revisoes.map((revisado, numero) => ({
       id: String(numero),
       numero,
@@ -42,6 +43,7 @@ function criarNota(revisoes: boolean[]): Nota {
       quantidade_pacotes: null,
       unidades_por_pacote: null,
       revisado,
+      ignorado: false,
     })),
   };
 }
@@ -59,5 +61,22 @@ describe('estado de revisão da nota', () => {
 
   it('apresenta a situação lida como aguardando revisão', () => {
     expect(rotuloSituacao('lida')).toBe('Aguardando revisão');
+    expect(rotuloSituacao('ignorada')).toBe('Ignorada');
+  });
+
+  it('dispensa ignorados, mas exige pelo menos um item considerado para importar', () => {
+    const nota = criarNota([true, false]);
+    nota.itens[1].ignorado = true;
+    expect(quantidadeItensPendentes(nota)).toBe(0);
+    expect(todosItensRevisados(nota)).toBe(true);
+    nota.itens[0].ignorado = true;
+    expect(todosItensRevisados(nota)).toBe(false);
+  });
+
+  it('não permite importar uma nota ignorada mesmo com itens revisados', () => {
+    const nota = criarNota([true]);
+    nota.ignorada = true;
+    nota.situacao = 'ignorada';
+    expect(todosItensRevisados(nota)).toBe(false);
   });
 });

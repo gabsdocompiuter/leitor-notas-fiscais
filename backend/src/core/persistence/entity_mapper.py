@@ -101,6 +101,7 @@ class EntityMapper:
             quantidade_pacotes=entidade.quantidade_pacotes,
             unidades_por_pacote=entidade.unidades_por_pacote,
             revisado=entidade.revisado,
+            ignorado=entidade.ignorado,
             tags=[cls.tag(tag) for tag in entidade.tags],
         )
 
@@ -125,6 +126,7 @@ class EntityMapper:
             situacao=entidade.situacao,
             importada_em=importada_em,
             considerar_proximo_mes=entidade.considerar_proximo_mes,
+            ignorada=entidade.ignorada,
         )
 
     @classmethod

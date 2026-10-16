@@ -24,6 +24,7 @@ class NotaResponse(BaseModel):
     url_origem: str
     situacao: SituacaoNota
     considerar_proximo_mes: bool
+    ignorada: bool
     importada_em: datetime | None
 
     @classmethod
@@ -41,7 +42,8 @@ class NotaResponse(BaseModel):
             valor_a_pagar=str(nota.valor_a_pagar),
             itens=[ItemResponse.from_entity(item) for item in nota.itens],
             url_origem=nota.url_origem,
-            situacao=nota.situacao,
+            situacao=SituacaoNota.IGNORADA if nota.ignorada else nota.situacao,
             importada_em=nota.importada_em,
             considerar_proximo_mes=nota.considerar_proximo_mes,
+            ignorada=nota.ignorada,
         )

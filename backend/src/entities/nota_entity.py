@@ -38,6 +38,7 @@ class NotaEntity(BaseEntity):
         default=SituacaoNota.LIDA,
     )
     considerar_proximo_mes: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    ignorada: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     importada_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     estabelecimento: Mapped[EstabelecimentoEntity] = relationship(back_populates="notas")
     itens: Mapped[list[ItemEntity]] = relationship(
