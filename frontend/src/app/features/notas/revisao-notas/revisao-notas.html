@@ -236,16 +236,6 @@
                 </div>
               </div>
 
-              @if (novoItem()?.id !== item.id) {
-              <label class="d-flex align-items-start gap-2">
-                <input class="form-check-input flex-shrink-0" type="checkbox"
-                  [checked]="item.ignorado" [disabled]="metadadosOcupados() || !itemEstaEmEdicao(item)"
-                  (change)="solicitarIgnorar($event, item)" />
-                <span>Ignorar item</span>
-              </label>
-
-              }
-
               @if (item.alertas.length && !item.revisado && !item.ignorado && !atual.ignorada) {
                 <div class="d-flex flex-wrap gap-2">
                   @for (alerta of item.alertas; track alerta) {
@@ -303,9 +293,19 @@
                     </div>
                   }
 
+                  @if (deveSolicitarSabor(item.id)) {
+                  @if (formulario.get('produto_id')?.value; as produtoId) {
+                    <div class="col-12 col-lg-6">
+                      <lnf-seletor-sabor [produtoId]="produtoId" [id]="'sabor-' + item.id"
+                        [contexto]="novoItem()?.id === item.id ? '' : item.descricao_original"
+                        [valor]="formulario.get('sabor_id')?.value" [disabled]="!itemEstaEmEdicao(item)"
+                        (alterado)="formulario.patchValue({sabor_id: $event})" />
+                    </div>
+                  }
+                  }
                   @if (deveSelecionarVariacao(item.id)) {
                     <div class="col-12 col-lg-6">
-                      <label class="form-label">Variação</label>
+                      <label class="form-label">Tamanho da embalagem</label>
                       <button
                         type="button"
                         class="form-control d-flex align-items-center justify-content-between text-start"
@@ -319,7 +319,7 @@
                         <span>{{ nomeVariacaoSelecionada(item.id) }}</span>
                         <i class="bi bi-search"></i>
                       </button>
-                      <div class="invalid-feedback">Selecione uma variação.</div>
+                      <div class="invalid-feedback">Selecione um tamanho de embalagem.</div>
                     </div>
                   }
 
@@ -333,13 +333,13 @@
                       <label class="form-label" [for]="'quantidade-' + item.id">Quantidade</label>
                       <div class="d-flex flex-column gap-1">
                         <div class="input-group">
-                          <input
+                          <lnf-numero><input
                             class="form-control"
                             [id]="'quantidade-' + item.id"
-                            lnfDecimal
+                            lnfDecimal [inteiro]="!!(permitePacotes(item.id) || deveSelecionarVariacao(item.id))" [minimo]="(permitePacotes(item.id) || deveSelecionarVariacao(item.id)) ? 1 : 0.001" nomeCampo="quantidade"
                             formControlName="quantidade_confirmada"
                             [attr.disabled]="itemEstaEmEdicao(item) ? null : true"
-                          />
+                          /></lnf-numero>
                           @if (permitePacotes(item.id)) {
                             <select
                               class="form-select flex-grow-0 w-auto"
@@ -366,14 +366,14 @@
                         }
                         @if (usaPacotes(item.id)) {
                           <div class="input-group">
-                            <input
+                            <lnf-numero><input
                               class="form-control"
                               [id]="'unidades-pacote-' + item.id"
                               aria-label="Unidades por pacote"
-                              lnfDecimal
+                              lnfDecimal [minimo]="1" [inteiro]="true" nomeCampo="unidades por pacote"
                               formControlName="unidades_por_pacote"
                               [attr.disabled]="itemEstaEmEdicao(item) ? null : true"
-                            />
+                            /></lnf-numero>
                             <span class="input-group-text">unidades por pacote</span>
                           </div>
                           @if (
@@ -400,10 +400,10 @@
                       <label class="form-label" [for]="'valor-total-' + item.id">Valor do item</label>
                       <div class="input-group">
                         <span class="input-group-text">R$</span>
-                        <input class="form-control" [id]="'valor-total-' + item.id"
-                          lnfDecimal formControlName="valor_total"
+                        <lnf-numero><input class="form-control" [id]="'valor-total-' + item.id"
+                          lnfDecimal [passo]="0.01" [minimo]="0" [maximo]="9999999999999.99" nomeCampo="valor do item" formControlName="valor_total"
                           [attr.disabled]="itemEstaEmEdicao(item) ? null : true"
-                          [class.is-invalid]="formulario.get('valor_total')?.invalid && formulario.get('valor_total')?.touched" />
+                          [class.is-invalid]="formulario.get('valor_total')?.invalid && formulario.get('valor_total')?.touched" /></lnf-numero>
                         <select class="form-select flex-grow-0 w-auto" formControlName="tipo_valor"
                           [attr.disabled]="itemEstaEmEdicao(item) ? null : true"
                           [attr.aria-label]="'Tipo do valor do item ' + item.numero">
@@ -428,6 +428,13 @@
                   (adicionar)="adicionarTag($event, item)"
                   (remover)="removerTag(item, $event)"
                 />
+
+              <label class="d-flex align-items-start gap-2">
+                <input class="form-check-input flex-shrink-0" type="checkbox"
+                  [checked]="item.ignorado" [disabled]="metadadosOcupados() || !itemEstaEmEdicao(item)"
+                  (change)="solicitarIgnorar($event, item)" />
+                <span>Ignorar item</span>
+              </label>
 
                 }
 

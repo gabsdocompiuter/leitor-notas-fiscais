@@ -13,6 +13,7 @@ class ProdutoDTO:
     nome: str
     categoria: CategoriaDTO
     nao_solicitar_marca: bool = False
+    nao_solicitar_sabor: bool = False
     tratar_apenas_como_unidades: bool = False
     contem_variacoes: bool = False
     unidade_medida: UnidadeMedida | None = None

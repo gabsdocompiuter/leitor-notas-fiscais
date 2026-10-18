@@ -35,9 +35,16 @@ export interface Produto {
   nome: string;
   categoria: Categoria;
   nao_solicitar_marca: boolean;
+  nao_solicitar_sabor?: boolean;
   tratar_apenas_como_unidades: boolean;
   contem_variacoes: boolean;
   unidade_medida: UnidadeMedida | null;
+}
+
+export interface SaborProduto {
+  id: string;
+  produto_id: string;
+  nome: string;
 }
 
 export interface VariacaoProduto {
@@ -66,6 +73,7 @@ export interface ItemNota {
   alertas: string[];
   apresentacao: ApresentacaoProduto | null;
   variacao: VariacaoProduto | null;
+  sabor?: SaborProduto | null;
   quantidade_confirmada: string | null;
   quantidade_pacotes: string | null;
   unidades_por_pacote: string | null;
@@ -121,6 +129,7 @@ export interface RevisaoItem {
   valor_unitario?: string;
   produto_id: string;
   marca_id?: string | null;
+  sabor_id?: string | null;
   variacao_id?: string | null;
   quantidade_confirmada: number;
   quantidade_pacotes?: number | null;
@@ -138,6 +147,7 @@ export interface ProdutoRequest {
   nome: string;
   categoria_id: string;
   nao_solicitar_marca: boolean;
+  nao_solicitar_sabor?: boolean;
   tratar_apenas_como_unidades: boolean;
   contem_variacoes: boolean;
   unidade_medida: UnidadeMedida | null;
@@ -196,7 +206,9 @@ export interface ItemRelatorio {
   estabelecimento_id?: string | null;
   marca_id?: string | null;
   marca?: string | null;
+  sabor_id?: string | null;
   variacao_id?: string | null;
+  sabor?: string | null;
   variacao?: string | null;
   quantidade_unidades?: string | null;
 }

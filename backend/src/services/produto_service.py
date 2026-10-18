@@ -63,6 +63,7 @@ class ProdutoService(BaseService):
         tratar_apenas_como_unidades: bool,
         contem_variacoes: bool,
         unidade_medida: UnidadeMedida | None,
+        nao_solicitar_sabor: bool = False,
     ) -> ProdutoDTO:
         self._validar_tipo(
             tratar_apenas_como_unidades, contem_variacoes, unidade_medida
@@ -80,6 +81,7 @@ class ProdutoService(BaseService):
                         nome=nome,
                         categoria=categoria,
                         nao_solicitar_marca=nao_solicitar_marca,
+                        nao_solicitar_sabor=nao_solicitar_sabor,
                         tratar_apenas_como_unidades=tratar_apenas_como_unidades,
                         contem_variacoes=contem_variacoes,
                         unidade_medida=unidade_medida,
@@ -96,6 +98,7 @@ class ProdutoService(BaseService):
         tratar_apenas_como_unidades: bool,
         contem_variacoes: bool,
         unidade_medida: UnidadeMedida | None,
+        nao_solicitar_sabor: bool = False,
     ) -> ProdutoDTO:
         self._validar_tipo(
             tratar_apenas_como_unidades, contem_variacoes, unidade_medida
@@ -119,7 +122,7 @@ class ProdutoService(BaseService):
                 if not restricoes.pode_alterar_estrutura:
                     raise Conflito(restricoes.motivo_alteracao_estrutura)
             if entidade.contem_variacoes and not contem_variacoes and repositorio.possui_variacoes(produto_id):
-                raise Conflito("Não é possível desativar variações enquanto houver variações cadastradas.")
+                raise Conflito("Não é possível desativar tamanhos de embalagem enquanto houver tamanhos de embalagem cadastradas.")
             categoria = CategoriaRepository(session).obter(categoria_id)
             if categoria is None:
                 raise NaoEncontrado("Categoria não encontrada.")
@@ -131,6 +134,7 @@ class ProdutoService(BaseService):
             entidade.nome = nome
             entidade.categoria = categoria
             entidade.nao_solicitar_marca = nao_solicitar_marca
+            entidade.nao_solicitar_sabor = nao_solicitar_sabor
             entidade.tratar_apenas_como_unidades = tratar_apenas_como_unidades
             entidade.contem_variacoes = contem_variacoes
             entidade.unidade_medida = unidade_medida
@@ -158,7 +162,7 @@ class ProdutoService(BaseService):
         if tratar_apenas_como_unidades:
             if contem_variacoes or unidade_medida is not None:
                 raise DadosInvalidos(
-                    "Produtos tratados como unidades não aceitam variações ou unidade de medida."
+                    "Produtos tratados como unidades não aceitam tamanhos de embalagem ou unidade de medida."
                 )
         elif unidade_medida is None:
             raise DadosInvalidos("A unidade de medida é obrigatória para este produto.")

@@ -31,6 +31,7 @@ class ProdutoEntity(BaseEntity):
     nome: Mapped[str] = mapped_column(String(150, collation="NOCASE"))
     categoria_id: Mapped[UUID] = mapped_column(ForeignKey("categorias.id"))
     nao_solicitar_marca: Mapped[bool] = mapped_column(Boolean, default=False)
+    nao_solicitar_sabor: Mapped[bool] = mapped_column(Boolean, default=False)
     tratar_apenas_como_unidades: Mapped[bool] = mapped_column(Boolean, default=False)
     contem_variacoes: Mapped[bool] = mapped_column(Boolean, default=False)
     unidade_medida: Mapped[UnidadeMedida | None] = mapped_column(

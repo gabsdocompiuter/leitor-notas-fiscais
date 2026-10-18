@@ -27,7 +27,7 @@ class VariacaoProdutoService(BaseService):
         with self.session_factory() as session:
             entidade = VariacaoProdutoRepository(session).obter(variacao_id)
             if entidade is None:
-                raise NaoEncontrado("Variação não encontrada.")
+                raise NaoEncontrado("Tamanho da embalagem não encontrado.")
             return EntityMapper.variacao(entidade)
 
     def criar(
@@ -42,7 +42,7 @@ class VariacaoProdutoService(BaseService):
             if produto is None:
                 raise NaoEncontrado("Produto não encontrado.")
             if not produto.contem_variacoes:
-                raise Conflito("O produto não está configurado para possuir variações.")
+                raise Conflito("O produto não está configurado para possuir tamanhos de embalagem.")
             repositorio = VariacaoProdutoRepository(session)
             entidade = repositorio.obter_por_identidade(
                 produto_id, quantidade, unidade_medida
@@ -68,14 +68,14 @@ class VariacaoProdutoService(BaseService):
             repositorio = VariacaoProdutoRepository(session)
             entidade = repositorio.obter(variacao_id)
             if entidade is None:
-                raise NaoEncontrado("Variação não encontrada.")
+                raise NaoEncontrado("Tamanho da embalagem não encontrado.")
             if repositorio.esta_em_nota_importada(variacao_id):
-                raise Conflito("A variação pertence a uma nota importada e não pode ser alterada.")
+                raise Conflito("O tamanho da embalagem pertence a uma nota importada e não pode ser alterado.")
             duplicada = repositorio.obter_por_identidade(
                 entidade.produto_id, quantidade, unidade_medida
             )
             if duplicada and duplicada.id != variacao_id:
-                raise Conflito("Já existe essa variação para o produto.")
+                raise Conflito("Já existe esse tamanho de embalagem para o produto.")
             entidade.quantidade = quantidade
             entidade.unidade_medida = unidade_medida
             session.flush()

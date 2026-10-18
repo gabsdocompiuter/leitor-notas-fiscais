@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from ...dtos.item_dto import ItemDTO
 from .apresentacao_produto_response import ApresentacaoProdutoResponse
 from .variacao_produto_response import VariacaoProdutoResponse
+from .sabor_produto_response import SaborProdutoResponse
 from .tag_response import TagResponse
 
 
@@ -24,6 +25,7 @@ class ItemResponse(BaseModel):
     quantidade_pacotes: str | None
     unidades_por_pacote: str | None
     tags: list[TagResponse]
+    sabor: SaborProdutoResponse | None
     revisado: bool
     ignorado: bool
 
@@ -52,6 +54,7 @@ class ItemResponse(BaseModel):
                 if item.quantidade_confirmada is not None
                 else None
             ),
+            sabor=SaborProdutoResponse.model_validate(item.sabor) if item.sabor else None,
             revisado=item.revisado,
             ignorado=item.ignorado,
             quantidade_pacotes=(

@@ -56,7 +56,7 @@ class AgrupamentosRelatorioTests(unittest.TestCase):
         notas[1].estabelecimento = Dados(id=UUID(int=101), nome_exibicao="Mercado")
         with patch.object(self.servico, "_notas_mes", return_value=notas):
             grupos = self.grupos("variacao")
-            self.assertEqual([g.nome for g in grupos], ["500 G", "1 KG", "Sem variação"])
+            self.assertEqual([g.nome for g in grupos], ["500 G", "1 KG", "Sem tamanho da embalagem"])
             self.assertEqual(grupos[0].quantidade_registros, 2)
             estabelecimentos = self.grupos("estabelecimento")
             self.assertEqual(len(estabelecimentos), 2)

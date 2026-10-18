@@ -296,6 +296,8 @@ class TagsRelatoriosTests(unittest.TestCase):
             Path(__file__).resolve().parents[1] / "src/core/persistence/migrations"
         ))
         config.set_main_option("sqlalchemy.url", f"sqlite:///{self.caminho.as_posix()}")
+        # Esta fixture não contém o catálogo consolidado; simula o schema anterior a 0009.
+        command.stamp(config, "0008")
         command.downgrade(config, "0002")
         command.upgrade(config, "head")
         nota = self.cliente.get(f"/notas/{CHAVE}").json()

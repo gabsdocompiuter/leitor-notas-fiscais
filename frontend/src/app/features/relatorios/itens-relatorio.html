@@ -14,6 +14,7 @@
         class="list-group-item d-flex flex-column flex-md-row justify-content-between gap-3 py-3"
       >
         <div class="d-flex flex-column gap-1">
+          @if (item.sabor) { <span class="small">Sabor: {{ item.sabor }}</span> }
           @if (!compacto()) {
             <strong class="text-break">{{ item.produto }}</strong>
           }
@@ -36,7 +37,7 @@
                 <span>{{ item.estabelecimento }}</span>
               }
               @if (agrupador() !== 'variacao') {
-                <span>Variação: {{ item.variacao || 'Sem variação' }}</span>
+                <span>Tamanho da embalagem: {{ item.variacao || 'Sem tamanho da embalagem' }}</span>
               }
             </div>
           }

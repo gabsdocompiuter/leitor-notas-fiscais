@@ -37,7 +37,7 @@ export class GruposProduto {
   readonly opcoes: { valor: AgrupadorRelatorio; nome: string }[] = [
     { valor: 'marca', nome: 'Marca' },
     { valor: 'estabelecimento', nome: 'Estabelecimento' },
-    { valor: 'variacao', nome: 'Variação' },
+    { valor: 'variacao', nome: 'Tamanho da embalagem' },
   ];
   readonly agrupador = signal<AgrupadorRelatorio>('marca');
   readonly grupos = signal<AgrupamentoRelatorio[]>([]);

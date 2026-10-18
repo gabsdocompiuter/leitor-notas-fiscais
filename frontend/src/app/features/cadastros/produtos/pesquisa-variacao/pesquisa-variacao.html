@@ -31,16 +31,17 @@
         <div class="modal-body">
           <div class="input-group mb-3 lnf-filtro-variacao flex-nowrap">
             <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
-            <input
+            <lnf-numero><input
+              lnfDecimal nomeCampo="quantidade"
               #campoBusca
               type="text"
               inputmode="decimal"
               class="form-control"
               [value]="quantidade()"
-              (input)="atualizarQuantidade($event)"
+              (valorAlterado)="definirQuantidade($event)"
               placeholder="Quantidade"
               aria-label="Pesquisar por quantidade"
-            />
+            /></lnf-numero>
             <select
               class="form-select"
               aria-label="Pesquisar por unidade"
@@ -55,8 +56,8 @@
             <button
               type="button"
               class="btn btn-primary"
-              aria-label="Criar variação"
-              title="Criar variação"
+              aria-label="Criar tamanho da embalagem"
+              title="Criar tamanho da embalagem"
               [disabled]="!podeCriar() || salvando()"
               (click)="abrirCadastro()"
             >
@@ -118,7 +119,7 @@
             <div class="alert alert-danger" role="alert">{{ erro() }}</div>
           }
           <p class="mb-0 lnf-modal-texto">
-            Deseja criar a variação “{{ formatarDecimal(quantidade()) }} {{ unidade() }}” para “{{
+            Deseja criar o tamanho da embalagem “{{ formatarDecimal(quantidade()) }} {{ unidade() }}” para “{{
               produto().nome
             }}”?
           </p>

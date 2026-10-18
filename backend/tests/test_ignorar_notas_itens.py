@@ -157,6 +157,8 @@ class IgnorarNotasItensTests(unittest.TestCase):
             self.assertEqual(conexao.execute("SELECT ignorado FROM itens ORDER BY numero").fetchone()[0], 1)
         from alembic import command
         config = BancoSQLite.configuracao_migrations(self.caminho)
+        # Esta fixture não contém o catálogo consolidado; simula o schema anterior a 0009.
+        command.stamp(config, "0008")
         command.downgrade(config, "0004")
         command.upgrade(config, "head")
         nota = self.cliente.get(f"/notas/{CHAVE}").json()

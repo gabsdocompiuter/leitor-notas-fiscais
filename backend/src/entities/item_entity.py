@@ -12,6 +12,7 @@ from ..core.persistence.types.decimal_text import DecimalText
 from ..core.persistence.types.string_list import StringList
 
 if TYPE_CHECKING:
+    from .sabor_produto_entity import SaborProdutoEntity
     from .apresentacao_produto_entity import ApresentacaoProdutoEntity
     from .nota_entity import NotaEntity
     from .tag_entity import TagEntity
@@ -35,6 +36,8 @@ class ItemEntity(BaseEntity):
     apresentacao_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("apresentacoes_produto.id")
     )
+    sabor_id: Mapped[UUID | None] = mapped_column(ForeignKey("sabores_produto.id"))
+    sabor: Mapped["SaborProdutoEntity | None"] = relationship()
     variacao_id: Mapped[UUID | None] = mapped_column(ForeignKey("variacoes_produto.id"))
     quantidade_confirmada: Mapped[Decimal | None] = mapped_column(DecimalText)
     quantidade_pacotes: Mapped[Decimal | None] = mapped_column(DecimalText)

@@ -7,6 +7,7 @@ from ...dtos.item_dto import ItemDTO
 from ...dtos.leitura_nota_dto import LeituraNotaDTO
 from ...dtos.marca_dto import MarcaDTO
 from ...dtos.nota_dto import NotaDTO
+from ...dtos.sabor_produto_dto import SaborProdutoDTO
 from ...dtos.tag_dto import TagDTO
 from ...dtos.produto_dto import ProdutoDTO
 from ...dtos.variacao_produto_dto import VariacaoProdutoDTO
@@ -55,6 +56,7 @@ class EntityMapper:
             nome=entidade.nome,
             categoria=cls.categoria(entidade.categoria),
             nao_solicitar_marca=entidade.nao_solicitar_marca,
+            nao_solicitar_sabor=entidade.nao_solicitar_sabor,
             tratar_apenas_como_unidades=entidade.tratar_apenas_como_unidades,
             contem_variacoes=entidade.contem_variacoes,
             unidade_medida=entidade.unidade_medida,
@@ -96,6 +98,7 @@ class EntityMapper:
                 if entidade.apresentacao
                 else None
             ),
+            sabor=SaborProdutoDTO(entidade.sabor.id, entidade.sabor.produto_id, entidade.sabor.nome) if entidade.sabor else None,
             variacao=cls.variacao(entidade.variacao) if entidade.variacao else None,
             quantidade_confirmada=entidade.quantidade_confirmada,
             quantidade_pacotes=entidade.quantidade_pacotes,

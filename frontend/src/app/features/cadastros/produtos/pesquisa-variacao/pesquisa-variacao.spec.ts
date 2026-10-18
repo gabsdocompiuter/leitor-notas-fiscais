@@ -101,10 +101,10 @@ describe('PesquisaVariacao', () => {
   });
   it('confirma, cancela preservando filtros e cria os valores informados', () => {
     const fixture = montar('LEITE 1,5 L');
-    fixture.nativeElement.querySelector('button[aria-label="Criar variação"]').click();
+    fixture.nativeElement.querySelector('button[aria-label="Criar tamanho da embalagem"]').click();
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain(
-      'Deseja criar a variação “1,5 L” para “Café”?',
+      'Deseja criar o tamanho da embalagem “1,5 L” para “Café”?',
     );
     expect(criarVariacao).not.toHaveBeenCalled();
     fixture.componentInstance.voltarParaPesquisa();

@@ -12,6 +12,7 @@ import {
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin, Observable, switchMap } from 'rxjs';
 
+import { SeletorSabor } from '../../../shared/components/seletor-sabor/seletor-sabor';
 import { ApiService } from '../../../core/api/api.service';
 import {
   Categoria,
@@ -34,7 +35,7 @@ import {
   validarDecimal,
 } from '../../../core/utils/decimal.utils';
 import { valoresItem } from '../../../core/utils/valor-item.utils';
-import { DecimalInput } from '../../../shared/directives/decimal-input';
+import { DecimalInput, DecimalStepper } from '../../../shared/directives/decimal-input';
 import { sugerirQuantidade } from '../../../core/utils/quantidade.utils';
 import { EstadoVazio } from '../../../shared/components/estado-vazio/estado-vazio';
 import { PesquisaMarca } from '../../cadastros/marcas/pesquisa-marca/pesquisa-marca';
@@ -49,7 +50,7 @@ type TipoModal = 'produto' | 'marca' | 'variacao';
   selector: 'lnf-revisao-notas',
   imports: [
     CurrencyPipe,
-    DecimalInput,
+    DecimalInput, DecimalStepper,
     DatePipe,
     FormsModule,
     ReactiveFormsModule,
@@ -58,6 +59,7 @@ type TipoModal = 'produto' | 'marca' | 'variacao';
     PesquisaMarca,
     PesquisaProduto,
     PesquisaVariacao,
+    SeletorSabor,
     SeletorTags,
   ],
   templateUrl: './revisao-notas.html',
@@ -364,6 +366,10 @@ export class RevisaoNotas implements OnInit, OnDestroy {
     const produto = this.produtoSelecionado(id);
     return !!produto && !produto.nao_solicitar_marca;
   }
+  deveSolicitarSabor(id: string): boolean {
+    const produto = this.produtoSelecionado(id);
+    return !!produto && !produto.nao_solicitar_sabor;
+  }
   deveSelecionarVariacao(id: string): boolean {
     return !!this.produtoSelecionado(id)?.contem_variacoes;
   }
@@ -421,7 +427,7 @@ export class RevisaoNotas implements OnInit, OnDestroy {
         .filter((v) => v.id === variacaoId)
         .map(formatarVariacao)[0] ??
       nomeSalvo ??
-      'Selecionar variação'
+      'Selecionar tamanho da embalagem'
     );
   }
   itemEstaEmEdicao(item: ItemNota): boolean {
@@ -516,6 +522,7 @@ export class RevisaoNotas implements OnInit, OnDestroy {
       quantidade_confirmada: total,
       quantidade_pacotes: pacotes ? Number(valor.quantidade_confirmada) : null,
       unidades_por_pacote: pacotes ? Number(valor.unidades_por_pacote) : null,
+      sabor_id: valor.sabor_id || null,
       variacao_id: valor.variacao_id || null,
     };
     if (this.nota()?.origem === 'manual') {
@@ -672,6 +679,7 @@ export class RevisaoNotas implements OnInit, OnDestroy {
       ? this.totalUnidades(item.id) : form.get('quantidade_confirmada')?.value;
     form.patchValue({
       produto_id: produto.id,
+      sabor_id: mudou ? null : form.get('sabor_id')?.value,
       variacao_id: mudou ? null : form.get('variacao_id')?.value,
     });
     if (mudou) form.patchValue({ tipo_quantidade: 'unidades', unidades_por_pacote: null });
@@ -733,6 +741,7 @@ export class RevisaoNotas implements OnInit, OnDestroy {
     const form = this.fb.group({
       produto_id: ['', Validators.required],
       marca_id: [null as string | null],
+      sabor_id: [null as string | null],
       variacao_id: [null as string | null],
       quantidade_confirmada: [null as number | null],
       tipo_quantidade: ['unidades'],
@@ -755,6 +764,7 @@ export class RevisaoNotas implements OnInit, OnDestroy {
       valor_total: this.numero(item.valor_total),
       tipo_valor: 'total',
       marca_id: item.apresentacao?.marca?.id ?? null,
+      sabor_id: item.sabor?.id ?? null,
       variacao_id: item.variacao?.id ?? null,
       quantidade_confirmada: this.numero(item.quantidade_pacotes ?? item.quantidade_confirmada),
       tipo_quantidade: item.quantidade_pacotes != null && item.unidades_por_pacote != null

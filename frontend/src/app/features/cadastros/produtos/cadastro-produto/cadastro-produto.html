@@ -109,7 +109,7 @@
                       [(ngModel)]="modelo.contem_variacoes"
                     />
                     <label class="form-check-label" for="contem-variacoes">
-                      Contém variações de peso ou volume
+                      Contém tamanhos de embalagem (peso ou volume)
                     </label>
                   </div>
                 </div>
@@ -126,6 +126,20 @@
                   />
                   <label class="form-check-label" for="nao-solicitar-marca">
                     Não solicitar marca
+                  </label>
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="form-check">
+                  <input
+                    id="nao-solicitar-sabor"
+                    class="form-check-input"
+                    type="checkbox"
+                    name="naoSolicitarSabor"
+                    [(ngModel)]="modelo.nao_solicitar_sabor"
+                  />
+                  <label class="form-check-label" for="nao-solicitar-sabor">
+                    Não solicitar sabor
                   </label>
                 </div>
               </div>
@@ -169,10 +183,10 @@
             <div
               class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2"
             >
-              <h2 class="h5 mb-0">Variações</h2>
+              <h2 class="h5 mb-0">Tamanhos de embalagem</h2>
               @if (!editandoVariacao()) {
                 <button class="btn btn-sm btn-primary" type="button" (click)="novaVariacao()">
-                  Nova variação
+                  Novo tamanho de embalagem
                 </button>
               }
             </div>
@@ -182,12 +196,12 @@
                 <div class="row g-3">
                   <div class="col-12 col-md-6">
                     <label class="form-label" for="quantidade-variacao">Quantidade</label>
-                    <input
+                    <lnf-numero><input
                       id="quantidade-variacao"
                       class="form-control"
-                      lnfDecimal
+                      lnfDecimal nomeCampo="quantidade"
                       [(ngModel)]="variacaoQuantidade"
-                    />
+                    /></lnf-numero>
                   </div>
                   <div class="col-12 col-md-6">
                     <label class="form-label" for="unidade-variacao">Unidade</label>
@@ -213,7 +227,7 @@
                       "
                       (click)="salvarVariacao()"
                     >
-                      {{ salvandoVariacao() ? 'Salvando...' : 'Salvar variação' }}
+                      {{ salvandoVariacao() ? 'Salvando...' : 'Salvar tamanho da embalagem' }}
                     </button>
                   </div>
                 </div>
@@ -232,9 +246,36 @@
                 </button>
               } @empty {
                 <div class="card-body text-center text-body-secondary">
-                  Nenhuma variação cadastrada.
+                  Nenhum tamanho de embalagem cadastrada.
                 </div>
               }
+            </div>
+          </section>
+        }
+        @if (!novo) {
+          <section class="card mt-4">
+            <div class="card-body">
+              <h2 class="h5">Sabores</h2>
+              <p class="text-body-secondary">Cadastre os sabores disponíveis para este produto.</p>
+              <label class="form-label" for="sabor-nome">Nome do sabor</label>
+              <div class="input-group mb-3">
+                <input id="sabor-nome" class="form-control" maxlength="100" [(ngModel)]="saborNome"
+                  [disabled]="salvandoSabor() || excluindo()" />
+                <button type="button" class="btn btn-primary" (click)="salvarSabor()"
+                  [disabled]="!saborNome.trim() || salvandoSabor() || salvando() || excluindo()">
+                  {{ saborId ? 'Salvar sabor' : 'Adicionar sabor' }}
+                </button>
+                @if (saborId) {
+                  <button type="button" class="btn btn-outline-secondary" [disabled]="salvandoSabor()"
+                    (click)="saborId = null; saborNome = ''">Cancelar</button>
+                }
+              </div>
+              @for (sabor of sabores(); track sabor.id) {
+                <button type="button" class="list-group-item list-group-item-action py-2"
+                  [disabled]="salvandoSabor() || excluindo()" (click)="editarSabor(sabor)">
+                  {{ sabor.nome }} <span class="text-primary-emphasis">Editar</span>
+                </button>
+              } @empty { <p class="text-body-secondary">Nenhum sabor cadastrado.</p> }
             </div>
           </section>
         }

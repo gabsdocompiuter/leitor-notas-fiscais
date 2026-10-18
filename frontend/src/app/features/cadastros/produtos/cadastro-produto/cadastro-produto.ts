@@ -7,6 +7,7 @@ import { forkJoin } from 'rxjs';
 import { ApiService } from '../../../../core/api/api.service';
 import {
   Categoria,
+  SaborProduto,
   Produto,
   ProdutoRequest,
   RestricoesProduto,
@@ -15,12 +16,12 @@ import {
   VariacaoProduto,
 } from '../../../../core/models/api.models';
 import { decimalValido, formatarVariacao } from '../../../../core/utils/decimal.utils';
-import { DecimalInput } from '../../../../shared/directives/decimal-input';
+import { DecimalInput, DecimalStepper } from '../../../../shared/directives/decimal-input';
 import { mensagemErro } from '../../../../core/utils/erro-api';
 
 @Component({
   selector: 'lnf-cadastro-produto',
-  imports: [FormsModule, RouterLink, DecimalInput],
+  imports: [FormsModule, RouterLink, DecimalInput, DecimalStepper],
   templateUrl: './cadastro-produto.html',
 })
 export class CadastroProduto implements OnInit {
@@ -28,6 +29,35 @@ export class CadastroProduto implements OnInit {
   private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+
+  readonly sabores = signal<SaborProduto[]>([]);
+  readonly salvandoSabor = signal(false);
+  saborNome = '';
+  saborId: string | null = null;
+
+  editarSabor(sabor: SaborProduto): void {
+    this.saborId = sabor.id;
+    this.saborNome = sabor.nome;
+  }
+
+  salvarSabor(): void {
+    if (!this.id || !this.saborNome.trim() || this.salvandoSabor() || this.salvando() || this.excluindo()) return;
+    this.salvandoSabor.set(true);
+    this.erro.set(null);
+    const requisicao = this.saborId
+      ? this.api.atualizarSabor(this.id, this.saborId, this.saborNome.trim())
+      : this.api.criarSabor(this.id, this.saborNome.trim());
+    requisicao.subscribe({
+      next: sabor => {
+        this.sabores.update(atuais => [...atuais.filter(s => s.id !== sabor.id), sabor]
+          .sort((a, b) => a.nome.localeCompare(b.nome)));
+        this.saborNome = '';
+        this.saborId = null;
+        this.salvandoSabor.set(false);
+      },
+      error: erro => { this.salvandoSabor.set(false); this.erro.set(mensagemErro(erro)); },
+    });
+  }
 
   readonly produto = signal<Produto | null>(null);
   readonly restricoes = signal<RestricoesProduto | null>(null);
@@ -67,6 +97,10 @@ export class CadastroProduto implements OnInit {
       return;
     }
 
+    this.api.listarSabores(this.id!).subscribe({
+      next: sabores => this.sabores.set(sabores),
+      error: erro => this.erro.set(mensagemErro(erro)),
+    });
     forkJoin({
       produto: this.api.obterProduto(this.id!),
       restricoes: this.api.obterRestricoesProduto(this.id!),
@@ -82,6 +116,7 @@ export class CadastroProduto implements OnInit {
           nome: produto.nome,
           categoria_id: produto.categoria.id,
           nao_solicitar_marca: produto.nao_solicitar_marca,
+          nao_solicitar_sabor: produto.nao_solicitar_sabor ?? false,
           tratar_apenas_como_unidades: produto.tratar_apenas_como_unidades,
           contem_variacoes: produto.contem_variacoes,
           unidade_medida: produto.unidade_medida,
@@ -132,12 +167,13 @@ export class CadastroProduto implements OnInit {
       !this.restricoes()?.pode_excluir ||
       this.salvando() ||
       this.salvandoVariacao() ||
+      this.salvandoSabor() ||
       this.excluindo()
     )
       return;
     if (
       !window.confirm(
-        `Excluir o produto "${this.produto()?.nome}"? Suas variações, apresentações e ` +
+        `Excluir o produto "${this.produto()?.nome}"? Seus sabores, tamanhos de embalagem, apresentações e ` +
           'associações de classificação automática também serão removidas. Esta ação não pode ser desfeita.',
       )
     )
@@ -163,7 +199,7 @@ export class CadastroProduto implements OnInit {
   }
 
   salvarProduto(): void {
-    if (!this.valido() || this.salvando() || this.salvandoVariacao() || this.excluindo()) return;
+    if (!this.valido() || this.salvando() || this.salvandoVariacao() || this.salvandoSabor() || this.excluindo()) return;
 
     this.erro.set(null);
     this.salvando.set(true);
@@ -262,6 +298,7 @@ export class CadastroProduto implements OnInit {
       nome: '',
       categoria_id: '',
       nao_solicitar_marca: false,
+      nao_solicitar_sabor: false,
       tratar_apenas_como_unidades: false,
       contem_variacoes: false,
       unidade_medida: 'KG',

@@ -194,6 +194,7 @@ class NotaRepository(BaseRepository[NotaEntity]):
             nome=modelo.nome,
             categoria=categoria,
             nao_solicitar_marca=modelo.nao_solicitar_marca,
+            nao_solicitar_sabor=modelo.nao_solicitar_sabor,
             tratar_apenas_como_unidades=modelo.tratar_apenas_como_unidades,
             contem_variacoes=modelo.contem_variacoes,
             unidade_medida=modelo.unidade_medida,

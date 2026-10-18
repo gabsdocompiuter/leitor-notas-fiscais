@@ -47,6 +47,7 @@ class ItemRelatorioDTO:
     marca_id: UUID | None = None
     marca: str | None = None
     variacao_id: UUID | None = None
+    sabor: str | None = None
     variacao: str | None = None
     quantidade_unidades: Decimal | None = None
 

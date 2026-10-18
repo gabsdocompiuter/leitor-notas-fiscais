@@ -17,6 +17,7 @@ from ..entities import (
     NotaEntity,
     EstabelecimentoEntity,
     ProdutoEntity,
+    SaborProdutoEntity,
     VariacaoProdutoEntity,
 )
 from ..core.persistence.entity_mapper import EntityMapper
@@ -38,6 +39,7 @@ class ItemCompraManual(Protocol):
     quantidade_confirmada: Decimal
     quantidade_pacotes: Decimal | None
     unidades_por_pacote: Decimal | None
+    sabor_id: UUID | None
     valor_total: Decimal | None
     valor_unitario: Decimal | None
 
@@ -136,6 +138,7 @@ class RevisaoNotaService:
             quantidade_pacotes=entrada.quantidade_pacotes,
             unidades_por_pacote=entrada.unidades_por_pacote,
             apresentacao=apresentacao, variacao=variacao,
+            sabor=self._validar_sabor(session, produto.id, getattr(entrada, "sabor_id", None)),
             revisado=True, ignorado=False, alertas=[], tags=[],
         ))
         nota.valor_total += valor_total
@@ -152,6 +155,7 @@ class RevisaoNotaService:
         unidades_por_pacote: Decimal | None = None,
         valor_total: Decimal | None = None,
         valor_unitario: Decimal | None = None,
+        sabor_id: UUID | None = None,
     ) -> NotaDTO:
         validar_quantidade(quantidade_confirmada)
         with self.session_factory.begin() as session:
@@ -183,6 +187,7 @@ class RevisaoNotaService:
                 )
 
             item.apresentacao = apresentacao
+            item.sabor = self._validar_sabor(session, produto_id, sabor_id)
             item.variacao = variacao
             item.quantidade_confirmada = quantidade_confirmada
             item.quantidade_pacotes = quantidade_pacotes
@@ -228,7 +233,7 @@ class RevisaoNotaService:
             if not (mesmo_codigo or mesma_descricao):
                 continue
             if self._peso_para_unidades(destino, produto):
-                self._preencher_classificacao_pendente(destino, origem.apresentacao, origem.variacao)
+                self._preencher_classificacao_pendente(destino, origem.apresentacao, origem.variacao, origem.sabor)
                 destino.nota.situacao = SituacaoNota.EM_REVISAO
                 continue
             conversao = self._fator_unidade(destino.unidade_original, origem.unidade_original)
@@ -246,6 +251,7 @@ class RevisaoNotaService:
             if origem.unidades_por_pacote is not None and pacotes is None:
                 continue
             destino.apresentacao = origem.apresentacao
+            destino.sabor = origem.sabor
             destino.variacao = origem.variacao
             destino.quantidade_confirmada = quantidade
             destino.quantidade_pacotes = pacotes
@@ -262,8 +268,10 @@ class RevisaoNotaService:
         item: ItemEntity,
         apresentacao: ApresentacaoProdutoEntity,
         variacao: VariacaoProdutoEntity | None,
+        sabor: SaborProdutoEntity | None = None,
     ) -> None:
         item.apresentacao = apresentacao
+        item.sabor = sabor
         item.variacao = variacao
         item.quantidade_confirmada = None
         item.quantidade_pacotes = None
@@ -304,7 +312,7 @@ class RevisaoNotaService:
                     continue
                 produto = associacao.apresentacao.produto
                 if self._peso_para_unidades(item, produto):
-                    self._preencher_classificacao_pendente(item, associacao.apresentacao, associacao.variacao)
+                    self._preencher_classificacao_pendente(item, associacao.apresentacao, associacao.variacao, associacao.sabor)
                     alterados += 1
                     continue
                 quantidade = (item.quantidade * associacao.fator_conversao).quantize(
@@ -322,6 +330,7 @@ class RevisaoNotaService:
                 if associacao.unidades_por_pacote is not None and pacotes is None:
                     continue
                 item.apresentacao = associacao.apresentacao
+                item.sabor = associacao.sabor
                 item.variacao = associacao.variacao
                 item.quantidade_confirmada = quantidade
                 item.quantidade_pacotes = pacotes
@@ -371,6 +380,15 @@ class RevisaoNotaService:
             return EntityMapper.nota(nota)
 
     @staticmethod
+    def _validar_sabor(session: Session, produto_id: UUID, sabor_id: UUID | None):
+        if sabor_id is None:
+            return None
+        sabor = session.get(SaborProdutoEntity, sabor_id)
+        if sabor is None or sabor.produto_id != produto_id:
+            raise DadosInvalidos("O sabor não pertence ao produto selecionado.")
+        return sabor
+
+    @staticmethod
     def _validar_classificacao(
         session: Session,
         produto_id: UUID,
@@ -389,12 +407,12 @@ class RevisaoNotaService:
         variacao = None
         if produto.contem_variacoes:
             if variacao_id is None:
-                raise DadosInvalidos("A variação é obrigatória para o produto selecionado.")
+                raise DadosInvalidos("O tamanho da embalagem é obrigatório para o produto selecionado.")
             variacao = VariacaoProdutoRepository(session).obter(variacao_id)
             if variacao is None or variacao.produto_id != produto_id:
-                raise DadosInvalidos("A variação não pertence ao produto selecionado.")
+                raise DadosInvalidos("O tamanho da embalagem não pertence ao produto selecionado.")
         elif variacao_id is not None:
-            raise DadosInvalidos("O produto selecionado não possui variações.")
+            raise DadosInvalidos("O produto selecionado não possui tamanhos de embalagem.")
         if (produto.tratar_apenas_como_unidades or produto.contem_variacoes) and (
             quantidade != quantidade.to_integral_value()
         ):
@@ -439,6 +457,8 @@ class RevisaoNotaService:
         ):
             return False
         produto = item.apresentacao.produto
+        if item.sabor is not None and item.sabor.produto_id != produto.id:
+            return False
         try:
             RevisaoNotaService._validar_pacotes(
                 produto, item.quantidade_confirmada, item.quantidade_pacotes,
@@ -459,6 +479,8 @@ class RevisaoNotaService:
     @staticmethod
     def _associacao_valida(associacao: AssociacaoProdutoEntity) -> bool:
         produto = associacao.apresentacao.produto
+        if associacao.sabor is not None and associacao.sabor.produto_id != produto.id:
+            return False
         if associacao.unidades_por_pacote is not None and (
             not produto.tratar_apenas_como_unidades
             or RevisaoNotaService._calcular_pacotes(
@@ -495,6 +517,7 @@ class RevisaoNotaService:
                 descricao_normalizada=normalizar_nome(item.descricao_original),
                 apresentacao=apresentacao,
                 variacao=variacao,
+                sabor=item.sabor,
                 fator_conversao=fator,
                 unidades_por_pacote=unidades_por_pacote,
             )
@@ -503,6 +526,7 @@ class RevisaoNotaService:
         associacao.descricao_original = item.descricao_original
         associacao.descricao_normalizada = normalizar_nome(item.descricao_original)
         associacao.apresentacao = apresentacao
+        associacao.sabor = item.sabor
         associacao.variacao = variacao
         associacao.fator_conversao = fator
         associacao.unidades_por_pacote = unidades_por_pacote

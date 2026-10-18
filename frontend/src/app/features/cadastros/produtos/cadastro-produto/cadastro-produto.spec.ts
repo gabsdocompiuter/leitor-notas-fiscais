@@ -44,6 +44,7 @@ async function criar(restricoes: RestricoesProduto = livre, id: string | null = 
   const navegar = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
   fixture.detectChanges();
   if (id) {
+    http.expectOne((r) => r.url.endsWith('/produtos/produto/sabores')).flush([]);
     http.expectOne((r) => r.url.endsWith('/produtos/produto')).flush(produto);
     http.expectOne((r) => r.url.endsWith('/produtos/produto/restricoes')).flush(restricoes);
   }
@@ -66,6 +67,36 @@ afterEach(() => {
 });
 
 describe('edição e exclusão de produtos', () => {
+  it('permite salvar a opção de não solicitar sabor no produto', async () => {
+    const { fixture, componente, http } = await criar();
+    const campo = fixture.nativeElement.querySelector('#nao-solicitar-sabor') as HTMLInputElement;
+    expect(campo.checked).toBe(false);
+    campo.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(componente.modelo.nao_solicitar_sabor).toBe(true);
+    componente.salvarProduto();
+    const envio = http.expectOne(r => r.method === 'PATCH');
+    expect(envio.request.body.nao_solicitar_sabor).toBe(true);
+    envio.flush({ ...produto, nao_solicitar_sabor: true });
+  });
+
+  it('cadastra e edita sabores vinculados ao produto', async () => {
+    const { componente, http } = await criar();
+    componente.saborNome = 'Morango';
+    componente.salvarSabor();
+    const novo = http.expectOne((r) => r.method === 'POST' && r.url.endsWith('/produtos/produto/sabores'));
+    expect(novo.request.body).toEqual({ nome: 'Morango' });
+    novo.flush({ id: 'sabor', produto_id: 'produto', nome: 'Morango' });
+    expect(componente.sabores()).toHaveLength(1);
+    componente.editarSabor(componente.sabores()[0]);
+    componente.saborNome = 'Chocolate';
+    componente.salvarSabor();
+    http.expectOne((r) => r.method === 'PATCH' && r.url.endsWith('/sabores/sabor'))
+      .flush({ id: 'sabor', produto_id: 'produto', nome: 'Chocolate' });
+    expect(componente.sabores()[0].nome).toBe('Chocolate');
+  });
+
   it('bloqueia somente a estrutura e mantém nome, categoria e marca editáveis', async () => {
     const { fixture, componente, http, navegar } = await criar(bloqueado);
     for (const id of ['tratar-unidades', 'unidade-medida', 'contem-variacoes']) {
@@ -101,7 +132,7 @@ describe('edição e exclusão de produtos', () => {
     const { componente, http } = await criar();
     const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
     componente.excluirProduto();
-    expect(confirmar.mock.calls[0][0]).toContain('variações, apresentações');
+    expect(confirmar.mock.calls[0][0]).toContain('sabores, tamanhos de embalagem, apresentações');
     expect(confirmar.mock.calls[0][0]).toContain('associações de classificação automática');
     http.expectNone((r) => r.method === 'DELETE');
     expect(componente.excluindo()).toBe(false);

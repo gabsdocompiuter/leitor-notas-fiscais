@@ -7,6 +7,7 @@ class RevisaoItemRequest(BaseModel):
     valor_total: Decimal | None = Field(default=None, ge=0, decimal_places=2, max_digits=15)
     valor_unitario: Decimal | None = Field(default=None, ge=0, decimal_places=2, max_digits=15)
     produto_id: UUID
+    sabor_id: UUID | None = None
     marca_id: UUID | None = None
     variacao_id: UUID | None = None
     quantidade_confirmada: Decimal = Field(gt=0, decimal_places=3)

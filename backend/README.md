@@ -293,6 +293,24 @@ Esta coordenação exige um único processo backend e nenhuma outra aplicação
 acessando diretamente o arquivo SQLite durante a troca. Não execute múltiplos
 workers/réplicas sobre este banco com importação habilitada.
 
+### Migration 0009: catálogo e sabores
+
+Pare a API, incluindo o processo de recarga automática, **antes de disponibilizar
+o arquivo da migration**. A inicialização da aplicação executa as migrations;
+uma recarga também pode iniciá-las. Faça um backup consistente do SQLite e teste
+a atualização em uma cópia antes de iniciar novamente a API.
+
+A revisão `0009`, após `0008`, consolida refrigerantes e energéticos em Bebidas,
+preenche os sabores aprovados nos itens e nas associações automáticas e corrige
+a marca dos chocolates para Lacta. Descrições ou classificações conflitantes
+interrompem a transação inteira. Bancos vazios não recebem esse catálogo.
+O padrão de sabor para produtos criados depois da migration permanece inalterado.
+
+A migration preserva os dados financeiros e os estados das notas e dos itens.
+Ela não possui downgrade: para reverter a consolidação, pare a API e restaure
+o backup anterior à execução. Não altere manualmente a revisão do Alembic em um
+banco de produção para tentar desfazer essa migration.
+
 
 ### Compras manuais
 

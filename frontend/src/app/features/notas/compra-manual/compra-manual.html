@@ -123,9 +123,16 @@
                         <div class="invalid-feedback">Selecione uma marca.</div>
                       </div>
                     }
+                    @if (!selecionado.nao_solicitar_sabor) {
+                    <div class="col-12 col-lg-6">
+                      <lnf-seletor-sabor [produtoId]="selecionado.id" [id]="'sabor-' + indice"
+                        [valor]="form.get('sabor_id')?.value"
+                        (alterado)="form.patchValue({sabor_id: $event})" />
+                    </div>
+                    }
                     @if (selecionado.contem_variacoes) {
                       <div class="col-12 col-lg-6">
-                        <label class="form-label" [for]="'variacao-' + indice">Variação</label>
+                        <label class="form-label" [for]="'variacao-' + indice">Tamanho da embalagem</label>
                         <button
                           type="button"
                           [id]="'variacao-' + indice"
@@ -136,20 +143,20 @@
                           <span>{{ nomeVariacao(form) }}</span
                           ><i class="bi bi-search" aria-hidden="true"></i>
                         </button>
-                        <div class="invalid-feedback">Selecione uma variação.</div>
+                        <div class="invalid-feedback">Selecione um tamanho de embalagem.</div>
                       </div>
                     }
                   }
                   <div class="col-12 col-md-6 col-lg-4">
                     <label class="form-label" [for]="'quantidade-' + indice">Quantidade</label>
                     <div class="input-group">
-                      <input
+                      <lnf-numero><input
                         [id]="'quantidade-' + indice"
                         class="form-control"
-                        lnfDecimal
+                        lnfDecimal [inteiro]="!!(produto(form)?.tratar_apenas_como_unidades || produto(form)?.contem_variacoes)" [minimo]="(produto(form)?.tratar_apenas_como_unidades || produto(form)?.contem_variacoes) ? 1 : 0.001" nomeCampo="quantidade"
                         formControlName="quantidade_confirmada"
                         [class.is-invalid]="invalido(form, 'quantidade_confirmada')"
-                      />
+                      /></lnf-numero>
                       @if (produto(form)?.tratar_apenas_como_unidades) {
                         <select
                           class="form-select flex-grow-0 w-auto"
@@ -165,20 +172,20 @@
                     </div>
                     @if (invalido(form, 'quantidade_confirmada')) {
                       <div class="text-danger small">
-                        Informe uma quantidade maior que zero, inteira para unidades e variações.
+                        Informe uma quantidade maior que zero, inteira para unidades e tamanhos de embalagem.
                       </div>
                     }
                     @if (usaPacotes(form)) {
                       <label class="form-label small mt-2" [for]="'unidades-' + indice"
                         >Unidades por pacote</label
                       >
-                      <input
+                      <lnf-numero><input
                         [id]="'unidades-' + indice"
                         class="form-control"
-                        lnfDecimal
+                        lnfDecimal [minimo]="1" [inteiro]="true" nomeCampo="unidades por pacote"
                         formControlName="unidades_por_pacote"
                         [class.is-invalid]="invalido(form, 'unidades_por_pacote')"
-                      />
+                      /></lnf-numero>
                       <div class="invalid-feedback">Informe um número inteiro maior que zero.</div>
                       @if (quantidade(form) > 0) {
                         <div class="small text-body-secondary mt-1" aria-live="polite">
@@ -191,13 +198,13 @@
                     <label class="form-label" [for]="'valor-' + indice">Valor do item</label>
                     <div class="input-group">
                       <span class="input-group-text">R$</span>
-                      <input
+                      <lnf-numero><input
                         [id]="'valor-' + indice"
                         class="form-control"
-                        lnfDecimal
+                        lnfDecimal [passo]="0.01" [minimo]="0" [maximo]="9999999999999.99" nomeCampo="valor do item"
                         formControlName="valor_total"
                         [class.is-invalid]="invalido(form, 'valor_total')"
-                      />
+                      /></lnf-numero>
                       <select class="form-select flex-grow-0 w-auto" formControlName="tipo_valor"
                         [attr.aria-label]="'Tipo do valor do item ' + (indice + 1)">
                         <option value="total">Valor total</option>

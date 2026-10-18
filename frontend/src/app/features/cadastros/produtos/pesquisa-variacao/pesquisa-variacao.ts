@@ -1,9 +1,9 @@
+import { DecimalInput, DecimalStepper } from '../../../../shared/directives/decimal-input';
 import { Component, computed, inject, input, signal } from '@angular/core';
 import {
   decimalValido,
   formatarDecimal,
   formatarVariacao,
-  limitarEntradaDecimal,
 } from '../../../../core/utils/decimal.utils';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../core/api/api.service';
@@ -18,20 +18,23 @@ import { PesquisaCadastroBase } from '../../pesquisa-cadastro-base';
 
 @Component({
   selector: 'lnf-pesquisa-variacao',
-  imports: [FormsModule],
+  imports: [FormsModule, DecimalInput, DecimalStepper],
   templateUrl: './pesquisa-variacao.html',
 })
 export class PesquisaVariacao extends PesquisaCadastroBase<VariacaoProduto> {
   private readonly api = inject(ApiService);
   readonly produto = input.required<Produto>();
   readonly unidades = input.required<readonly UnidadeMedidaInfo[]>();
-  readonly tituloPesquisa = 'Selecionar variação';
+  readonly tituloPesquisa = 'Selecionar tamanho da embalagem';
   readonly tituloCadastro = 'Confirmar criação';
   readonly placeholderPesquisa = 'Quantidade';
-  readonly mensagemSemResultados = 'Nenhuma variação encontrada.';
+  readonly mensagemSemResultados = 'Nenhum tamanho de embalagem encontrado.';
   readonly formatarDecimal = formatarDecimal;
   readonly formatarVariacao = formatarVariacao;
   readonly quantidade = signal('');
+  definirQuantidade(valor: number | null): void {
+    this.quantidade.set(valor === null ? '' : String(valor).replace('.', ','));
+  }
   readonly unidade = signal<UnidadeMedida | ''>('');
   readonly podeCriar = computed(() => {
     const texto = this.quantidade().trim().replace(',', '.');
@@ -61,12 +64,6 @@ export class PesquisaVariacao extends PesquisaCadastroBase<VariacaoProduto> {
       this.quantidade.set(medida.quantidade.replace('.', ','));
       this.unidade.set(medida.unidade);
     }
-  }
-
-  atualizarQuantidade(evento: Event): void {
-    const campo = evento.target as HTMLInputElement;
-    campo.value = limitarEntradaDecimal(campo.value);
-    this.quantidade.set(campo.value);
   }
 
   override abrirCadastro(): void {

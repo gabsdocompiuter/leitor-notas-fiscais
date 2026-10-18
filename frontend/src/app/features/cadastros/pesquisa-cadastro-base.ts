@@ -104,7 +104,7 @@ export abstract class PesquisaCadastroBase<T extends { id: string }>
     setTimeout(() => {
       const campo = this.campoBusca()?.nativeElement;
       campo?.focus();
-      campo?.select();
+      campo?.setSelectionRange(campo.value.length, campo.value.length);
     });
   }
 }

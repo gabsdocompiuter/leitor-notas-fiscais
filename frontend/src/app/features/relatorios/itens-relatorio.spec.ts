@@ -77,7 +77,7 @@ describe('Detalhes contextuais das compras', () => {
     });
     const texto = fixture.nativeElement.textContent;
     expect(texto).toContain('Sem marca');
-    expect(texto).toContain('Sem variação');
+    expect(texto).toContain('Sem tamanho da embalagem');
     expect(texto.match(/2 unidades/g)).toHaveLength(1);
   });
   it('preserva a apresentação completa de Por tag', () => {
@@ -86,6 +86,6 @@ describe('Detalhes contextuais das compras', () => {
     for (const valor of ['Queijo Mussarela', 'Alimentação', 'Macromix', 'Bruto', 'Desconto'])
       expect(texto).toContain(valor);
     expect(texto).not.toContain('Marca:');
-    expect(texto).not.toContain('Variação:');
+    expect(texto).not.toContain('Tamanho da embalagem:');
   });
 });

@@ -6,7 +6,7 @@ from sqlalchemy.orm import joinedload
 from ..enums.situacao_nota import SituacaoNota
 from ..entities import (
     ApresentacaoProdutoEntity, AssociacaoProdutoEntity, ItemEntity,
-    NotaEntity, ProdutoEntity, VariacaoProdutoEntity,
+    NotaEntity, ProdutoEntity, VariacaoProdutoEntity, SaborProdutoEntity,
 )
 from .base_repository import BaseRepository
 
@@ -55,6 +55,7 @@ class ProdutoRepository(BaseRepository[ProdutoEntity]):
         self.session.execute(delete(VariacaoProdutoEntity).where(
             VariacaoProdutoEntity.produto_id == entidade.id
         ))
+        self.session.execute(delete(SaborProdutoEntity).where(SaborProdutoEntity.produto_id == entidade.id))
         self.session.execute(delete(ProdutoEntity).where(ProdutoEntity.id == entidade.id))
 
     @staticmethod

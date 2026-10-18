@@ -78,6 +78,7 @@ describe('metadados na revisão', () => {
       aplicarClassificacoesAutomaticas: vi.fn(() => of(nota)),
       listarProdutos: () => of([produto, produtoPeso]),
       listarCategorias: () => of([]),
+      listarSabores: () => of([]),
       listarMarcas: () => of([]),
       listarUnidadesMedida: () => of([]),
       listarTags: () => of(nota.itens[0].tags),
@@ -110,6 +111,18 @@ describe('metadados na revisão', () => {
     fixture.detectChanges();
     return fixture.componentInstance.formularioItem('item')!;
   }
+
+  it('oculta sabor conforme a preferência do produto e volta a exibir ao desmarcar', () => {
+    const { fixture, nota } = criar();
+    const semSabor = { ...produto, nao_solicitar_sabor: true };
+    fixture.componentInstance.produtos.set([semSabor, produtoPeso]);
+    selecionar(fixture, nota, semSabor);
+    expect(fixture.nativeElement.querySelector('lnf-seletor-sabor')).toBeNull();
+    const comSabor = { ...semSabor, nao_solicitar_sabor: false };
+    fixture.componentInstance.produtos.set([comSabor, produtoPeso]);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('lnf-seletor-sabor')).not.toBeNull();
+  });
 
   function criarNavegacao(revisado = false, situacao: Nota['situacao'] = 'lida') {
     const contexto = criar({
@@ -187,7 +200,7 @@ describe('metadados na revisão', () => {
     expect(api.revisarItem).not.toHaveBeenCalled();
     expect(api.adicionarItemManual).toHaveBeenCalledExactlyOnceWith(nota.chave, {
       produto_id: produto.id, quantidade_confirmada: 3,
-      quantidade_pacotes: null, unidades_por_pacote: null, variacao_id: null, valor_unitario: '2.50',
+      quantidade_pacotes: null, unidades_por_pacote: null, sabor_id: null, variacao_id: null, valor_unitario: '2.50',
     });
     const salvo: ItemNota = {
       ...novo, id: 'salvo', quantidade: '3', quantidade_confirmada: '3',
@@ -303,7 +316,7 @@ describe('metadados na revisão', () => {
     componente.salvarItem(item);
     expect(api.revisarItem).toHaveBeenCalledWith(nota.chave, item.id, {
       produto_id: produtoPeso.id, quantidade_confirmada: 5,
-      quantidade_pacotes: null, unidades_por_pacote: null, variacao_id: null, valor_total: '75.00',
+      quantidade_pacotes: null, unidades_por_pacote: null, sabor_id: null, variacao_id: null, valor_total: '75.00',
     });
     resposta.next({
       ...nota, valor_total: '75.00', valor_a_pagar: '75.00',
@@ -351,7 +364,7 @@ describe('metadados na revisão', () => {
     componente.salvarItem(nota.itens[0]);
     expect(api.revisarItem).toHaveBeenCalledWith(nota.chave, nota.itens[0].id, {
       produto_id: produto.id, quantidade_confirmada: 5, quantidade_pacotes: null,
-      unidades_por_pacote: null, variacao_id: null, valor_unitario: '15.00',
+      unidades_por_pacote: null, sabor_id: null, variacao_id: null, valor_unitario: '15.00',
     });
   });
 
@@ -402,7 +415,7 @@ describe('metadados na revisão', () => {
     fixture.componentInstance.salvarItem(nota.itens[0]);
     expect(api.revisarItem).toHaveBeenCalledWith(nota.chave, nota.itens[0].id, {
       produto_id: produtoPeso.id, quantidade_confirmada: 5, quantidade_pacotes: null,
-      unidades_por_pacote: null, variacao_id: null,
+      unidades_por_pacote: null, sabor_id: null, variacao_id: null,
     });
   });
 
@@ -542,7 +555,7 @@ describe('metadados na revisão', () => {
     fixture.componentInstance.salvarItem(nota.itens[0]);
     expect(api.revisarItem).toHaveBeenCalledWith(nota.chave, 'item', {
       produto_id: 'produto', quantidade_confirmada: quantidade * 30,
-      quantidade_pacotes: quantidade, unidades_por_pacote: 30, variacao_id: null,
+      quantidade_pacotes: quantidade, unidades_por_pacote: 30, sabor_id: null, variacao_id: null,
     });
     resposta.next({ ...nota, itens: [{
       ...nota.itens[0], apresentacao: { id: 'ap', produto, marca: null }, revisado: true,
@@ -585,7 +598,7 @@ describe('metadados na revisão', () => {
     fixture.componentInstance.salvarItem(nota.itens[0]);
     expect(api.revisarItem).toHaveBeenCalledWith(nota.chave, 'item', {
       produto_id: 'produto', quantidade_confirmada: 2,
-      quantidade_pacotes: null, unidades_por_pacote: null, variacao_id: null,
+      quantidade_pacotes: null, unidades_por_pacote: null, sabor_id: null, variacao_id: null,
     });
   });
 

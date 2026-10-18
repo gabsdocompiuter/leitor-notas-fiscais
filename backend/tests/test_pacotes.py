@@ -111,6 +111,8 @@ class PacotesTests(unittest.TestCase):
         self.revisao.revisar_item(nota.chave, nota.itens[0].id, self.produto_id,
                                  None, None, Decimal(30))
         configuracao = self.banco.configuracao_migrations(self.banco.caminho)
+        # Esta fixture não contém o catálogo consolidado; simula o schema anterior a 0009.
+        command.stamp(configuracao, "0008")
         command.downgrade(configuracao, '0003')
         self.banco.inicializar()
         self.banco.inicializar()

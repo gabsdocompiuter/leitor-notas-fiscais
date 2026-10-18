@@ -121,6 +121,7 @@ def revisar_item(
         entrada.unidades_por_pacote,
         entrada.valor_total,
         entrada.valor_unitario,
+        sabor_id=entrada.sabor_id,
     )
     return NotaResponse.from_entity(nota)
 

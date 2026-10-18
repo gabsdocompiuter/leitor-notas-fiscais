@@ -12,6 +12,7 @@ class ProdutoResponse(BaseModel):
     nome: str
     categoria: CategoriaResponse
     nao_solicitar_marca: bool
+    nao_solicitar_sabor: bool
     tratar_apenas_como_unidades: bool
     contem_variacoes: bool
     unidade_medida: UnidadeMedida | None
@@ -23,6 +24,7 @@ class ProdutoResponse(BaseModel):
             nome=produto.nome,
             categoria=CategoriaResponse.from_entity(produto.categoria),
             nao_solicitar_marca=produto.nao_solicitar_marca,
+            nao_solicitar_sabor=produto.nao_solicitar_sabor,
             tratar_apenas_como_unidades=produto.tratar_apenas_como_unidades,
             contem_variacoes=produto.contem_variacoes,
             unidade_medida=produto.unidade_medida,

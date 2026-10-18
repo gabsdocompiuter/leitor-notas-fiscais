@@ -36,6 +36,7 @@ from .routers import (
     produtos,
     unidades_medida,
     variacoes,
+    sabores,
     versao,
 )
 
@@ -113,6 +114,7 @@ def criar_app(
     app.include_router(marcas.router)
     app.include_router(produtos.router)
     app.include_router(variacoes.router)
+    app.include_router(sabores.router)
     app.include_router(estabelecimentos.router)
     app.include_router(unidades_medida.router)
     return app

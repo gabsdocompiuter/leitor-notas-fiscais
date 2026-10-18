@@ -9,6 +9,7 @@ class ProdutoRequest(BaseModel):
     nome: str = Field(min_length=1, max_length=150, examples=["Leite integral"])
     categoria_id: UUID
     nao_solicitar_marca: bool = False
+    nao_solicitar_sabor: bool = False
     tratar_apenas_como_unidades: bool = False
     contem_variacoes: bool = False
     unidade_medida: UnidadeMedida | None = None

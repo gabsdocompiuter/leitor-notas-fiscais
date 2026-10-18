@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 
 from .apresentacao_produto_dto import ApresentacaoProdutoDTO
 from .variacao_produto_dto import VariacaoProdutoDTO
+from .sabor_produto_dto import SaborProdutoDTO
 from .tag_dto import TagDTO
 
 
@@ -21,6 +22,7 @@ class ItemDTO:
     apresentacao: ApresentacaoProdutoDTO | None = None
     variacao: VariacaoProdutoDTO | None = None
     quantidade_confirmada: Decimal | None = None
+    sabor: SaborProdutoDTO | None = None
     revisado: bool = False
     tags: list[TagDTO] = field(default_factory=list)
     quantidade_pacotes: Decimal | None = None

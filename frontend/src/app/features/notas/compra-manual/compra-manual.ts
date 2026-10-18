@@ -17,6 +17,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 
+import { SeletorSabor } from '../../../shared/components/seletor-sabor/seletor-sabor';
 import { ApiService } from '../../../core/api/api.service';
 import {
   Categoria,
@@ -30,7 +31,7 @@ import {
 import { mensagemErro } from '../../../core/utils/erro-api';
 import { formatarVariacao, validarDecimal } from '../../../core/utils/decimal.utils';
 import { valoresItem } from '../../../core/utils/valor-item.utils';
-import { DecimalInput } from '../../../shared/directives/decimal-input';
+import { DecimalInput, DecimalStepper } from '../../../shared/directives/decimal-input';
 import { PesquisaProduto } from '../../cadastros/produtos/pesquisa-produto/pesquisa-produto';
 import { PesquisaMarca } from '../../cadastros/marcas/pesquisa-marca/pesquisa-marca';
 import { PesquisaVariacao } from '../../cadastros/produtos/pesquisa-variacao/pesquisa-variacao';
@@ -53,10 +54,11 @@ export function dataLocalHoje(data = new Date()): string {
     CurrencyPipe,
     ReactiveFormsModule,
     RouterLink,
-    DecimalInput,
+    DecimalInput, DecimalStepper,
     PesquisaProduto,
     PesquisaMarca,
     PesquisaVariacao,
+    SeletorSabor,
     PesquisaEstabelecimento,
   ],
   templateUrl: './compra-manual.html',
@@ -140,6 +142,7 @@ export class CompraManual implements OnInit, OnDestroy {
     const form = this.fb.group({
       produto_id: ['', Validators.required],
       marca_id: [null as string | null],
+      sabor_id: [null as string | null],
       variacao_id: [null as string | null],
       quantidade_confirmada: [1, [Validators.required, Validators.min(0.001), validarDecimal]],
       tipo_quantidade: ['unidades'],
@@ -203,7 +206,7 @@ export class CompraManual implements OnInit, OnDestroy {
 
   nomeVariacao(form: FormGroup): string {
     const variacao = this.variacoes().find((v) => v.id === form.get('variacao_id')?.value);
-    return variacao ? formatarVariacao(variacao) : 'Pesquisar variação';
+    return variacao ? formatarVariacao(variacao) : 'Pesquisar tamanho da embalagem';
   }
 
   unidade(form: FormGroup): string {
@@ -322,6 +325,7 @@ export class CompraManual implements OnInit, OnDestroy {
     form.patchValue({
       produto_id: produto.id,
       marca_id: mudou || produto.nao_solicitar_marca ? null : form.get('marca_id')?.value,
+      sabor_id: mudou ? null : form.get('sabor_id')?.value,
       variacao_id: mudou ? null : form.get('variacao_id')?.value,
       tipo_quantidade: mudou ? 'unidades' : form.get('tipo_quantidade')?.value,
       unidades_por_pacote: mudou ? null : form.get('unidades_por_pacote')?.value,
@@ -406,6 +410,7 @@ export class CompraManual implements OnInit, OnDestroy {
       itens: this.itens.controls.map((form) => ({
         produto_id: form.get('produto_id')!.value,
         marca_id: form.get('marca_id')!.value,
+        sabor_id: form.get('sabor_id')!.value,
         variacao_id: form.get('variacao_id')!.value,
         quantidade_confirmada: this.quantidade(form),
         quantidade_pacotes: this.usaPacotes(form)

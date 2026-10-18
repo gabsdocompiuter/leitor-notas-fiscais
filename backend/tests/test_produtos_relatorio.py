@@ -33,7 +33,7 @@ class ProdutosRelatorioTests(unittest.TestCase):
             valor_a_pagar=sum(map(Decimal, valores)) - Decimal(desconto),
             desconto=Decimal(desconto), itens=[Dados(
                 id=uuid4(), apresentacao=Dados(produto=produto, marca=marca),
-                variacao=variacao, valor_total=Decimal(valor), tags=[],
+                sabor=None, variacao=variacao, valor_total=Decimal(valor), tags=[],
                 quantidade_confirmada=Decimal(1), ignorado=False,
             ) for produto, valor in zip(produtos, valores)],
         )

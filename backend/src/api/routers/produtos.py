@@ -61,6 +61,7 @@ def criar_produto(entrada: ProdutoRequest, servico: Servico) -> ProdutoResponse:
             entrada.tratar_apenas_como_unidades,
             entrada.contem_variacoes,
             entrada.unidade_medida,
+            nao_solicitar_sabor=entrada.nao_solicitar_sabor,
         )
     )
 
@@ -93,5 +94,6 @@ def atualizar_produto(
             entrada.tratar_apenas_como_unidades,
             entrada.contem_variacoes,
             entrada.unidade_medida,
+            nao_solicitar_sabor=entrada.nao_solicitar_sabor,
         )
     )

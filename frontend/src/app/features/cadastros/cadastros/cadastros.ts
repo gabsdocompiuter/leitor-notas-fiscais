@@ -20,7 +20,7 @@ export class Cadastros {
     },
     {
       nome: 'Produtos',
-      descricao: 'Configure unidades, medidas e variações.',
+      descricao: 'Configure unidades, medidas e tamanhos de embalagem.',
       link: '/cadastros/produtos',
     },
     {

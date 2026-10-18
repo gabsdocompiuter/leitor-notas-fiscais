@@ -18,6 +18,38 @@ describe('cadastro de produto na importação', () => {
       ],
     }).compileComponents();
   });
+  it('foca com o cursor no fim sem selecionar, inclusive ao retornar do cadastro', async () => {
+    const fixture = TestBed.createComponent(PesquisaProduto);
+    fixture.componentRef.setInput('registros', []);
+    fixture.componentRef.setInput('categorias', []);
+    fixture.componentRef.setInput('unidades', []);
+    fixture.componentRef.setInput('buscaInicial', 'Café');
+    fixture.detectChanges();
+    await new Promise(resolve => setTimeout(resolve, 10));
+    let campo = fixture.nativeElement.querySelector('input[type="search"]') as HTMLInputElement;
+    expect(document.activeElement).toBe(campo);
+    expect(campo.selectionStart).toBe(4);
+    expect(campo.selectionEnd).toBe(4);
+    fixture.componentInstance.abrirCadastro();
+    fixture.detectChanges();
+    fixture.componentInstance.voltarParaPesquisa();
+    fixture.detectChanges();
+    await new Promise(resolve => setTimeout(resolve, 10));
+    campo = fixture.nativeElement.querySelector('input[type="search"]');
+    expect(campo.value).toBe('Café');
+    expect(campo.selectionStart).toBe(4);
+    expect(campo.selectionEnd).toBe(4);
+    campo.value = '';
+    campo.dispatchEvent(new Event('input'));
+    fixture.componentInstance.abrirCadastro();
+    fixture.detectChanges();
+    fixture.componentInstance.voltarParaPesquisa();
+    fixture.detectChanges();
+    await new Promise(resolve => setTimeout(resolve, 10));
+    campo = fixture.nativeElement.querySelector('input[type="search"]');
+    expect(campo.selectionStart).toBe(0);
+    expect(campo.selectionEnd).toBe(0);
+  });
   it('mantém descrição fiscal no cabeçalho e dados ao criar categoria', () => {
     const fixture = TestBed.createComponent(PesquisaProduto);
     fixture.componentRef.setInput('registros', []);

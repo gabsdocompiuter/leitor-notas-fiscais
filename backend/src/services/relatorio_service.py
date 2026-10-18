@@ -72,7 +72,7 @@ class RelatorioService:
                 if item.categoria_id != categoria_id or item.produto_id != produto_id:
                     continue
                 id_ = getattr(item, f"{agrupador}_id")
-                nome = getattr(item, agrupador) or {"marca": "Sem marca", "variacao": "Sem variação"}.get(agrupador, "Sem estabelecimento")
+                nome = getattr(item, agrupador) or {"marca": "Sem marca", "variacao": "Sem tamanho da embalagem"}.get(agrupador, "Sem estabelecimento")
                 grupo = grupos.setdefault(id_, AgrupamentoRelatorioDTO(id_, nome))
                 grupo.quantidade_registros += 1
                 grupo.total_pago += item.valor_pago
@@ -143,6 +143,7 @@ class RelatorioService:
                     marca_id=item.apresentacao.marca.id if item.apresentacao.marca else None,
                     marca=item.apresentacao.marca.nome if item.apresentacao.marca else None,
                     variacao_id=item.variacao.id if item.variacao else None,
+                    sabor=item.sabor.nome if item.sabor else None,
                     variacao=item.variacao.nome_exibicao if item.variacao else None,
                     quantidade_unidades=(item.quantidade_confirmada
                                          if produto.tratar_apenas_como_unidades or produto.contem_variacoes

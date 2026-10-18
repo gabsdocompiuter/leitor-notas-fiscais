@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   ConfiguracaoBanco,
+  SaborProduto,
   CompraManualRequest,
   ImportacaoBancoResponse,
   Categoria,
@@ -32,6 +33,18 @@ import {
 export class ApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = environment.apiUrl;
+
+  listarSabores(produtoId: string): Observable<SaborProduto[]> {
+    return this.http.get<SaborProduto[]>(`${this.baseUrl}/produtos/${produtoId}/sabores`);
+  }
+
+  criarSabor(produtoId: string, nome: string): Observable<SaborProduto> {
+    return this.http.post<SaborProduto>(`${this.baseUrl}/produtos/${produtoId}/sabores`, { nome });
+  }
+
+  atualizarSabor(produtoId: string, saborId: string, nome: string): Observable<SaborProduto> {
+    return this.http.patch<SaborProduto>(`${this.baseUrl}/produtos/${produtoId}/sabores/${saborId}`, { nome });
+  }
 
   obterConfiguracaoBanco(): Observable<ConfiguracaoBanco> {
     return this.http.get<ConfiguracaoBanco>(`${this.baseUrl}/banco/configuracao`);

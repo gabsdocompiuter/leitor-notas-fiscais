@@ -91,6 +91,7 @@ class ItemRelatorioResponse(BaseModel):
     marca_id: UUID | None
     marca: str | None
     variacao_id: UUID | None
+    sabor: str | None = None
     variacao: str | None
     quantidade_unidades: str | None
 
@@ -109,7 +110,7 @@ class ItemRelatorioResponse(BaseModel):
             unidade_quantidade=item.unidade_quantidade,
             estabelecimento_id=item.estabelecimento_id,
             marca_id=item.marca_id, marca=item.marca,
-            variacao_id=item.variacao_id, variacao=item.variacao,
+            variacao_id=item.variacao_id, variacao=item.variacao, sabor=item.sabor,
             quantidade_unidades=decimal_quantidade(item.quantidade_unidades),
         )
 

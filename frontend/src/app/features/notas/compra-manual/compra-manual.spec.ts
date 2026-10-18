@@ -59,6 +59,7 @@ describe('compra manual', () => {
       listarEstabelecimentos: () => of([loja]),
       listarProdutos: () => of([produto, unidades]),
       listarCategorias: () => of([produto.categoria]),
+      listarSabores: () => of([]),
       listarMarcas: () => of([]),
       listarUnidadesMedida: () => of([{ codigo: 'KG', descricao: 'Quilograma' }]),
       criarCompraManual: vi.fn((_compra: CompraManualRequest) => resposta),
@@ -145,7 +146,7 @@ describe('compra manual', () => {
         {
           produto_id: 'banana',
           marca_id: null,
-          variacao_id: null,
+          sabor_id: null, variacao_id: null,
           quantidade_confirmada: 1.5,
           quantidade_pacotes: null,
           unidades_por_pacote: null,
