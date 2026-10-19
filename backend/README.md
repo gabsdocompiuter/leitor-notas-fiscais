@@ -311,6 +311,51 @@ Ela não possui downgrade: para reverter a consolidação, pare a API e restaure
 o backup anterior à execução. Não altere manualmente a revisão do Alembic em um
 banco de produção para tentar desfazer essa migration.
 
+### Migration 0010: barras de chocolate
+
+A revisão `0010`, após `0009`, incorpora Barra chocolate ao leite e Barra diamante
+negro em Barra de Chocolate, com os sabores Ao leite e Diamante Negro, marca Lacta
+e embalagem de 145 g. Move o produto consolidado para Doces, preservando seus
+itens Amaro e Shot e o histórico financeiro de todas as notas.
+
+As associações automáticas também são transferidas. Descrições, marcas, sabores,
+tamanhos ou destinos conflitantes interrompem a transação inteira. Em banco vazio,
+nenhum catálogo é criado. Esta revisão também exige backup com a API e a recarga
+paradas antes de disponibilizar a migration e não possui downgrade; a reversão
+exige restaurar a cópia anterior à execução.
+
+### Migration 0011: biscoito de amendoim
+
+A revisão `0011`, após `0010`, incorpora Biscoito de Amendoim ao produto Biscoito,
+reutilizando o sabor Amendoim e classificando o item e sua associação automática
+como marca Pasetto, embalagem de 250 g. Mantém a contagem em embalagens e passa a
+contabilizar seu peso em gramas nos relatórios, preservando o histórico financeiro.
+Biscoito Sequilhos, Bolacha Recheada e os demais registros ficam inalterados.
+
+Se a origem não existir, nenhum cadastro é criado. Descrições, marcas, sabores,
+estruturas ou vínculos conflitantes interrompem a transação inteira. Pare a API
+e a recarga automática e faça um backup consistente antes de disponibilizar a
+migration. Não há downgrade; a reversão exige restaurar o backup anterior.
+
+
+### Migration 0012: produtos e sabores
+
+A revisão `0012`, após `0011`, separa os sabores Air Fryer, Maracujá, Branco,
+Shitake, Talharim e Girassol dos respectivos produtos. Renomeia os cadastros para
+Batata Congelada, Cogumelos, Macarrão e Óleo de Cozinha, preservando seus IDs.
+Os seis produtos passam a solicitar sabor; itens e associações automáticas
+recebem os sabores correspondentes. Marcas e categorias são preservadas.
+
+Biscoito Sequilhos passa a usar embalagem de 200 g e unidade base G; Óleo de
+Cozinha usa 900 ml e unidade base L. A quantidade continua contando embalagens,
+com os relatórios passando a representar peso e volume. O Bis mantém 100,8 g.
+Massa Lasanha e os demais produtos permanecem fora deste ajuste.
+
+Descrições, medidas, sabores, destinos ou vínculos incompatíveis interrompem a
+transação inteira. Produtos ausentes são ignorados e banco vazio não recebe
+catálogo. Pare a API e a recarga automática antes de disponibilizar a migration,
+faça um backup consistente e ensaie em uma cópia. Não há downgrade; a reversão
+exige restaurar o backup anterior.
 
 ### Compras manuais
 

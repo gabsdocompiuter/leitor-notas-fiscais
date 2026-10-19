@@ -127,7 +127,7 @@ class MigracaoCatalogoTests(unittest.TestCase):
     def test_mapeamentos_totais_historico_reuso_e_classificacao_automatica(self):
         self.popular()
         antes = self.snapshot()
-        BancoSQLite.migrar(self.caminho)
+        BancoSQLite.migrar(self.caminho, "0009")
         depois = self.snapshot()
         self.assertEqual(len(depois["produtos"]), 127)
         self.assertEqual(sum(p["nao_solicitar_sabor"] for p in depois["produtos"]), 118)
@@ -159,8 +159,8 @@ class MigracaoCatalogoTests(unittest.TestCase):
                 self.assertIsNone(c.execute("SELECT id FROM produtos WHERE nome=?", (nome,)).fetchone())
             self.assertEqual(c.execute("SELECT count(*) FROM marcas WHERE nome IN ('Amaro','Lacta Shot')").fetchone()[0], 2)
             self.assertEqual(c.execute("PRAGMA foreign_key_check").fetchall(), [])
-        # Reexecutar head é idempotente e não altera preferências de novos produtos.
-        BancoSQLite.migrar(self.caminho)
+        # Reexecutar a revisão 0009 é idempotente e não altera preferências de novos produtos.
+        BancoSQLite.migrar(self.caminho, "0009")
         self.assertEqual(self.snapshot(), depois)
         with self.conectar() as c:
             novo = self.inserir(c, "produtos", nome="Novo produto", categoria_id=self.categorias["Outros"],
@@ -183,7 +183,7 @@ class MigracaoCatalogoTests(unittest.TestCase):
         self.assertTrue(resultado.itens[0].revisado)
 
     def test_banco_vazio_e_downgrade_bloqueado(self):
-        BancoSQLite.migrar(self.caminho)
+        BancoSQLite.migrar(self.caminho, "0009")
         self.assertEqual(self.snapshot()["produtos"], [])
         self.assertEqual(self.snapshot()["categorias"], [])
         with self.assertRaisesRegex(RuntimeError, "backup"):
@@ -197,7 +197,7 @@ class MigracaoCatalogoTests(unittest.TestCase):
             c.commit()
         antes = self.snapshot()
         with self.assertRaisesRegex(ErroPersistencia, "descrição desconhecida"):
-            BancoSQLite.migrar(self.caminho)
+            BancoSQLite.migrar(self.caminho, "0009")
         self.assertEqual(self.snapshot(), antes)
 
     def test_erro_de_escrita_reverte_tambem_preferencias_e_categoria(self):
@@ -207,7 +207,7 @@ class MigracaoCatalogoTests(unittest.TestCase):
             c.commit()
         antes = self.snapshot()
         with self.assertRaisesRegex(ErroPersistencia, "falha simulada"):
-            BancoSQLite.migrar(self.caminho)
+            BancoSQLite.migrar(self.caminho, "0009")
         self.assertEqual(self.snapshot(), antes)
 
     def test_sabor_tamanho_marca_e_categoria_conflitantes(self):
@@ -225,7 +225,7 @@ class MigracaoCatalogoTests(unittest.TestCase):
                     c.commit()
                 antes = self.snapshot()
                 with self.assertRaises(ErroPersistencia):
-                    BancoSQLite.migrar(self.caminho)
+                    BancoSQLite.migrar(self.caminho, "0009")
                 self.assertEqual(self.snapshot(), antes)
                 # Restaura somente os dados artificiais desta fixture.
                 with self.conectar() as c:
@@ -247,7 +247,7 @@ class MigracaoCatalogoTests(unittest.TestCase):
             apresentacao = self.inserir(c, "apresentacoes_produto", produto_id=destino, marca_id=None)
             tamanho = self.inserir(c, "variacoes_produto", produto_id=destino, quantidade="350.000", unidade_medida="ML")
             c.commit()
-        BancoSQLite.migrar(self.caminho)
+        BancoSQLite.migrar(self.caminho, "0009")
         with self.conectar() as c:
             linha = c.execute("SELECT apresentacao_id,sabor_id,variacao_id FROM itens WHERE id=?", (self.itens[6],)).fetchone()
             self.assertEqual(tuple(linha), (apresentacao, sabor, tamanho))
@@ -263,5 +263,5 @@ class MigracaoCatalogoTests(unittest.TestCase):
             c.commit()
         antes = self.snapshot()
         with self.assertRaisesRegex(ErroPersistencia, "sabor conflitante"):
-            BancoSQLite.migrar(self.caminho)
+            BancoSQLite.migrar(self.caminho, "0009")
         self.assertEqual(self.snapshot(), antes)

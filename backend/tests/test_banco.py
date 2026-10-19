@@ -115,7 +115,7 @@ class BancoTests(unittest.TestCase):
                 resposta = self.importar(novo.read_bytes())
                 self.assertEqual(resposta.status_code, 200, resposta.text)
                 with closing(sqlite3.connect(self.caminho)) as conexao:
-                    self.assertEqual(conexao.execute("SELECT version_num FROM alembic_version").fetchone(), ("0009",))
+                    self.assertEqual(conexao.execute("SELECT version_num FROM alembic_version").fetchone(), ("0012",))
                     self.assertIn("considerar_proximo_mes", [r[1] for r in conexao.execute("PRAGMA table_info(notas)")])
                 # O arquivo original fornecido não é migrado.
                 with closing(sqlite3.connect(novo)) as conexao:

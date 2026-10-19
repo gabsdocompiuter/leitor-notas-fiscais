@@ -227,7 +227,7 @@ class MigracaoTests(unittest.TestCase):
             with closing(sqlite3.connect(caminho)) as conexao:
                 self.assertEqual(
                     conexao.execute("SELECT version_num FROM alembic_version").fetchone(),
-                ("0009",),
+                ("0012",),
                 )
                 tabelas = {
                     linha[0]
@@ -293,7 +293,7 @@ class MigracaoTests(unittest.TestCase):
                 ).fetchone()
             self.assertNotIn("descricao", colunas)
             self.assertEqual(variacao, ("200", "ML"))
-            self.assertEqual(revisao, ("0009",))
+            self.assertEqual(revisao, ("0012",))
 
 
 if __name__ == "__main__":
